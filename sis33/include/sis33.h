@@ -92,10 +92,11 @@ struct sis33_acq {
 	uint32_t		nr_samples;	/**< number of samples acquired */
 	uint64_t		prevticks;	/**< in multievent, number of clock ticks from the first stop trigger */
 /** @cond INTERNAL */
-/* nr_samples, first_samp and be are filled in by SIS33_IOC_FETCH */
-	uint32_t		first_samp;	/**< index of the first valid sample */
-	uint32_t		be;		/**< 1 if the data is in big endian format; 0 otherwise */
-	uint32_t		unused[4];
+/* nr_samples, first_samp, trig_correction and be are filled in by SIS33_IOC_FETCH */
+	uint32_t		first_samp;		/**< index of the first valid sample */
+	uint32_t		be;			/**< 1 if the data is in big endian format; 0 otherwise */
+	uint32_t		trig_correction;	/**< trigger correction needed to align data */
+	uint32_t		unused[3];
 /** @endcond */
 };
 

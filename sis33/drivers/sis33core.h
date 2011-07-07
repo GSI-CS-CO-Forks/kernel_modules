@@ -66,6 +66,7 @@ struct sis33_cfg {
 struct sis33_event {
 	int		nr_samples;
 	int		first_samp;
+	int		trig_correction;
 };
 
 /**
