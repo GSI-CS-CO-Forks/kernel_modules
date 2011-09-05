@@ -708,10 +708,11 @@ static void print_pll(struct ad9516_pll *pll)
 {
 	unsigned long n = pll->p * pll->b + pll->a;
 	double fvco;
+	double sampfreq;
 
-	fvco = (double)AD9516_OSCILLATOR_FREQ * n / pll->r;
+	fvco = (double)pll->input_freq * n / pll->r;
 
-	printf("debug: fref=%g, n=%lu, r=%d\n", (double)AD9516_OSCILLATOR_FREQ,
+	printf("debug: fref=%g, n=%lu, r=%d\n", (double)pll->input_freq,
 		n, pll->r);
 
 	printf("PLL params: [P=%d, B=%d, A=%d, R = %d]\n"
@@ -722,19 +723,25 @@ static void print_pll(struct ad9516_pll *pll)
 		"\tf_ref = %g Hz\n"
 		"\tN = %lu\n"
 		"\tf_vco = %g Hz\n",
-		(double)AD9516_OSCILLATOR_FREQ, n, fvco);
+		(double)pll->input_freq, n, fvco);
 
-	if (pll->external) {
+	if (pll->external) 
 		printf("f_out: external\n");
-	} else {
-		double sampfreq = fvco / pll->dvco / pll->d1 / pll->d2;
 
-		printf("f_out: ");
-		if (sampfreq < 1000000)
-			printf("%g KHz", sampfreq / 1e3);
-		else
-			printf("%g MHz", sampfreq / 1e6);
+
+	printf("f_out: ");
+	sampfreq = fvco / pll->dvco / pll->d1 / pll->d2; 
+
+	if (sampfreq < 1000000)
+		printf("%g KHz", sampfreq / 1e3);
+	else
+		printf("%g MHz", sampfreq / 1e6);
 		printf("\n");
+
+	if (pll->ext_clk_pll) {
+		printf("f_input: external\n");
+	} else {
+		printf("f_input: internal oscillator\n");
 	}
 
 }
@@ -776,14 +783,19 @@ out:
 int h_sampfreq(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	struct ad9516_pll pll;
+	unsigned int ext_clk = 0;
+	unsigned int freq;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - get/set the sampling frequency\n"
 			"%s - print the current sampling frequency\n"
-			"%s n:\n"
+			"%s n [m]:\n"
 			"\tif n == 0, the sampling frequency is EXTCLK\n"
 			"\tif n != 0, set the sampling frequency to "
-			"(approx.) n Hz (using the internal PLL)\n",
+			"(approx.) n Hz (using the internal PLL)\n"
+			"\tif m == 0 or not present, the input of internal PLL is the internal oscillator (40 MHz)\n"
+			"\tif m != 0, set the frequency of the EXTCLK"
+			"(approx.) m Hz (using the internal PLL)\n",
 			cmdd->name, cmdd->name, cmdd->name);
 		goto out;
 	}
@@ -807,10 +819,33 @@ int h_sampfreq(struct cmd_desc *cmdd, struct atom *atoms)
 		printf("Out of range sampfreq. Max: %d\n", CVORG_MAX_FREQ);
 		return -TST_ERR_WRONG_ARG;
 	}
+	
+	freq = atoms->val;
 
-	if (ad9516_fill_pll_conf(atoms->val, &pll)) {
-		printf("Invalid argument\n");
-		return -TST_ERR_WRONG_ARG;
+	if ((++atoms)->type == Terminator) {
+		ext_clk = 0;
+	} else {
+		if (atoms->type != Numeric) {
+			printf("Invalid argument\n");
+			return -TST_ERR_WRONG_ARG;
+		}
+		if(atoms->val == 0)
+			ext_clk = 0;
+		else
+			ext_clk = 1;
+	}
+
+	if (ext_clk) {
+		if (ad9516_fill_pll_conf_ext_clk(freq, &pll, atoms->val)) {
+			printf("Invalid argument\n");
+			return -TST_ERR_WRONG_ARG;
+		}
+
+	} else {
+		if (ad9516_fill_pll_conf(freq, &pll)) {
+			printf("Invalid argument\n");
+			return -TST_ERR_WRONG_ARG;
+		}
 	}
 
 	if (ioctl(_DNFD, CVORG_IOCSPLL, &pll) < 0) {

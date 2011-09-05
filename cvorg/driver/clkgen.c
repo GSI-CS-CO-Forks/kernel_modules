@@ -48,8 +48,11 @@ static uint32_t clkgen_rval(struct cvorg *cvorg, unsigned int addr)
 {
 	uint32_t val;
 	int i;
+	int data;
 
-	cvorg_writew(cvorg, CVORG_CLKCTL, CVORG_AD9516_OP_READ | (addr << 8));
+	data = cvorg_readw(cvorg, CVORG_CLKCTL) & 0xFF000000;
+
+	cvorg_writew(cvorg, CVORG_CLKCTL, data | CVORG_AD9516_OP_READ | (addr << 8));
 
 	/* try a few times, although normally 5us should be enough */
 	for (i = 0; i < 3; i++) {
@@ -203,7 +206,7 @@ static int calib_vco_sleep(struct cvorg *cvorg, int r, int freqref)
 	tswait(NULL, SEM_SIGIGNORE, interval + 1);
 
 	/* check for completion */
-	return clkgen_rd(cvorg, AD9516_PLLREADBACK) & 0x40 ? 0 : -1;
+	return clkgen_rd(cvorg, AD9516_PLLREADBACK) & 0x40 ? 0 : -1;  
 }
 
 static int clkgen_read_dvco(struct cvorg *cvorg)
@@ -314,8 +317,6 @@ void get_pll_conf(struct cvorg *cvorg, struct ad9516_pll *pll)
  */
 static void check_pll_dividers(struct ad9516_pll *pll)
 {
-	if (pll->r == 1)
-		pll->r = 0;
 	if (pll->dvco == 1)
 		pll->dvco = 0;
 
@@ -366,7 +367,29 @@ static void clkgen_write_r(struct cvorg *cvorg, int r)
 
 static void clkgen_write_p(struct cvorg *cvorg, int p)
 {
-	int prescaler = p == 16 ? 0x5 : 0x6; /* see the module's docs */
+	int prescaler;
+
+	switch(p) {
+	case 2:
+		prescaler = 0x2;
+		break;
+	case 4: 
+		prescaler = 0x3;
+		break;
+
+	case 8: 
+		prescaler = 0x4;
+		break;
+	case 16: 
+		prescaler = 0x5;
+		break;
+
+	case 32: 
+		prescaler = 0x6;
+		break;
+	default:
+		prescaler = 0x6;
+	}
 
 	/* reset P */
 	clkgen_and(cvorg, AD9516_PLL1, ~0x07);
@@ -464,6 +487,7 @@ int clkgen_apply_pll_conf(struct cvorg *cvorg)
 {
 	int ret = 0;
 	struct ad9516_pll *pll = &cvorg->pll;
+	unsigned int data;
 
 	check_pll_dividers(pll);
 
@@ -489,7 +513,21 @@ int clkgen_apply_pll_conf(struct cvorg *cvorg)
 	clkgen_wr(cvorg, AD9516_PLL3,		0x01);
 	clkgen_wr(cvorg, AD9516_UPDATE_ALL,	0x01);
 
-	if (calib_vco_sleep(cvorg, pll->r, AD9516_OSCILLATOR_FREQ)) {
+	/* Use the external clock as input for the pll
+	 * instead of the internal oscillator.
+	 */
+	
+	if (pll->ext_clk_pll) {
+		data = cvorg_readw(cvorg, CVORG_CLKCTL);
+		cvorg_writew(cvorg, CVORG_CLKCTL, data | (1 << 31));
+	} else {
+
+		data = cvorg_readw(cvorg, CVORG_CLKCTL);
+		cvorg_writew(cvorg, CVORG_CLKCTL, data & 0x7FFFFFFF);
+	}
+
+
+	if (calib_vco_sleep(cvorg, pll->r, pll->input_freq)) {
 		SK_DEBUG("VCO calibration failed [PLL: A=%d B=%d P=%d "
 			"R=%d d1=%d d2=%d dvco=%d]", pll->a, pll->b,
 			pll->p, pll->r, pll->d1, pll->d2, pll->dvco);
@@ -506,12 +544,16 @@ int clkgen_check_pll(struct ad9516_pll *pll)
 
 	if (pll->a > pll->b)
 		err = 1;
+
 	if (pll->a > 63)
 		err = 1;
-	if (pll->p != 16 && pll->p != 32)
+
+	if (pll->p != 4 && pll->p != 8 && pll->p != 16 && pll->p != 16 && pll->p != 32)
 		err = 1;
+
 	if (pll->b <= 0 || pll->b > 8191)
 		err = 1;
+
 	if (pll->r <= 0 || pll->r > 16383)
 		err = 1;
 

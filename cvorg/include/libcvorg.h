@@ -33,6 +33,7 @@ int cvorg_unlock(cvorg_t *device);
 
 int cvorg_set_sampfreq(cvorg_t *device, unsigned int freq);
 int cvorg_get_sampfreq(cvorg_t *device, unsigned int *freq);
+int cvorg_set_sampfreq_ext_clk(cvorg_t *device, unsigned int freq, unsigned int ext_clk_freq);
 
 int cvorg_channel_set_outoff(cvorg_t *device, enum cvorg_outoff outoff);
 int cvorg_channel_get_outoff(cvorg_t *device, enum cvorg_outoff *outoff);

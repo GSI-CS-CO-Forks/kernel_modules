@@ -351,6 +351,8 @@ static void cvorg_pll_cfg_init(struct ad9516_pll *pll)
 	pll->d1		= 14;
 	pll->d2		= 1;
 	pll->external	= 0;
+	pll->input_freq = AD9516_OSCILLATOR_FREQ;
+	pll->ext_clk_pll = 0;
 }
 
 #define CVORG_FREQ_DIV	10000
@@ -367,14 +369,18 @@ static int cvorg_poll_sampfreq(struct cvorg *cvorg)
 	unsigned int n = pll->p * pll->b + pll->a;
 	int32_t sampfreq;
 	int32_t freq;
+	unsigned int input_freq = AD9516_OSCILLATOR_FREQ;
 	int i;
 
 	/* When external, we cannot possibly know the desired frequency */
 	if (pll->external)
 		return 0;
 
+	if (pll->ext_clk_pll)
+		input_freq = pll->input_freq;
+
 	/* Note: some dividers may be bypassed (ie set to zero) */
-	freq = AD9516_OSCILLATOR_FREQ / CVORG_FREQ_DIV * n;
+	freq = input_freq / CVORG_FREQ_DIV * n;
 	if (pll->r)
 		freq /= pll->r;
 	if (pll->dvco)
