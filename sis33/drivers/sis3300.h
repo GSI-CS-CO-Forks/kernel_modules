@@ -82,6 +82,29 @@
 #define INTCTL_ST_MASK	0xb0000000
 
 /*
+ * Trigger threshold registers
+ */
+#define SIS3300_TRIGGER_TH_ALL_ADC 	0x100004 /* write only; D32 */
+#define SIS3300_TRIGGER_TH_ADC12	0x200004 /* read/write; D32 */
+#define SIS3300_TRIGGER_TH_ADC34	0x280004 /* read/write; D32 */
+#define SIS3300_TRIGGER_TH_ADC56	0x300004 /* read/write; D32 */
+#define SIS3300_TRIGGER_TH_ADC78	0x380004 /* read/write; D32 */
+#define TRIGGER_TH_GT_LE_ODD		BIT(31)
+#define TRIGGER_TH_GT_LE_EVEN		BIT(15)
+
+/*
+ * Trigger setup registers
+ */
+
+#define SIS3300_TRIGGER_SETUP_ALL_ADC 	0x100028 /* write only; D32 */
+#define SIS3300_TRIGGER_SETUP_ADC12	0x200028 /* read/write; D32 */
+#define SIS3300_TRIGGER_SETUP_ADC34	0x280028 /* read/write; D32 */
+#define SIS3300_TRIGGER_SETUP_ADC56	0x300028 /* read/write; D32 */
+#define SIS3300_TRIGGER_SETUP_ADC78	0x380028 /* read/write; D32 */
+#define TRIGGER_PULSE_MODE		BIT(28)
+#define TRIGGER_N_M_MODE		BIT(24)
+
+/*
  * Acquisition control/status (R/W)
  */
 #define SIS3300_ACQ	0x10

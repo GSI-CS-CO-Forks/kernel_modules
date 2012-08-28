@@ -215,6 +215,161 @@ static int sis3300_conf_acq(struct sis33_card *card, struct sis33_cfg *cfg)
 	return 0;
 }
 
+static int sis3300_get_trigger_internal(struct sis33_card *card, struct sis33_channel *chan, struct trigger_internal *cfg)
+{
+	struct sis3300 *priv = card->private_data;
+	u32 offset = 0;
+	u32 offset_setup = 0;
+	u32 regval;
+	u32 regval_setup;
+
+	switch (chan->trigger.adc) {
+		case 1:
+		case 2: offset = SIS3300_TRIGGER_TH_ADC12; 
+			offset_setup = SIS3300_TRIGGER_SETUP_ADC12; 
+			break;
+		case 3:
+		case 4: offset = SIS3300_TRIGGER_TH_ADC34; 
+			offset_setup = SIS3300_TRIGGER_SETUP_ADC34; 
+			break;
+		case 5:
+		case 6: offset = SIS3300_TRIGGER_TH_ADC56; 
+			offset_setup = SIS3300_TRIGGER_SETUP_ADC56; 
+			break;
+		case 7:
+		case 8: offset = SIS3300_TRIGGER_TH_ADC78; 
+			offset_setup = SIS3300_TRIGGER_SETUP_ADC78; 
+			break;
+	}
+
+	/* Read current value */
+	regval = sis3300_readw(priv, offset);
+	regval_setup = sis3300_readw(priv, offset_setup);
+
+	if (chan->trigger.adc % 2) 
+		regval = regval >> 16;
+
+	cfg->gtle = ((regval & BIT(15)) > 0);
+	cfg->threshold = regval & 0x0FFF;
+
+	return 0;
+
+}
+static int sis3300_get_trigger_setup(struct sis33_card *card, struct sis33_channel *chan, 
+				     struct trigger_setup *setup)
+{
+	struct sis3300 *priv = card->private_data;
+			
+	u32 offset = SIS3300_TRIGGER_SETUP_ALL_ADC;
+	u32 val = 0;
+
+	switch (chan->trigger.adc) {
+		case 1:
+		case 2: offset = SIS3300_TRIGGER_SETUP_ADC12; break;
+		case 3:
+		case 4: offset = SIS3300_TRIGGER_SETUP_ADC34; break;
+		case 5:
+		case 6: offset = SIS3300_TRIGGER_SETUP_ADC56; break;
+		case 7:
+		case 8: offset = SIS3300_TRIGGER_SETUP_ADC78; break;
+	}
+
+	val = sis3300_readw(priv, offset);
+
+	/*printk(KERN_ERR "sis3300_get_trigger_setup value read is 0x%08x\n", val);*/
+
+	setup->pulse_mode = val && TRIGGER_PULSE_MODE;
+	setup->n_m_mode = val && TRIGGER_N_M_MODE;
+	setup->p = (val & 0xF0000) >> 16;
+	setup->n = (val & 0x00F00) >> 8;
+	setup->m = val & 0x0000F;
+
+	return 0;
+}
+
+static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_channel *chan)
+{
+ 
+	struct sis3300 *priv = card->private_data;
+	struct trigger_setup *cfg = &chan->trigger.setup;
+			
+	u32 offset = SIS3300_TRIGGER_SETUP_ALL_ADC;
+	u32 val = 0;
+
+	switch (chan->trigger.adc) {
+		case 1:
+		case 2: offset = SIS3300_TRIGGER_SETUP_ADC12; break;
+		case 3:
+		case 4: offset = SIS3300_TRIGGER_SETUP_ADC34; break;
+		case 5:
+		case 6: offset = SIS3300_TRIGGER_SETUP_ADC56; break;
+		case 7:
+		case 8: offset = SIS3300_TRIGGER_SETUP_ADC78; break;
+	}
+
+	if (cfg->pulse_mode) 
+		val |= TRIGGER_PULSE_MODE;
+	
+	if (cfg->n_m_mode) 
+		val |= TRIGGER_N_M_MODE;
+	else
+		val &= ~TRIGGER_N_M_MODE;
+
+	val |= (cfg->m & 0xF) | (cfg->n & 0xF) << 8 | (cfg->p & 0xF) << 16;
+
+	/*printk (KERN_ERR "sis3300_set_trigger_setup value wrote is 0x%08x\n", val);*/
+
+	sis3300_writew(priv, offset, val);
+
+	return 0;
+}
+
+static int sis3300_set_trigger_internal(struct sis33_card *card, struct sis33_channel *chan)
+{
+	struct sis3300 *priv = card->private_data;
+	u32 offset = SIS3300_TRIGGER_TH_ALL_ADC;
+	u32 regval = 0;
+	u32 thval;
+
+	/* Value to be writen on threshold register:
+	   a mode bit + 3 bits reserved + a 12 bit value */
+	thval = (chan->trigger.threshold & 0x0FFF) | (chan->trigger.gtle << 15);
+
+	switch (chan->trigger.adc) {
+		case 1:
+		case 2: offset = SIS3300_TRIGGER_TH_ADC12; break;
+		case 3:
+		case 4: offset = SIS3300_TRIGGER_TH_ADC34; break;
+		case 5:
+		case 6: offset = SIS3300_TRIGGER_TH_ADC56; break;
+		case 7:
+		case 8: offset = SIS3300_TRIGGER_TH_ADC78; break;
+	}
+	
+	/* Special case: same value to all channel groups */
+	if (offset == SIS3300_TRIGGER_TH_ALL_ADC) {
+		regval = thval | thval << 16;
+		sis3300_writew(priv, SIS3300_TRIGGER_TH_ALL_ADC, thval);
+		return 0;
+	}
+
+	/* Read current value */
+	regval = sis3300_readw(priv, offset);
+
+	/* high part for odd channel numbers, low part for even */
+	if (chan->trigger.adc % 2) 
+		regval = (regval & 0x000FFFF) | (thval << 16);
+	else
+		regval = (regval & 0xFFFF0000) | thval;
+	
+	/*printk (KERN_ERR "sis3300_set_trigger_internal write 0x%08x\n", regval);*/
+
+	/* write new value */
+	sis3300_writew(priv, offset, regval);
+
+	return 0;
+}
+
 static u32 sis3300_get_ev_len_bits(struct sis33_card *card, u32 length)
 {
 	const u32 *lengths;
@@ -695,6 +850,10 @@ static struct sis33_card_ops sis3300_ops = {
 	.conf_ev		= sis3300_conf_ev,
 	.fetch			= sis3300_fetch,
 	.trigger		= sis3300_trigger,
+	.set_itrigger		= sis3300_set_trigger_internal,
+	.get_itrigger		= sis3300_get_trigger_internal,
+	.set_itrigger_setup	= sis3300_set_trigger_setup,
+	.get_itrigger_setup	= sis3300_get_trigger_setup,
 	.acq_start		= sis3300_acq_start,
 	.acq_wait		= sis3300_acq_wait,
 	.acq_cancel		= sis3300_acq_cancel,
@@ -902,6 +1061,7 @@ static int __devinit sis3300_probe(struct device *pdev, unsigned int ndev)
 	struct sis33_segment *segments;
 	struct sis33_card *card;
 	struct sis3300 *priv;
+	int i;
 	int error;
 
 	error = sis33_card_create(index[ndev], THIS_MODULE, &card, pdev);
@@ -981,6 +1141,8 @@ static int __devinit sis3300_probe(struct device *pdev, unsigned int ndev)
  alloc_priv_failed:
 	sis33_card_free(card);
  out:
+	for (i=0; i<card->n_channels; i++)
+		sis3300_get_trigger_internal(card, &card->channels[i], &card->channels[i].trigger);
 	return error;
 }
 

@@ -561,6 +561,10 @@ static struct attribute *sis33_attrs[] = {
 	NULL,
 };
 
+/************************************************
+ * 		Channel attributes 		*
+ ************************************************/
+
 static struct attribute_group sis33_attr_group = {
 	.attrs = sis33_attrs,
 };
@@ -570,13 +574,122 @@ static struct attribute attr_offset = {
 	.mode = S_IWUSR | S_IRUGO,
 };
 
+static struct attribute attr_trigger_enable = {
+	.name = "trigger_enable",
+	.mode = S_IWUSR | S_IRUGO,
+};
+static struct attribute attr_trigger_threshold = {
+	.name = "trigger_threshold",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+static struct attribute attr_trigger_gtle = {
+	.name = "trigger_gtle",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+static struct attribute attr_trigger_pulse_mode= {
+	.name = "trigger_pulse_mode",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+static struct attribute attr_trigger_p= {
+	.name = "trigger_p",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+
+static struct attribute attr_trigger_nm_mode= {
+	.name = "trigger_nm_mode",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+static struct attribute attr_trigger_n= {
+	.name = "trigger_n",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+static struct attribute attr_trigger_m= {
+	.name = "trigger_m",
+	.mode = S_IWUSR | S_IRUGO,
+};
+
+
+
 static struct attribute *chan_attrs[] = {
 	&attr_offset,
 	NULL
 };
 
+static struct attribute *chan_trigger_attrs[] = {
+	&attr_trigger_enable,
+	&attr_trigger_threshold,
+	&attr_trigger_gtle,
+	&attr_trigger_pulse_mode,
+	&attr_trigger_p,
+	&attr_trigger_nm_mode,
+	&attr_trigger_n,
+	&attr_trigger_m,
+	NULL
+};
+
+#define PULSE_MODE 0
+#define NM_MODE 1
+#define	N 2
+#define M 3
+#define P 4
+
 #define to_sis33_channel(x)	container_of(x, struct sis33_channel, kobj)
 #define to_sis33_card(x)	dev_get_drvdata(container_of((x)->parent->parent, struct device, kobj))
+
+static ssize_t chan_get_itrigger_enable(struct sis33_card *card, struct sis33_channel *chan, char *buf)
+{
+	struct trigger_internal cfg;
+	ssize_t ret;
+	unsigned int enable;
+
+	if (!card->ops->get_itrigger)
+		return -EINVAL;
+
+	ret = card->ops->get_itrigger(card, chan, &cfg);
+
+	enable = (cfg.threshold != 0x0FFF);
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", enable);
+
+	return ret;
+	
+}
+
+static ssize_t  __chan_itrigger_setup_att_show(struct sis33_card *card, struct sis33_channel *channel, 
+						char *buf, int att)
+{
+	struct trigger_setup setup;
+	ssize_t ret;
+	unsigned int val;
+
+	if (!card->ops->get_itrigger_setup)
+		return -EINVAL;
+
+	ret = card->ops->get_itrigger_setup(card, channel, &setup);
+
+	if (ret) 
+		return ret;
+
+	switch (att) {
+		case PULSE_MODE: val = setup.pulse_mode; break;
+		case NM_MODE: val = setup.n_m_mode; break;
+		case P: val = setup.p; break;
+		case M: val = setup.m; break;
+		case N: val = setup.n; break;
+		default: 
+			return -EINVAL;
+	}
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", val);
+	
+	return ret;
+}
 
 static ssize_t chan_attr_show(struct kobject *kobj, struct attribute *attr, char *buf)
 {
@@ -588,6 +701,22 @@ static ssize_t chan_attr_show(struct kobject *kobj, struct attribute *attr, char
 		return -EINTR;
 	if (strncmp(attr->name, "offset", 6) == 0)
 		ret = snprintf(buf, PAGE_SIZE, "0x%x\n", channel->offset);
+	else if (strncmp(attr->name, "trigger_threshold", 17) == 0)
+		ret = snprintf(buf, PAGE_SIZE, "0x%x\n", channel->trigger.threshold);
+	else if (strncmp(attr->name, "trigger_gtle", 12) == 0) 
+		ret = snprintf(buf, PAGE_SIZE, "%d\n", channel->trigger.gtle);
+	else if (strncmp(attr->name, "trigger_enable", 14) == 0) 
+		ret = chan_get_itrigger_enable(card, channel, buf);
+	else if (strncmp(attr->name, "trigger_pulse_mode", 18) == 0) 
+		ret = __chan_itrigger_setup_att_show(card, channel, buf, PULSE_MODE);
+	else if (strncmp(attr->name, "trigger_nm_mode", 15) == 0) 
+		ret = __chan_itrigger_setup_att_show(card, channel, buf, NM_MODE);
+	else if (strncmp(attr->name, "trigger_p", 9) == 0) 
+		ret = __chan_itrigger_setup_att_show(card, channel, buf, P);
+	else if (strncmp(attr->name, "trigger_n", 9) == 0) 
+		ret = __chan_itrigger_setup_att_show(card, channel, buf, N);
+	else if (strncmp(attr->name, "trigger_m", 9) == 0) 
+		ret = __chan_itrigger_setup_att_show(card, channel, buf, M);
 	else
 		ret = -EIO;
 	mutex_unlock(&card->lock);
@@ -618,16 +747,115 @@ __chan_offset_store(struct sis33_card *card, struct sis33_channel *channel, cons
 	return count;
 }
 
+static ssize_t
+__chan_trigger_enable_store(struct sis33_card *card, struct sis33_channel *channel, const char *buf, size_t count)
+{
+	ssize_t ret;
+	unsigned int enable;
+
+	ret = sis33_getuval(buf, count, &enable);
+	if (ret)
+		return ret;
+
+	if (!enable)
+		channel->trigger.threshold = 0xFFF;
+
+	if (sis33_is_acquiring(card))
+		return -EBUSY;
+	if (!card->ops->set_itrigger)
+		return -EINVAL;
+	ret = card->ops->set_itrigger(card, channel);
+	return count;
+
+}
+
+static ssize_t
+__chan_threshold_store(struct sis33_card *card, struct sis33_channel *channel, const char *buf, size_t count)
+{
+	unsigned int threshold;
+	ssize_t ret;
+
+	ret = sis33_getuval(buf, count, &threshold);
+	if (ret)
+		return ret;
+
+	channel->trigger.threshold = threshold;
+
+	return count;
+	
+}
+
+static ssize_t
+__chan_gtle_store(struct sis33_card *card, struct sis33_channel *channel, const char *buf, size_t count)
+{
+	unsigned int gtle;
+	ssize_t ret;
+
+	if (sis33_is_acquiring(card))
+		return -EBUSY;
+
+	ret = sis33_getuval(buf, count, &gtle);
+	if (ret)
+		return ret;
+
+	channel->trigger.gtle = gtle;
+
+	return count;
+	
+}
+
+static ssize_t
+__chan_itrigger_setup_att_store(struct sis33_card *card, struct sis33_channel *channel, 
+				const char *buf, size_t count, unsigned int *value)
+{
+	ssize_t ret;
+
+	if (sis33_is_acquiring(card))
+		return -EBUSY;
+
+	ret = sis33_getuval(buf, count, value);
+
+	if (ret)
+		return ret;
+
+	if (!card->ops->set_itrigger_setup)
+		return -EINVAL;
+
+	ret = card->ops->set_itrigger_setup(card, channel);
+
+	if (ret) 
+		return ret;
+
+	return count;
+}
+
 static ssize_t chan_attr_store(struct kobject *kobj, struct attribute *attr, const char *buf, size_t count)
 {
 	struct sis33_channel *channel = to_sis33_channel(kobj);
 	struct sis33_card *card = to_sis33_card(kobj);
+	struct trigger_setup *setup = &channel->trigger.setup;
 	ssize_t ret;
 
 	if (mutex_lock_interruptible(&card->lock))
 		return -EINTR;
 	if (strncmp(attr->name, "offset", 6) == 0)
 		ret = __chan_offset_store(card, channel, buf, count);
+	else if (strncmp(attr->name, "trigger_enable", 14) == 0)
+		ret = __chan_trigger_enable_store(card, channel, buf, count);
+	else if (strncmp(attr->name, "trigger_threshold", 17) == 0)
+		ret = __chan_threshold_store(card, channel, buf, count);
+	else if (strncmp(attr->name, "trigger_gtle", 12) == 0)
+		ret = __chan_gtle_store(card, channel, buf, count);
+	else if (strncmp(attr->name, "trigger_pulse_mode", 18) == 0)
+		ret = __chan_itrigger_setup_att_store(card, channel, buf, count, &setup->pulse_mode);
+	else if (strncmp(attr->name, "trigger_nm_mode", 15) == 0)
+		ret = __chan_itrigger_setup_att_store(card, channel, buf, count, &setup->n_m_mode);
+		else if (strncmp(attr->name, "trigger_n", 9) == 0)
+		ret = __chan_itrigger_setup_att_store(card, channel, buf, count, &setup->n);
+	else if (strncmp(attr->name, "trigger_m", 9) == 0)
+		ret = __chan_itrigger_setup_att_store(card, channel, buf, count, &setup->m);
+	else if (strncmp(attr->name, "trigger_p", 9) == 0)
+		ret = __chan_itrigger_setup_att_store(card, channel, buf, count, &setup->p);
 	else
 		ret = -EIO;
 	mutex_unlock(&card->lock);
@@ -653,6 +881,7 @@ static struct kobj_type chan_attr_type = {
 static struct kobj_type chan_attr_type_no_attrs = {
 	.release	= chan_attr_release,
 	.sysfs_ops	= &chan_attr_ops,
+	.default_attrs	= chan_trigger_attrs,
 };
 
 static void chan_dir_release(struct kobject *kobj)
@@ -682,6 +911,7 @@ static int sis33_dev_add_attributes(struct sis33_card *card)
 
 	for (i = 0; i < card->n_channels; i++) {
 		channel = &card->channels[i];
+		channel->trigger.adc = (i + 1);
 		memset(&channel->kobj, 0, sizeof(struct kobject));
 		kobject_init(&channel->kobj);
 		kobject_set_name(&channel->kobj, "channel%d", i);
@@ -690,6 +920,7 @@ static int sis33_dev_add_attributes(struct sis33_card *card)
 			channel->kobj.ktype = &chan_attr_type;
 		else
 			channel->kobj.ktype = &chan_attr_type_no_attrs;
+
 		ret = kobject_add(&channel->kobj);
 		if (ret)
 			goto error;
