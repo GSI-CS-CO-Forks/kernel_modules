@@ -93,6 +93,12 @@ int sis33_get_event_timestamping_divider(sis33_t *device, unsigned int *divider)
 int sis33_set_event_timestamping_divider(sis33_t *device, unsigned int divider);
 int sis33_get_max_event_timestamping_clock_ticks(sis33_t *device, unsigned int *log2);
 
+int sis33_set_enable_internal_trigger(sis33_t *device, unsigned int channel, int value);
+int sis33_get_enable_internal_trigger(sis33_t *device, unsigned int channel, int *value);
+int sis33_set_internal_trigger_setup(sis33_t *device, unsigned int channel, struct sis33_itrigger_setup setup);
+int sis33_get_internal_trigger_setup(sis33_t *device, unsigned int channel, struct sis33_itrigger_setup *setup);
+
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

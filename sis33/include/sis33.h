@@ -95,6 +95,22 @@ struct sis33_acq_list {
 /** @endcond */
 
 /** @cond INTERNAL */
+/**
+ * @brief internal trigger setup struct
+ */
+struct sis33_itrigger_setup {
+	uint32_t		threshold;	/**< trigger threshold */
+	uint32_t		gtle;		/**< Greater or less/equal than mode */
+	uint32_t		pulse_mode;	/**< Pulsed trigger output with pulse width p */
+	uint32_t		p;		/**< Pulse width  */
+	uint32_t		n_m_mode;	/**< N over and M under threshold mode */
+	uint32_t		n;		/**< N over threshold value */
+	uint32_t		m;		/**< M under threshold value*/
+};
+/** @endcond */
+
+
+/** @cond INTERNAL */
 #define SIS33_IOC_FETCH		_IOWR('3', 0, struct sis33_acq_list)
 #define SIS33_IOC_ACQUIRE	_IOW ('3', 1, struct sis33_acq_desc)
 /** @endcond */
