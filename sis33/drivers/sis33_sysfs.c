@@ -638,6 +638,8 @@ static struct attribute *chan_trigger_attrs[] = {
 #define	N 2
 #define M 3
 #define P 4
+#define THRESHOLD 5
+#define GTLE 6
 
 #define to_sis33_channel(x)	container_of(x, struct sis33_channel, kobj)
 #define to_sis33_card(x)	dev_get_drvdata(container_of((x)->parent->parent, struct device, kobj))
@@ -661,7 +663,7 @@ static ssize_t chan_get_itrigger_enable(struct sis33_card *card, struct sis33_ch
 	
 }
 
-static ssize_t  __chan_itrigger_setup_att_show(struct sis33_card *card, struct sis33_channel *channel, 
+static ssize_t __chan_itrigger_setup_att_show(struct sis33_card *card, struct sis33_channel *channel, 
 						char *buf, int att)
 {
 	struct trigger_setup setup;
@@ -695,16 +697,16 @@ static ssize_t chan_attr_show(struct kobject *kobj, struct attribute *attr, char
 {
 	struct sis33_channel *channel = to_sis33_channel(kobj);
 	struct sis33_card *card = to_sis33_card(kobj);
-	ssize_t ret;
+	ssize_t ret = -EIO;
 
 	if (mutex_lock_interruptible(&card->lock))
 		return -EINTR;
 	if (strncmp(attr->name, "offset", 6) == 0)
 		ret = snprintf(buf, PAGE_SIZE, "0x%x\n", channel->offset);
 	else if (strncmp(attr->name, "trigger_threshold", 17) == 0)
-		ret = snprintf(buf, PAGE_SIZE, "0x%x\n", channel->trigger.threshold);
+		ret = snprintf(buf, PAGE_SIZE, "0x%03x\n", channel->trigger.threshold); 
 	else if (strncmp(attr->name, "trigger_gtle", 12) == 0) 
-		ret = snprintf(buf, PAGE_SIZE, "%d\n", channel->trigger.gtle);
+		ret = snprintf(buf, PAGE_SIZE, "%d\n", channel->trigger.gtle); 
 	else if (strncmp(attr->name, "trigger_enable", 14) == 0) 
 		ret = chan_get_itrigger_enable(card, channel, buf);
 	else if (strncmp(attr->name, "trigger_pulse_mode", 18) == 0) 
