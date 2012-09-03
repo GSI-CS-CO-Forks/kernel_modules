@@ -18,7 +18,6 @@
 #define MODULE_NR	0
 
 static int			module_nr = MODULE_NR;
-static struct sis33_itrigger_setup	setup;
 static int			channel = 0;
 static int			enabled = 0;
 extern char *optarg;
@@ -84,7 +83,7 @@ void change_channel ()
 
 
 
-void print_menu () 
+void print_menu (struct sis33_itrigger_setup *setup) 
 {
 
         printf("\033[2J");        /*  clear the screen  */
@@ -99,19 +98,19 @@ void print_menu ()
 	(enabled != 0) ? printf("ENABLED\n\n") : printf ("DISABLED\n\n");
 
         printf("\n----> Selected channel is %d\n", channel);
-        printf("\n----> Threshold: 0x%03x", setup.threshold);
+        printf("\n----> Threshold: 0x%03x", setup->threshold);
         printf("\n----> GTLE: ");
-	setup.gtle ? printf("LE\n") : printf ("GT\n");
+	setup->gtle ? printf("LE\n") : printf ("GT\n");
 
 	
-        printf("\n----> Pulse mode is: ");
-	setup.pulse_mode ? printf("ON\n") : printf("OFF\n");
-        printf("----> P = 0x%x\n", setup.p);
+        printf("\n----> Pulse mode is: %d\n", setup->pulse_mode);
+	//(setup.pulse_mode > 0) ? printf("ON\n") : printf("OFF\n");
+        //printf("----> P = 0x%x\n", setup.p);
 
         printf("\n----> N M mode is: ");
-	setup.n_m_mode ? printf("ON\n") : printf("OFF\n");
-        printf("----> N = 0x%x\n", setup.n);
-        printf("----> M = 0x%x\n", setup.m);
+	setup->n_m_mode ? printf("ON\n") : printf("OFF\n");
+        printf("----> N = 0x%x\n", setup->n);
+        printf("----> M = 0x%x\n", setup->m);
 
         printf("\n\n [0] - Change trigger enabled\n");
         printf("\n [1] - Change current channel\n");
@@ -133,6 +132,7 @@ int main(int argc, char *argv[])
 	char option;
 	int ret;
 	char cval[255];
+	struct sis33_itrigger_setup  setup;
 
 	parse_args(argc, argv);
 
@@ -157,7 +157,7 @@ int main(int argc, char *argv[])
 			goto exit;
 		}
 
-		print_menu();
+		print_menu(&setup);
 		scanf("%c", &option);
 
 		switch (option) {
@@ -182,7 +182,10 @@ int main(int argc, char *argv[])
 			setup.gtle = 1;	
 			break;
 		case '5':
-			setup.pulse_mode = !setup.pulse_mode;	
+			if (setup.pulse_mode == 0) 
+				setup.pulse_mode = 1;
+			else
+				 setup.pulse_mode = 0;	
 			break;
 		case '6':
 			get_str("Enter new P value (4 bits)", &cval[0]);
@@ -200,8 +203,8 @@ int main(int argc, char *argv[])
 			setup.m = atoi(cval);	
 			break;
 		}
+			sis33_set_internal_trigger_setup(dev, channel, setup);
 
-		sis33_set_internal_trigger_setup(dev, channel, setup);
 	
 	} while ((option != 'q') && (option != 'Q'));
  exit:

@@ -45,4 +45,4 @@ doxy_clean:
 
 doxy_install: doxy
 	mkdir -p $(DOXY_INSTDIR)
-	cp -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+	cp -rf $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/

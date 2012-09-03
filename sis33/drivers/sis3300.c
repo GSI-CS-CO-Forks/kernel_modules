@@ -278,8 +278,8 @@ static int sis3300_get_trigger_setup(struct sis33_card *card, struct sis33_chann
 
 	/*printk(KERN_ERR "sis3300_get_trigger_setup value read is 0x%08x\n", val);*/
 
-	setup->pulse_mode = val && TRIGGER_PULSE_MODE;
-	setup->n_m_mode = val && TRIGGER_N_M_MODE;
+	setup->pulse_mode = (val & TRIGGER_PULSE_MODE) != 0;
+	setup->n_m_mode = (val & TRIGGER_N_M_MODE) != 0;
 	setup->p = (val & 0xF0000) >> 16;
 	setup->n = (val & 0x00F00) >> 8;
 	setup->m = val & 0x0000F;
@@ -307,10 +307,10 @@ static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_chann
 		case 8: offset = SIS3300_TRIGGER_SETUP_ADC78; break;
 	}
 
-	if (cfg->pulse_mode) 
+	if (cfg->pulse_mode != 0) 
 		val |= TRIGGER_PULSE_MODE;
 	
-	if (cfg->n_m_mode) 
+	if (cfg->n_m_mode != 0) 
 		val |= TRIGGER_N_M_MODE;
 	else
 		val &= ~TRIGGER_N_M_MODE;
