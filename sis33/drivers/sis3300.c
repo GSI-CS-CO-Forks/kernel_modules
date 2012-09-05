@@ -324,12 +324,25 @@ static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_chann
 	return 0;
 }
 
+static int sis3300_disable_itrigger_all (struct sis33_card *card)
+{
+	struct sis3300 *priv = card->private_data;
+	int i;
+
+	sis3300_writew(priv, SIS3300_TRIGGER_TH_ALL_ADC, 0x0FFF0FFF);
+
+	for (i = 0; i < card->n_channels; i++)
+		sis3300_get_trigger_internal(card, &card->channels[i], &card->channels[i].trigger);
+	return 0;
+}
+
 static int sis3300_set_trigger_internal(struct sis33_card *card, struct sis33_channel *chan)
 {
 	struct sis3300 *priv = card->private_data;
 	u32 offset = SIS3300_TRIGGER_TH_ALL_ADC;
 	u32 regval = 0;
 	u32 thval;
+	/*u32 statval;*/
 
 	/* Value to be writen on threshold register:
 	   a mode bit + 3 bits reserved + a 12 bit value */
@@ -344,15 +357,11 @@ static int sis3300_set_trigger_internal(struct sis33_card *card, struct sis33_ch
 		case 6: offset = SIS3300_TRIGGER_TH_ADC56; break;
 		case 7:
 		case 8: offset = SIS3300_TRIGGER_TH_ADC78; break;
+		default:
+			dev_warn(card->pdev, "Invalid channel %d\n", chan->trigger.adc);
+			return -EINVAL;
 	}
 	
-	/* Special case: same value to all channel groups */
-	if (offset == SIS3300_TRIGGER_TH_ALL_ADC) {
-		regval = thval | thval << 16;
-		sis3300_writew(priv, SIS3300_TRIGGER_TH_ALL_ADC, thval);
-		return 0;
-	}
-
 	/* Read current value */
 	regval = sis3300_readw(priv, offset);
 
@@ -367,6 +376,28 @@ static int sis3300_set_trigger_internal(struct sis33_card *card, struct sis33_ch
 	/* write new value */
 	sis3300_writew(priv, offset, regval);
 
+	
+	/* read current status register */
+	/* TODO: clean this
+	statval = sis3300_readw(priv, SIS3300_CONTROL_STATUS);
+
+	if (chan->trigger.threshold != 0xFFF) 
+	{
+		statval &=~DI_INT_TRIG_ROUTING;
+		statval |= EN_INT_TRIG_ROUTING;
+	}
+	else
+	{
+		statval &= ~EN_INT_TRIG_ROUTING;
+		statval |= DI_INT_TRIG_ROUTING;
+	}
+
+	sis3300_writew(priv, SIS3300_CONTROL_STATUS, statval);
+	printk(KERN_ERR "sis3300_set_trigger_internal writting 0x%08x in control register\n",statval);
+	statval = sis3300_readw(priv, SIS3300_CONTROL_STATUS);
+
+	printk (KERN_ERR "sis3300_set_trigger_internal th is %d control/status register is 0x%08x\n", chan->trigger.threshold, statval);
+	*/
 	return 0;
 }
 
@@ -852,6 +883,7 @@ static struct sis33_card_ops sis3300_ops = {
 	.trigger		= sis3300_trigger,
 	.set_itrigger		= sis3300_set_trigger_internal,
 	.get_itrigger		= sis3300_get_trigger_internal,
+	.disable_itrigger_all	= sis3300_disable_itrigger_all,
 	.set_itrigger_setup	= sis3300_set_trigger_setup,
 	.get_itrigger_setup	= sis3300_get_trigger_setup,
 	.acq_start		= sis3300_acq_start,
