@@ -100,8 +100,6 @@ struct sis33_acq_list {
  * Power up default values are 0xfff for threshold, 0 for the others.
  */
 struct sis33_itrigger_setup {
-	uint32_t		threshold;	/**< Trigger threshold. On power up, default value is 0xfff*/
-	uint32_t		gtle;		/**< Greater or less/equal than mode. */
 	uint32_t		pulse_mode;	/**< Pulsed trigger output with pulse width p.  */
 	uint32_t		p;		/**< Pulse width  */
 	uint32_t		n_m_mode;	/**< N over and M under threshold mode */
