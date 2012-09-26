@@ -280,8 +280,48 @@ sis33_store_trigger_ext(struct device *pdev, struct device_attribute *attr, cons
 
 	return sis33_conf_store_bool(card, attr, buf, count, &cfg, &cfg.trigger_ext_en);
 }
+static ssize_t 
+sis33_show_trigger_int(struct device *pdev, struct device_attribute *attr, char *buf)
+{
+	ssize_t ret;
+	unsigned int enable;
+	struct sis33_card *card = dev_get_drvdata(pdev);
+
+	if (!card->ops->get_itrigger_enable)
+		return -EINVAL;
+
+	ret = card->ops->get_itrigger_enable(card, &enable);
+
+	ret = snprintf(buf, PAGE_SIZE, "%d\n", enable);
+
+	return ret;
+	
+}
+
 static ssize_t
-sis33_itigger_disable_all (struct device *pdev, struct device_attribute *attr, const char *buf, size_t count)
+sis33_store_trigger_int(struct device *pdev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	ssize_t ret;
+	unsigned int enable;
+	struct sis33_card *card = dev_get_drvdata(pdev);
+
+	ret = sis33_getuval(buf, count, &enable);
+	if (ret)
+		return ret;
+
+	if (sis33_is_acquiring(card))
+		return -EBUSY;
+
+	if (!card->ops->set_itrigger_enable)
+		return -EINVAL;
+
+	ret = card->ops->set_itrigger_enable(card, enable);
+
+	return count;
+
+}
+static ssize_t
+sis33_itigger_reset_all (struct device *pdev, struct device_attribute *attr, const char *buf, size_t count)
 {
 	struct sis33_card *card = dev_get_drvdata(pdev);
 	ssize_t ret;
@@ -291,11 +331,11 @@ sis33_itigger_disable_all (struct device *pdev, struct device_attribute *attr, c
 	if (ret)
 		return ret;
 
-	if (!card->ops->disable_itrigger_all)
+	if (!card->ops->reset_itrigger_all)
 		return -EINVAL;
 	
 	if (val)
-		ret = card->ops->disable_itrigger_all(card);
+		ret = card->ops->reset_itrigger_all(card);
 
 	return count;
 }
@@ -545,7 +585,8 @@ sis33_store_clk_freq(struct device *pdev, struct device_attribute *attr, const c
 static DEVICE_ATTR(start_auto, S_IWUSR | S_IRUGO, sis33_show_start_auto, sis33_store_start_auto);
 static DEVICE_ATTR(stop_auto, S_IWUSR | S_IRUGO, sis33_show_stop_auto, sis33_store_stop_auto);
 static DEVICE_ATTR(trigger_external_enable, S_IWUSR | S_IRUGO, sis33_show_trigger_ext, sis33_store_trigger_ext);
-static DEVICE_ATTR(trigger_internal_disable_all, S_IWUSR, NULL, sis33_itigger_disable_all);
+static DEVICE_ATTR(trigger_internal_enable, S_IWUSR | S_IRUGO, sis33_show_trigger_int, sis33_store_trigger_int);
+static DEVICE_ATTR(trigger_internal_reset_all, S_IWUSR, NULL, sis33_itigger_reset_all);
 static DEVICE_ATTR(trigger, S_IWUSR, NULL, sis33_store_trigger);
 static DEVICE_ATTR(start_delay, S_IWUSR | S_IRUGO, sis33_show_start_delay, sis33_store_start_delay);
 static DEVICE_ATTR(stop_delay, S_IWUSR | S_IRUGO, sis33_show_stop_delay, sis33_store_stop_delay);
@@ -568,6 +609,7 @@ static struct attribute *sis33_attrs[] = {
 	&dev_attr_event_timestamping_divider_max.attr,
 	&dev_attr_start_auto.attr,
 	&dev_attr_stop_auto.attr,
+	&dev_attr_trigger_internal_enable.attr,
 	&dev_attr_trigger_external_enable.attr,
 	&dev_attr_trigger.attr,
 	&dev_attr_start_delay.attr,
@@ -577,7 +619,7 @@ static struct attribute *sis33_attrs[] = {
 	&dev_attr_acq_cancel.attr,
 	&dev_attr_clock_source.attr,
 	&dev_attr_clock_frequency.attr,
-	&dev_attr_trigger_internal_disable_all.attr,
+	&dev_attr_trigger_internal_reset_all.attr,
 	NULL,
 };
 
@@ -593,12 +635,7 @@ static struct attribute attr_offset = {
 	.name = "offset",
 	.mode = S_IWUSR | S_IRUGO,
 };
-/*
-static struct attribute attr_trigger_enable = {
-	.name = "trigger_enable",
-	.mode = S_IWUSR | S_IRUGO,
-};
-*/
+
 static struct attribute attr_trigger_threshold = {
 	.name = "trigger_threshold",
 	.mode = S_IWUSR | S_IRUGO,
@@ -664,47 +701,28 @@ static struct attribute *chan_trigger_attrs[] = {
 #define to_sis33_channel(x)	container_of(x, struct sis33_channel, kobj)
 #define to_sis33_card(x)	dev_get_drvdata(container_of((x)->parent->parent, struct device, kobj))
 
-/*
-static ssize_t chan_get_itrigger_enable(struct sis33_card *card, struct sis33_channel *chan, char *buf)
-{
-	struct trigger_internal cfg;
-	ssize_t ret;
-	unsigned int enable;
 
-	if (!card->ops->get_itrigger)
-		return -EINVAL;
-
-	ret = card->ops->get_itrigger(card, chan, &cfg);
-
-	enable = (cfg.threshold != 0x0FFF);
-
-	ret = snprintf(buf, PAGE_SIZE, "%d\n", enable);
-
-	return ret;
-	
-}
-*/
 static ssize_t __chan_itrigger_setup_att_show(struct sis33_card *card, struct sis33_channel *channel, 
 						char *buf, int att)
 {
-	struct trigger_setup setup;
+	struct trigger_setup *setup = &channel->trigger.setup;
 	ssize_t ret;
 	unsigned int val;
 
 	if (!card->ops->get_itrigger_setup)
 		return -EINVAL;
 
-	ret = card->ops->get_itrigger_setup(card, channel, &setup);
+	ret = card->ops->get_itrigger_setup(card, channel, setup);
 
 	if (ret) 
 		return ret;
 
 	switch (att) {
-		case PULSE_MODE: val = setup.pulse_mode; break;
-		case NM_MODE: val = setup.n_m_mode; break;
-		case P: val = setup.p; break;
-		case M: val = setup.m; break;
-		case N: val = setup.n; break;
+		case PULSE_MODE: val = setup->pulse_mode; break;
+		case NM_MODE: val = setup->n_m_mode; break;
+		case P: val = setup->p; break;
+		case M: val = setup->m; break;
+		case N: val = setup->n; break;
 		default: 
 			return -EINVAL;
 	}
@@ -728,8 +746,6 @@ static ssize_t chan_attr_show(struct kobject *kobj, struct attribute *attr, char
 		ret = snprintf(buf, PAGE_SIZE, "0x%03x\n", channel->trigger.threshold); 
 	else if (strncmp(attr->name, "trigger_gtle", 12) == 0) 
 		ret = snprintf(buf, PAGE_SIZE, "%d\n", channel->trigger.gtle); 
-	/*else if (strncmp(attr->name, "trigger_enable", 14) == 0) 
-		ret = chan_get_itrigger_enable(card, channel, buf);*/
 	else if (strncmp(attr->name, "trigger_pulse_mode", 18) == 0) 
 		ret = __chan_itrigger_setup_att_show(card, channel, buf, PULSE_MODE);
 	else if (strncmp(attr->name, "trigger_nm_mode", 15) == 0) 
@@ -769,30 +785,8 @@ __chan_offset_store(struct sis33_card *card, struct sis33_channel *channel, cons
 	}
 	return count;
 }
-/*
-static ssize_t
-__chan_trigger_enable_store(struct sis33_card *card, struct sis33_channel *channel, const char *buf, size_t count)
-{
-	ssize_t ret;
-	unsigned int enable;
 
-	ret = sis33_getuval(buf, count, &enable);
-	if (ret)
-		return ret;
 
-	if (!enable)
-		channel->trigger.threshold = 0xFFF;
-
-	
-	if (sis33_is_acquiring(card))
-		return -EBUSY;
-	if (!card->ops->set_itrigger)
-		return -EINVAL;
-	ret = card->ops->set_itrigger(card, channel);
-	return count;
-
-}
-*/
 static ssize_t
 __chan_threshold_store(struct sis33_card *card, struct sis33_channel *channel, const char *buf, size_t count)
 {
@@ -870,8 +864,6 @@ static ssize_t chan_attr_store(struct kobject *kobj, struct attribute *attr, con
 		return -EINTR;
 	if (strncmp(attr->name, "offset", 6) == 0)
 		ret = __chan_offset_store(card, channel, buf, count);
-	/*else if (strncmp(attr->name, "trigger_enable", 14) == 0)
-		ret = __chan_trigger_enable_store(card, channel, buf, count);*/
 	else if (strncmp(attr->name, "trigger_threshold", 17) == 0)
 		ret = __chan_threshold_store(card, channel, buf, count);
 	else if (strncmp(attr->name, "trigger_gtle", 12) == 0)

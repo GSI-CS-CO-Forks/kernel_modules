@@ -156,6 +156,18 @@ int h_trig_ext(struct cmd_desc *cmdd, struct atom *atoms)
 	return h_attr(atoms, "trigger_external_enable");
 }
 
+int h_trig_int(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Enable/Disable internal trigger\n"
+			"%s bool\n",
+			cmdd->name, cmdd->name);
+		return 1;
+	}
+	return h_attr(atoms, "trigger_internal_enable");
+}
+
+
 int h_start_delay(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	if (atoms == (struct atom *)VERBOSE_HELP) {
@@ -277,6 +289,113 @@ int h_offset(struct cmd_desc *cmdd, struct atom *atoms)
 	printf("Updated:\n");
 	return show_chan_offset_all();
 }
+
+static int show_chan_threshold(void)
+{
+	char attr[SIS33_PATH_MAX];
+	int n_channels;
+	int val;
+	int ret;
+
+	n_channels = sis33dev_get_nr_subattrs(curr_index, "channels");
+	if (n_channels < 0)
+		return n_channels;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_threshold", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(curr_index, attr, &val);
+	if (ret >= 0)
+		printf("\t0x%x", val);
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_gtle", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(curr_index, attr, &val);
+	if (ret >= 0) {
+		if (val)
+			printf("\tLE\n");
+		else
+			printf("\tGT\n");
+	}
+
+	return 1;
+}
+
+
+static int set_threshold(int thr, int dir)
+{
+	char attr[SIS33_PATH_MAX];
+	int n_channels;
+	int ret;
+
+	n_channels = sis33dev_get_nr_subattrs(curr_index, "channels");
+	if (n_channels < 0)
+		return n_channels;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_threshold", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_int(curr_index, attr, thr);
+	if (ret < 0) {
+		mperr("set_threshold");
+		return -TST_ERR_SYSCALL;
+	}
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_gtle", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_int(curr_index, attr, dir);
+	if (ret < 0) {
+		mperr("set_gtle");
+		return -TST_ERR_SYSCALL;
+	}
+
+	return 0;
+}
+
+int h_threshold(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	int n_channels;
+	int thr;
+	int dir = 0;
+	int ret;
+
+	n_channels = sis33dev_get_nr_subattrs(curr_index, "channels");
+	if (n_channels < 0)
+		return n_channels;
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Configure channel threshold fot internal trigger\n"
+			"%s value [direction]\n"
+			"\tvalue: 12 bits (max. 0xfff.)\n"
+			"\tdirection: bool, 0 GT - 1 LE\n",
+			cmdd->name, cmdd->name);
+		return 1;
+	}
+
+	++atoms;
+	if (atoms->type == Terminator)
+		return show_chan_threshold();
+
+	if (atoms->type != Numeric)
+		return -TST_ERR_WRONG_ARG;
+	if (atoms->type != Numeric)
+		return -TST_ERR_WRONG_ARG;
+	thr = atoms->val;
+
+	++atoms;
+	if (atoms->type != Terminator) {
+		if (atoms->type != Numeric)
+			return -TST_ERR_WRONG_ARG;
+		else
+		 	dir = (atoms->val != 0);
+	}
+
+	ret = set_threshold(thr, dir);
+	if (ret)
+		return ret;
+
+	printf("Updated:\n");
+	return show_chan_threshold();
+}
+
 
 int h_clksrc(struct cmd_desc *cmdd, struct atom *atoms)
 {
@@ -1098,6 +1217,7 @@ enum _tag_cmd_id {
 	CmdDEVICE_NEXT,
 	CmdFETCH,
 	CmdOFFSET,
+	CmdTHRESHOLD,
 	CmdPLOT,
 	CmdSEGMENTS,
 	CmdSTART,
@@ -1107,6 +1227,7 @@ enum _tag_cmd_id {
 	CmdSTOP_AUTO,
 	CmdSTOP_DELAY,
 	CmdTRIG_EXT,
+	CmdTRIG_INT,
 	CmdTS_DIVIDER,
 	CmdWF,
 	CmdLAST
@@ -1136,6 +1257,9 @@ struct cmd_desc user_cmds[] = {
 	{ 1, CmdFETCH,		"fetch", "Fetch Acquired Data", "[segment] [timeout_us] [show_tstamps]", 0,
 				h_fetch },
 
+	{ 1, CmdTHRESHOLD,	"thr", "Internal trigger threshold", "value [direction]", 0,
+				h_threshold },
+
 	{ 1, CmdOFFSET,		"offset", "Input Offset", "channel value", 0,
 				h_offset },
 
@@ -1161,6 +1285,9 @@ struct cmd_desc user_cmds[] = {
 
 	{ 1, CmdTRIG_EXT,	"trig_ext",	"En/Disable external trigger", "bool", 0,
 				h_trig_ext },
+
+	{ 1, CmdTRIG_INT,	"trig_int",	"En/Disable internal trigger", "bool", 0,
+				h_trig_int },
 
 	{ 1, CmdTS_DIVIDER,	"ts_divider",	"Get/Set the timestamp divider", "[value]", 0,
 				h_ts_divider },

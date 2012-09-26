@@ -221,10 +221,12 @@ struct sis33_card_ops {
 	int (*fetch)		(struct sis33_card *card, int segment_nr, int channel_nr, struct sis33_acq *acqs, int nr_events);
 	int (*trigger)		(struct sis33_card *card, u32 trigger);
 	int (*set_itrigger)	(struct sis33_card *card, struct sis33_channel *channel);
-	int (*disable_itrigger_all)	(struct sis33_card *card);
+	int (*reset_itrigger_all)	(struct sis33_card *card);
 	int (*get_itrigger)	(struct sis33_card *card, struct sis33_channel *channel, struct trigger_internal *cfg);
 	int (*set_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel);
 	int (*get_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel, struct trigger_setup *setup);
+	int (*set_itrigger_enable) (struct sis33_card *card, int enable);
+	int (*get_itrigger_enable) (struct sis33_card *card, int *enable);
 	void (*acq_start)	(struct sis33_card *card);
 	int (*acq_wait)		(struct sis33_card *card, struct timespec *timeout);
 	int (*acq_cancel)	(struct sis33_card *card);

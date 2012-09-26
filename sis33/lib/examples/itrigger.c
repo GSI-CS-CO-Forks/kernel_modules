@@ -111,7 +111,7 @@ void print_menu (struct sis33_itrigger_setup *setup, int threshold, int gtle)
         printf("----> N = 0x%x\n", setup->n);
         printf("----> M = 0x%x\n", setup->m);
 
-        printf("\n [0] - Reset all (disable all itrigger)\n");
+        printf("\n [0] - Enable/Disable itrigger\n");
         printf("\n [1] - Change current channel\n");
         printf("\n [2] - Change threshold\n");
         printf("\n [3] - Set GT mode\n");
@@ -121,6 +121,7 @@ void print_menu (struct sis33_itrigger_setup *setup, int threshold, int gtle)
         printf("\n [7] - Set/Unset N M mode\n");
         printf("\n [8] - Change N value\n");
         printf("\n [9] - Change M value\n");
+        printf("\n [r] - Reset all\n");
         printf("\n [q] - Quit test\n");
         printf("\n Choose an option: ");
 }
@@ -144,29 +145,31 @@ int main(int argc, char *argv[])
 	if (dev == NULL)
 		exit(EXIT_FAILURE);
 
+	
 
 	do {
+		ret = 0;
 		ret = sis33_get_internal_trigger_setup(dev, channel, &setup);
 		if (ret < 0) {
 			printf("Error reading internal trigger setup for LUN %d and channel 0\n", module_nr);
 			goto exit;
 		}
 
-		sis33_get_internal_trigger_threshold(dev, channel, &th);
-		enabled = (th != 0xFFF);
+		ret = sis33_get_internal_trigger_threshold(dev, channel, &th);
+		ret += sis33_get_internal_trigger_enable(dev, &enabled);
+		ret += sis33_get_internal_trigger_direction(dev, channel, &gtle);
 		if (ret < 0) {
 			printf("Error reading internal trigger status for LUN %d and channel 0\n", module_nr);
 			goto exit;
 		}
 
-		sis33_get_internal_trigger_direction(dev, channel, &gtle);
-
 		print_menu(&setup, th, gtle);
 		scanf("%c", &option);
 
 		switch (option) {
-		case '0': 
-			sis33_disable_internal_trigger_all(dev);
+		case '0':
+			enabled = (enabled == 0);
+			ret = sis33_set_internal_trigger_enable(dev, enabled);
 			break;
 		case '1': 
 			change_channel();
@@ -175,42 +178,47 @@ int main(int argc, char *argv[])
 		case '2':
 			get_str("Enter new threshold (12 bits)", &cval[0]);
 			th = atoi(cval);	
-			sis33_set_internal_trigger(dev, channel, th, gtle);
+			ret = sis33_set_internal_trigger_threshold(dev, channel, th);
 			break;
 		case '3':
 			gtle = 0;	
-			sis33_set_internal_trigger(dev, channel, th, gtle);
+			ret = sis33_set_internal_trigger_direction(dev, channel, gtle);
 			break;
 		case '4':
 			gtle = 1;	
-			sis33_set_internal_trigger(dev, channel, th, gtle);
+			ret = sis33_set_internal_trigger_direction(dev, channel, gtle);
 			break;
 		case '5':
-			if (setup.pulse_mode == 0) 
-				setup.pulse_mode = 1;
-			else
-				 setup.pulse_mode = 0;	
-			sis33_set_internal_trigger_setup(dev, channel, setup);
+			setup.pulse_mode = (setup.pulse_mode == 0);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
 			break;
 		case '6':
 			get_str("Enter new P value (4 bits)", &cval[0]);
-			sis33_set_internal_trigger_setup(dev, channel, setup);
 			setup.p = atoi(cval);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
 			break;
 		case '7':
-			sis33_set_internal_trigger_setup(dev, channel, setup);
-			setup.n_m_mode = !setup.n_m_mode;	
+			setup.n_m_mode = (setup.n_m_mode == 0);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
 			break;
 		case '8':
-			 get_str("Enter new N value (4 bits)", &cval[0]);
+			get_str("Enter new N value (4 bits)", &cval[0]);
 			setup.n = atoi(cval);	
-			sis33_set_internal_trigger_setup(dev, channel, setup);
+			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
 			break;
 		case '9':
 			get_str("Enter new M value (4 bits)", &cval[0]);
 			setup.m = atoi(cval);	
-			sis33_set_internal_trigger_setup(dev, channel, setup);
+			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
 			break;
+		case 'r':
+			ret = sis33_reset_internal_trigger_all(dev);
+			break;
+		}
+
+		if (ret < 0) {
+			printf("Error\n");
+			goto exit;
 		}
 
 	
