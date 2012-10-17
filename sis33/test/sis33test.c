@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <time.h>
+#include <string.h>
 
 #include <general_usr.h>  /* for handy definitions (mperr etc..) */
 #include <extest.h>
@@ -307,15 +308,10 @@ static int show_chan_threshold(void)
 	if (ret >= 0)
 		printf("\t0x%x", val);
 
-	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_gtle", channel_nr);
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_direction", channel_nr);
 	attr[sizeof(attr) - 1] = '\0';
 	ret = sis33dev_get_attr_int(curr_index, attr, &val);
-	if (ret >= 0) {
-		if (val)
-			printf("\tLE\n");
-		else
-			printf("\tGT\n");
-	}
+	printf("\t%d\n", val);
 
 	return 1;
 }
@@ -339,11 +335,11 @@ static int set_threshold(int thr, int dir)
 		return -TST_ERR_SYSCALL;
 	}
 
-	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_gtle", channel_nr);
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_direction", channel_nr);
 	attr[sizeof(attr) - 1] = '\0';
 	ret = sis33dev_set_attr_int(curr_index, attr, dir);
 	if (ret < 0) {
-		mperr("set_gtle");
+		mperr("set_direction");
 		return -TST_ERR_SYSCALL;
 	}
 
@@ -362,10 +358,10 @@ int h_threshold(struct cmd_desc *cmdd, struct atom *atoms)
 		return n_channels;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
-		printf("%s - Configure channel threshold fot internal trigger\n"
+		printf("%s - Configure channel threshold for internal trigger\n"
 			"%s value [direction]\n"
 			"\tvalue: 12 bits (max. 0xfff.)\n"
-			"\tdirection: bool, 0 GT - 1 LE\n",
+			"\tdirection: int 0 greater, 1 lower, 2 both (sis3320 only)\n",
 			cmdd->name, cmdd->name);
 		return 1;
 	}
@@ -376,8 +372,6 @@ int h_threshold(struct cmd_desc *cmdd, struct atom *atoms)
 
 	if (atoms->type != Numeric)
 		return -TST_ERR_WRONG_ARG;
-	if (atoms->type != Numeric)
-		return -TST_ERR_WRONG_ARG;
 	thr = atoms->val;
 
 	++atoms;
@@ -385,7 +379,7 @@ int h_threshold(struct cmd_desc *cmdd, struct atom *atoms)
 		if (atoms->type != Numeric)
 			return -TST_ERR_WRONG_ARG;
 		else
-		 	dir = (atoms->val != 0);
+		 	dir = atoms->val;
 	}
 
 	ret = set_threshold(thr, dir);
@@ -396,6 +390,134 @@ int h_threshold(struct cmd_desc *cmdd, struct atom *atoms)
 	return show_chan_threshold();
 }
 
+static int show_chan_fir(void)
+{
+	char attr[SIS33_PATH_MAX];
+	int val;
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_fir_mode", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+
+	ret = sis33dev_get_attr_int(curr_index, attr, &val);
+	if (ret >= 0)
+		printf("\t%d\n", val);
+
+	return 1;
+}
+
+static int set_fir(int enabled)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_fir_mode", channel_nr);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_int(curr_index, attr, (enabled > 0));
+	if (ret < 0) {
+		mperr("set_fir_mode");
+		return -TST_ERR_SYSCALL;
+	}
+
+	return 0;
+}
+
+
+int h_trig_fir(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	int ret;
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Configures channel's internal trigger as FIR\n"
+			"%s [value]\n",
+			cmdd->name, cmdd->name);
+		return 1;
+	}
+
+	++atoms;
+	if (atoms->type == Terminator) 
+		return show_chan_fir();
+
+	if (atoms->type != Numeric)
+		return -TST_ERR_WRONG_ARG;
+
+	ret = set_fir(atoms->val);
+	if (ret)
+		return ret;
+
+	return show_chan_fir();
+}
+
+static int show_trig_setup(char * param)
+{
+	char attr[SIS33_PATH_MAX];
+	int val;
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_%s", channel_nr, param);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(curr_index, attr, &val);
+
+	if (ret >= 0)
+		printf("\t0x%x\n", val);
+
+	return 1;
+}
+
+static int store_trig_setup(char *param, int value)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_%s", channel_nr, param);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_int(curr_index, attr, value);
+	if (ret < 0) {
+		mperr("store_trig_setup");
+		return -TST_ERR_SYSCALL;
+	}
+
+	return 0;
+}
+
+
+int h_trig_setup(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	char param[MAX_ARG_LENGTH];
+	int ret = 0;
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Gets/Sets internal trigger setup values\n"
+			"%s <\"setup_param\"> [value]\n"
+			"\t setup_param: {pulse_mode, p, n_m_mode, n, m, pulse_length, sum_g, peaking_time}\n",
+			cmdd->name, cmdd->name);
+		return 1;
+	}
+
+	++atoms;
+	if (atoms->type == Terminator)
+		return -TST_ERR_WRONG_ARG;
+
+	while (atoms->type != Terminator) {
+		if (atoms->type != String)
+			return -TST_ERR_WRONG_ARG;
+		strcpy(&param[0], atoms->text);
+
+		++atoms;
+		if (atoms->type == Terminator)
+			ret = show_trig_setup(&param[0]);
+		else if (atoms->type == Numeric)
+			ret = store_trig_setup(param, atoms->val);
+		else
+			return -TST_ERR_WRONG_ARG;
+		if (ret < 0)
+			return ret;
+
+		++atoms;
+	}
+
+	return ret;
+}
 
 int h_clksrc(struct cmd_desc *cmdd, struct atom *atoms)
 {
@@ -1228,6 +1350,8 @@ enum _tag_cmd_id {
 	CmdSTOP_DELAY,
 	CmdTRIG_EXT,
 	CmdTRIG_INT,
+	CmdTRIG_SETUP,
+	CmdTRIG_FIR,
 	CmdTS_DIVIDER,
 	CmdWF,
 	CmdLAST
@@ -1289,6 +1413,11 @@ struct cmd_desc user_cmds[] = {
 	{ 1, CmdTRIG_INT,	"trig_int",	"En/Disable internal trigger", "bool", 0,
 				h_trig_int },
 
+	{ 1, CmdTRIG_SETUP,	"trig_setup",	"Sets/Gets internal trigger setup values", "<setup_param> [value]", 0,
+				h_trig_setup },
+
+	{ 1, CmdTRIG_FIR,	"trig_fir",	"Sets/Gets internal trigger fir mode (sis3320)", "[bool value]", 0,
+				h_trig_fir },
 	{ 1, CmdTS_DIVIDER,	"ts_divider",	"Get/Set the timestamp divider", "[value]", 0,
 				h_ts_divider },
 

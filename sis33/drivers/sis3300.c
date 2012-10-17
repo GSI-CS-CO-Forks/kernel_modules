@@ -252,14 +252,14 @@ static int sis3300_get_trigger_internal(struct sis33_card *card, struct sis33_ch
 		regval = regval >> 16;
 
 	/* Store values */
-	cfg->gtle = ((regval & BIT(15)) > 0);
+	cfg->dir = ((regval & BIT(15)) > 0);
 	cfg->threshold = regval & 0x0FFF;
 
 	return 0;
 
 }
 static int sis3300_get_trigger_setup(struct sis33_card *card, struct sis33_channel *chan, 
-				     struct trigger_setup *setup)
+				     enum  trigger_setup_parm parm, int *value)
 {
 	struct sis3300 *priv = card->private_data;
 			
@@ -281,23 +281,27 @@ static int sis3300_get_trigger_setup(struct sis33_card *card, struct sis33_chann
 
 	/*printk(KERN_ERR "sis3300_get_trigger_setup value read is 0x%08x\n", val);*/
 
-	setup->pulse_mode = (val & TRIGGER_PULSE_MODE) != 0;
-	setup->n_m_mode = (val & TRIGGER_N_M_MODE) != 0;
-	setup->p = (val & 0xF0000) >> 16;
-	setup->n = (val & 0x00F00) >> 8;
-	setup->m = val & 0x0000F;
+	switch (parm) {
+		case PARM_PULSE_MODE: *value = (val & TRIGGER_PULSE_MODE) != 0; break;
+		case PARM_P: *value = (val & 0xF0000) >> 16; break;
+		case PARM_N_M_MODE: *value = (val & TRIGGER_N_M_MODE) != 0; break;
+		case PARM_N: *value = (val & 0x00F00) >> 8; break;
+		case PARM_M: *value = val & 0x0000F; break;
+		default:
+			return -EINVAL;
+	}
 
 	return 0;
 }
 
-static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_channel *chan)
+static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_channel *chan,
+				     enum  trigger_setup_parm parm, int value)
 {
  
 	struct sis3300 *priv = card->private_data;
-	struct trigger_setup *cfg = &chan->trigger.setup;
 			
 	u32 offset = SIS3300_TRIGGER_SETUP_ALL_ADC;
-	u32 val = 0;
+	u32 setup_reg = 0;
 
 	switch (chan->trigger.adc) {
 		case 1:
@@ -310,19 +314,40 @@ static int sis3300_set_trigger_setup(struct sis33_card *card, struct sis33_chann
 		case 8: offset = SIS3300_TRIGGER_SETUP_ADC78; break;
 	}
 
-	if (cfg->pulse_mode != 0) 
-		val |= TRIGGER_PULSE_MODE;
-	
-	if (cfg->n_m_mode != 0) 
-		val |= TRIGGER_N_M_MODE;
-	else
-		val &= ~TRIGGER_N_M_MODE;
+	setup_reg = sis3300_readw(priv, offset);
 
-	val |= (cfg->m & 0xF) | (cfg->n & 0xF) << 8 | (cfg->p & 0xF) << 16;
+	switch (parm) {
+		case PARM_PULSE_MODE:
+			if (value > 0) 
+				setup_reg |= TRIGGER_PULSE_MODE;
+			else 
+				setup_reg &= ~TRIGGER_PULSE_MODE; 
+			break;
+		case PARM_P:
+			setup_reg &= 0xFFF0FFFF;
+			setup_reg |= (value & 0xF) << 16; 
+			break;
+		case PARM_N_M_MODE:
+			if (value > 0) 
+				setup_reg |= TRIGGER_N_M_MODE;
+			else
+				setup_reg &= ~TRIGGER_N_M_MODE; 
+			break; 
+		case PARM_N:	
+			setup_reg &= 0xFFFFF0FF;
+			setup_reg |= (value & 0xF) << 8; 
+			break;
+		case PARM_M:
+			setup_reg &= 0xFFFFFFF0;
+			setup_reg |= (value & 0xF); 
+			break;
+		default:
+			return -EINVAL;
+	}
 
-	/*printk (KERN_ERR "sis3300_set_trigger_setup value wrote is 0x%08x\n", val);*/
+	/*printk (KERN_ERR "sis3300_set_trigger_setup value wrote is 0x%08x\n", setup_reg);*/
 
-	sis3300_writew(priv, offset, val);
+	sis3300_writew(priv, offset, setup_reg);
 
 	return 0;
 }
@@ -338,6 +363,10 @@ static int sis3300_reset_itrigger_all (struct sis33_card *card)
 	/* Update trigger value in internal structure */
 	for (i = 0; i < card->n_channels; i++)
 		sis3300_get_trigger_internal(card, &card->channels[i], &card->channels[i].trigger);
+
+	/* Reset trigger setup */
+	sis3300_writew(priv, SIS3300_TRIGGER_SETUP_ALL_ADC, 0x0);
+
 	return 0;
 }
 
@@ -388,7 +417,7 @@ static int sis3300_set_trigger_internal(struct sis33_card *card, struct sis33_ch
 
 	/* Value to be writen on threshold register:
 	   a mode bit + 3 bits reserved + a 12 bit value */
-	thval = (chan->trigger.threshold & 0x0FFF) | (chan->trigger.gtle << 15);
+	thval = (chan->trigger.threshold & 0x0FFF) | (chan->trigger.dir << 15);
 
 	switch (chan->trigger.adc) {
 		case 1:

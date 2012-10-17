@@ -81,15 +81,21 @@ void change_channel ()
         }
 }
 
+struct sis33_setup {
+	int pulse_length;
+	int sum_g;
+	int peaking_time;
+};
 
 
-void print_menu (struct sis33_itrigger_setup *setup, int threshold, int gtle) 
+
+void print_menu (struct sis33_setup *setup, int threshold, int direction, enum sis3320_trigger_mode tmode) 
 {
-        printf("\033[2J");        /*  clear the screen  */
-        printf("\033[H");         /*  position cursor at top-left corner */
+        /*printf("\033[2J"); */       /*  clear the screen  */
+        /*printf("\033[H"); */        /*  position cursor at top-left corner */
 
         printf("\n--------------------------------------\n");
-        printf("|        sis33 internal trigger      |\n");
+        printf("|        sis3320 internal trigger      |\n");
         printf("|            Test program            |\n");
         printf("--------------------------------------\n");
 
@@ -98,32 +104,40 @@ void print_menu (struct sis33_itrigger_setup *setup, int threshold, int gtle)
 
         printf("\n----> Selected channel is %d\n", channel);
         printf("\n----> Threshold: 0x%03x", threshold);
-        printf("\n----> GTLE: ");
-	(gtle > 0) ? printf("LE\n") : printf ("GT\n");
+        printf("\n----> GTLT: ");
+	(direction > 0) ? printf("LT\n") : printf ("GT\n");
+	printf("\n----> Trigger mode:");
+	(tmode == SIS3320_FIR) ? printf("FIR\n") : printf ("Leading Edge\n");
 
 	
-        printf("\n----> Pulse mode is: ");
-	(setup->pulse_mode > 0) ? printf("ON\n") : printf("OFF\n");
-        printf("----> P = 0x%x\n", setup->p);
-
-        printf("\n----> N M mode is: ");
-	setup->n_m_mode ? printf("ON\n") : printf("OFF\n");
-        printf("----> N = 0x%x\n", setup->n);
-        printf("----> M = 0x%x\n", setup->m);
+        printf("\n----> Pulse length is 0x%x\n", setup->pulse_length);
+        printf("\n----> SumG is 0x%x\n", setup->sum_g);
+        printf("\n----> Peaking time is 0x%x\n", setup->peaking_time);
 
         printf("\n [0] - Enable/Disable itrigger\n");
         printf("\n [1] - Change current channel\n");
         printf("\n [2] - Change threshold\n");
-        printf("\n [3] - Set GT mode\n");
-        printf("\n [4] - Set LE mode\n");
-        printf("\n [5] - Set/Unset pulse mode\n");
-        printf("\n [6] - Change P value\n");
-        printf("\n [7] - Set/Unset N M mode\n");
-        printf("\n [8] - Change N value\n");
-        printf("\n [9] - Change M value\n");
+        printf("\n [3] - Set GT/GE mode\n");
+        printf("\n [4] - Set LT mode\n");
+        printf("\n [5] - Set/Unset FIR mode\n");
+        printf("\n [6] - Change pulse length value\n");
+        printf("\n [7] - Change sumG value\n");
+        printf("\n [8] - Change peaking time value\n");
         printf("\n [r] - Reset all\n");
         printf("\n [q] - Quit test\n");
         printf("\n Choose an option: ");
+}
+
+int get_setup (sis33_t *dev, struct sis33_setup *setup)
+{
+	int ret = 0;
+
+	ret = sis33_get_internal_trigger_setup(dev, channel, SIS3320_PULSE_LENGTH, &setup->pulse_length);
+	ret += sis33_get_internal_trigger_setup(dev, channel, SIS3320_SUM_G, &setup->sum_g);
+	ret += sis33_get_internal_trigger_setup(dev, channel, SIS3320_PEAKING_TIME, &setup->peaking_time);
+
+	return ret;
+
 }
 
 int main(int argc, char *argv[])
@@ -132,24 +146,22 @@ int main(int argc, char *argv[])
 	char option;
 	int ret;
 	char cval[255];
-	struct sis33_itrigger_setup setup;
-	int gtle=0;
+	int direction=0;
 	int th;
+	struct sis33_setup setup;
+	enum sis3320_trigger_mode tmode;
 
 	parse_args(argc, argv);
 
 	/* log error messages */
-	sis33_loglevel(3);
+	sis33_loglevel(4);
 
 	dev = sis33_open(module_nr);
 	if (dev == NULL)
 		exit(EXIT_FAILURE);
 
-	
-
 	do {
-		ret = 0;
-		ret = sis33_get_internal_trigger_setup(dev, channel, &setup);
+		ret = get_setup(dev, &setup);
 		if (ret < 0) {
 			printf("Error reading internal trigger setup for LUN %d and channel 0\n", module_nr);
 			goto exit;
@@ -157,13 +169,14 @@ int main(int argc, char *argv[])
 
 		ret = sis33_get_internal_trigger_threshold(dev, channel, &th);
 		ret += sis33_get_internal_trigger_enable(dev, &enabled);
-		ret += sis33_get_internal_trigger_direction(dev, channel, &gtle);
+		ret += sis33_get_internal_trigger_direction(dev, channel, &direction);
+		ret += sis33_get_internal_trigger_mode(dev, channel, &tmode);
 		if (ret < 0) {
 			printf("Error reading internal trigger status for LUN %d and channel 0\n", module_nr);
 			goto exit;
 		}
 
-		print_menu(&setup, th, gtle);
+		print_menu(&setup, th, direction, tmode);
 		scanf("%c", &option);
 
 		switch (option) {
@@ -173,7 +186,7 @@ int main(int argc, char *argv[])
 			break;
 		case '1': 
 			change_channel();
-			ret = sis33_get_internal_trigger_setup(dev, channel, &setup);
+			ret = get_setup(dev, &setup);
 			break;
 		case '2':
 			get_str("Enter new threshold (12 bits)", &cval[0]);
@@ -181,35 +194,36 @@ int main(int argc, char *argv[])
 			ret = sis33_set_internal_trigger_threshold(dev, channel, th);
 			break;
 		case '3':
-			gtle = 0;	
-			ret = sis33_set_internal_trigger_direction(dev, channel, gtle);
+			direction = 0;	
+			ret = sis33_set_internal_trigger_direction(dev, channel, direction);
 			break;
 		case '4':
-			gtle = 1;	
-			ret = sis33_set_internal_trigger_direction(dev, channel, gtle);
+			direction = 1;	
+			ret = sis33_set_internal_trigger_direction(dev, channel, direction);
 			break;
 		case '5':
-			setup.pulse_mode = (setup.pulse_mode == 0);	
-			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
+			if (tmode == SIS3320_FIR)
+				tmode = SIS3320_LEADING_EDGE;
+			else
+				tmode = SIS3320_FIR;	
+			ret = sis33_set_internal_trigger_mode(dev, channel, tmode); 
 			break;
 		case '6':
-			get_str("Enter new P value (4 bits)", &cval[0]);
-			setup.p = atoi(cval);	
-			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
+			get_str("Enter new Pulse value (8 bits)", &cval[0]);
+			setup.pulse_length = atoi(cval);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, 
+					SIS3320_PULSE_LENGTH, setup.pulse_length);
 			break;
 		case '7':
-			setup.n_m_mode = (setup.n_m_mode == 0);	
-			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
+			get_str("Enter new sumG value (5 bits)", &cval[0]);
+			setup.sum_g = atoi(cval);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, SIS3320_SUM_G, setup.sum_g);
 			break;
 		case '8':
-			get_str("Enter new N value (4 bits)", &cval[0]);
-			setup.n = atoi(cval);	
-			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
-			break;
-		case '9':
-			get_str("Enter new M value (4 bits)", &cval[0]);
-			setup.m = atoi(cval);	
-			ret = sis33_set_internal_trigger_setup(dev, channel, setup);
+			get_str("Enter new peaking time value (5 bits)", &cval[0]);
+			setup.peaking_time = atoi(cval);	
+			ret = sis33_set_internal_trigger_setup(dev, channel, 
+					SIS3320_PEAKING_TIME, setup.peaking_time);
 			break;
 		case 'r':
 			ret = sis33_reset_internal_trigger_all(dev);

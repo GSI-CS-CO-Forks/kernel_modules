@@ -355,6 +355,30 @@
 #define TRIG_THRESH_TRAPZD	0xffff
 
 /*
+ * Trigger threshold registers
+ */
+#define SIS3320_TRIGGER_TH_ADC1	0x02000034 /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC2	0x0200003C /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC3	0x02800034 /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC4	0x0280003C /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC5	0x03000034 /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC6	0x0300003C /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC7	0x03800034 /* read/write; D32 */
+#define SIS3320_TRIGGER_TH_ADC8	0x0380003C /* read/write; D32 */
+
+/*
+ * Trigger setup registers
+ */
+#define SIS3320_TRIGGER_SETUP_ADC1	0x02000030 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC2	0x02000038 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC3	0x02800030 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC4	0x02800038 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC5	0x03000030 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC6	0x03000038 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC7	0x03800030 /* read/write; D32 */
+#define SIS3320_TRIGGER_SETUP_ADC8	0x03800038 /* read/write; D32 */
+
+/*
  * SPI register
  */
 #define SPI_REG		0x40

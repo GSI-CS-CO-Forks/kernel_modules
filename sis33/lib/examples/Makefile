@@ -7,7 +7,8 @@ SRCS := \
 	clock.c \
 	event_timestamping.c \
 	fourier1.c \
-	itrigger.c \
+	itrigger_3300.c \
+	itrigger_3320.c \
 	n_bits.c \
 	n_events_max.c \
 	offset.c \

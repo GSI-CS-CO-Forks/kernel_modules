@@ -95,14 +95,18 @@ int sis33_get_max_event_timestamping_clock_ticks(sis33_t *device, unsigned int *
 
 int sis33_set_internal_trigger_enable(sis33_t *device, int enable);
 int sis33_get_internal_trigger_enable(sis33_t *device, int *enable);
-int sis33_reset_internal_trigger_all(sis33_t *device);
+int sis33_set_internal_trigger_mode(sis33_t *device, unsigned int channel, enum sis3320_trigger_mode mode);
+int sis33_get_internal_trigger_mode(sis33_t *device, unsigned int channel, enum sis3320_trigger_mode *mode);
 int sis33_set_internal_trigger_threshold(sis33_t *device, unsigned int channel, int threshold);
 int sis33_get_internal_trigger_threshold(sis33_t *device, unsigned int channel, int *value);
 int sis33_set_internal_trigger_direction(sis33_t *device, unsigned int channel, int direction);
 int sis33_get_internal_trigger_direction(sis33_t *device, unsigned int channel, int *value);
-int sis33_set_internal_trigger_setup(sis33_t *device, unsigned int channel, struct sis33_itrigger_setup setup);
-int sis33_get_internal_trigger_setup(sis33_t *device, unsigned int channel, struct sis33_itrigger_setup *setup);
+int sis33_set_internal_trigger_setup(sis33_t *device, unsigned int channel,
+					enum sis33_itrigger_setup param, int value);
+int sis33_get_internal_trigger_setup(sis33_t *device, unsigned int channel,
+					enum sis33_itrigger_setup param, int *value);
 
+int sis33_reset_internal_trigger_all(sis33_t *device);
 
 #ifdef __cplusplus
 }

@@ -42,6 +42,27 @@ enum sis33_clksrc {
 	SIS33_CLKSRC_EXTERNAL
 };
 
+/** */
+/**
+ * @brief internal trigger setup params.
+ * 
+ */
+enum sis33_itrigger_setup {
+	SIS3300_PULSE_MODE,
+	SIS3300_P,
+	SIS3300_N_M_MODE,
+	SIS3300_N,
+	SIS3300_M,
+	SIS3320_PULSE_LENGTH,
+	SIS3320_SUM_G,
+	SIS3320_PEAKING_TIME
+};
+
+enum sis3320_trigger_mode {
+	SIS3320_FIR,
+	SIS3320_LEADING_EDGE
+};
+
 /** @cond INTERNAL */
 /* Acquisition flags */
 #define SIS33_ACQF_DONTWAIT	1	/**< Do not sleep-wait */
@@ -91,20 +112,6 @@ struct sis33_acq_list {
 	struct timespec		timeout;	/**< acquisition timeout */
 	struct timeval		endtime;	/**< local time when the acquisition finished */
 	uint32_t		unused[4];
-};
-/** @endcond */
-
-/** */
-/**
- * @brief internal trigger setup struct.
- * Power up default values are 0xfff for threshold, 0 for the others.
- */
-struct sis33_itrigger_setup {
-	uint32_t		pulse_mode;	/**< Pulsed trigger output with pulse width p.  */
-	uint32_t		p;		/**< Pulse width  */
-	uint32_t		n_m_mode;	/**< N over and M under threshold mode */
-	uint32_t		n;		/**< N over threshold value */
-	uint32_t		m;		/**< M under threshold value*/
 };
 /** @endcond */
 

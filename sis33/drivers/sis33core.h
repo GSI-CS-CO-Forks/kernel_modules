@@ -24,33 +24,28 @@ extern struct workqueue_struct *sis33_workqueue;
 
 struct sis33_card_ops;
 
-/**
- * struct trigger_setup - trigger setup values 
- * @pulse_mode: Pulsed trigger output width p
- * @n_m_mode: N over, M under threshold
- * @p: 4 bits pulse width
- * @p: 4 bits N over threshold
- * @p: 4 bits M under threshold
- */
-struct trigger_setup {
-	unsigned int	pulse_mode;
-	unsigned int	n_m_mode;
-	unsigned int	p;
-	unsigned int	n;
-	unsigned int	m;
+enum trigger_setup_parm {
+	PARM_PULSE_MODE,
+	PARM_P,
+	PARM_N_M_MODE,
+	PARM_N,
+	PARM_M,
+	PARM_PULSE_LENGTH,
+	PARM_SUMG,
+	PARM_PEAKING,
 };
+
+	
 
 /**
  * struct trigger_internal - configuration of internal trigger threshold
  * @threshold:		12 bits threshold value. 
- * @gtle:		Greater than (0) or Less than/equal (1)
- * @setup:		Trigger setup structure.
+ * @dir:		Direction, an integer that means greater, less, etc. Card type depending.
  */
 struct trigger_internal {
 	unsigned int	adc;
 	u16		threshold;
-	unsigned int	gtle;
-	struct trigger_setup setup;
+	unsigned int	dir;
 };
 
 /**
@@ -223,10 +218,12 @@ struct sis33_card_ops {
 	int (*set_itrigger)	(struct sis33_card *card, struct sis33_channel *channel);
 	int (*reset_itrigger_all)	(struct sis33_card *card);
 	int (*get_itrigger)	(struct sis33_card *card, struct sis33_channel *channel, struct trigger_internal *cfg);
-	int (*set_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel);
-	int (*get_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel, struct trigger_setup *setup);
+	int (*set_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel, enum trigger_setup_parm parm, int value);
+	int (*get_itrigger_setup)	(struct sis33_card *card, struct sis33_channel *channel, enum trigger_setup_parm parm, int *value);
 	int (*set_itrigger_enable) (struct sis33_card *card, int enable);
 	int (*get_itrigger_enable) (struct sis33_card *card, int *enable);
+	int (*set_itrigger_fir)	(struct sis33_card *card, struct sis33_channel *channel, int enable);
+	int (*get_itrigger_fir)	(struct sis33_card *card, struct sis33_channel *channel, int *enabled);
 	void (*acq_start)	(struct sis33_card *card);
 	int (*acq_wait)		(struct sis33_card *card, struct timespec *timeout);
 	int (*acq_cancel)	(struct sis33_card *card);

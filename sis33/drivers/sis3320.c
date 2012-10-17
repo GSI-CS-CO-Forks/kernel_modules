@@ -968,6 +968,285 @@ static int sis3320_trigger(struct sis33_card *card, u32 trigger)
 	}
 }
 
+static int sis3320_set_itrigger_enable(struct sis33_card *card, int enable)
+{
+	u32 statval;
+	struct sis3320 *priv = card->private_data;
+
+	statval = sis3320_readw(priv, SIS3320_ACQ);
+
+	if (enable)
+		statval |= ACQ_EN_IST;
+	else
+	{
+		statval &= ~ACQ_EN_IST;
+		statval |= ACQ_DI_IST;
+	}
+	
+	/*printk(KERN_ERR "sis3320_set_itrigger_enable writting 0x%08x in ACQ C/S register\n",statval);*/
+	sis3320_writew(priv, SIS3320_ACQ, statval);
+	
+	/*
+	statval = sis3320_readw(priv, SIS3320_ACQ);
+	printk (KERN_ERR "sis3320_set_itrigger_enable ACQ C/S register is 0x%08x\n", statval);
+	*/
+
+	return 0;
+}
+
+static int sis3320_get_itrigger_enable(struct sis33_card *card, int *enable)
+{
+	u32 statval;
+	struct sis3320 *priv = card->private_data;
+
+	statval = sis3320_readw(priv, SIS3320_ACQ);
+
+	*enable = (statval & ACQ_EN_IST) > 0;
+	
+	return 0;
+}
+
+static int get_trigger_reg_offset (int adc, u32 *offset)
+{
+	/*int grp = adc / 2;
+	
+	if ((adc % 2) == 0)
+		*offset +=0x8;
+
+	*offset += grp * 800000;
+	*/		
+	switch (adc) {
+		case 1: *offset = SIS3320_TRIGGER_TH_ADC1; break;
+		case 2: *offset = SIS3320_TRIGGER_TH_ADC2; break;
+		case 3: *offset = SIS3320_TRIGGER_TH_ADC3; break;
+		case 4: *offset = SIS3320_TRIGGER_TH_ADC4; break;
+		case 5: *offset = SIS3320_TRIGGER_TH_ADC5; break;
+		case 6: *offset = SIS3320_TRIGGER_TH_ADC6; break;
+		case 7: *offset = SIS3320_TRIGGER_TH_ADC7; break;
+		case 8: *offset = SIS3320_TRIGGER_TH_ADC8; break;
+		default:
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sis3320_set_trigger_internal(struct sis33_card *card, struct sis33_channel *chan)
+{
+	struct sis3320 *priv = card->private_data;
+	u32 offset = 0;
+	u32 regval = 0;
+
+	if (get_trigger_reg_offset(chan->trigger.adc, &offset) < 0) {
+		dev_warn(card->pdev, "Invalid channel %d\n", chan->trigger.adc);
+		return -EINVAL;
+	}
+	
+	/* Read current value */
+	regval = sis3320_readw(priv, offset);
+
+	/*Mask threshold value */	
+	regval &= 0xFFFE0000;
+
+	regval |= chan->trigger.threshold;
+
+	switch (chan->trigger.dir) {
+		case 0:
+			regval |= TRIG_THRESH_GTGE; 
+			regval &= ~TRIG_THRESH_LT; 
+			break;
+		case 1: 
+			regval |= TRIG_THRESH_LT; 
+			regval &= ~TRIG_THRESH_GTGE; 
+			break;
+		case 2: regval |= TRIG_THRESH_LT | TRIG_THRESH_GTGE; break;
+	}
+
+	/* write new value */
+	sis3320_writew(priv, offset, regval);
+	/*printk (KERN_ERR "sis3320_set_trigger_enable 0x%08x\n", regval);*/
+
+	return 0;
+}
+
+static int sis3320_get_trigger_internal(struct sis33_card *card, struct sis33_channel *chan, 
+					struct trigger_internal *cfg)
+{
+	struct sis3320 *priv = card->private_data;
+	u32 offset = 0;
+	u32 regval;
+
+	/* Choose adc offset */
+	if (get_trigger_reg_offset(chan->trigger.adc, &offset) < 0)
+		return -EINVAL;
+
+	/* Read current value */
+	regval = sis3320_readw(priv, offset);
+
+	/* Store values */
+	cfg->dir = (regval & TRIG_THRESH_LT) > 0;
+	cfg->threshold = regval & 0x1FFFF;
+
+	return 0;
+
+}
+
+static int sis3320_set_trigger_fir(struct sis33_card *card, struct sis33_channel *chan, int enable)
+{
+	struct sis3320 *priv = card->private_data;
+	u32 offset;
+	u32 regval = 0;
+
+	/* Choose adc offset */
+	if (get_trigger_reg_offset(chan->trigger.adc, &offset) < 0) {
+		dev_warn(card->pdev, "Invalid channel %d\n", chan->trigger.adc);
+		return -EINVAL;
+	}
+
+	/* Read current value */
+	regval = sis3320_readw(priv, offset);
+
+	/*printk (KERN_ERR "sis3320_set_trigger_fir value read is 0x%08x\n", regval);*/
+
+	if (enable) /* 26th bit set to zero */
+		regval &=  0xFBFFFFFF;
+	else 
+		regval |= TRIG_THRESH_MODE;
+
+	/*printk(KERN_DEBUG "sis3320_set_trigger_fir FIR enable is %d value is 0x%08x\n", enable, regval);*/
+	
+	/* write new value */
+	sis3320_writew(priv, offset, regval);
+
+	return 0;
+}
+
+static int sis3320_get_trigger_fir(struct sis33_card *card, struct sis33_channel *chan, int *enabled)
+{
+	struct sis3320 *priv = card->private_data;
+	u32 offset;
+	u32 regval = 0;
+
+	/* Choose adc offset */
+	if (get_trigger_reg_offset(chan->trigger.adc, &offset) < 0)
+		return -EINVAL;
+
+	/* Read current value */
+	regval = sis3320_readw(priv, offset);
+
+	*enabled = (regval & TRIG_THRESH_MODE) == 0;
+
+	return 0;
+}
+
+static int sis3320_get_trigger_setup(struct sis33_card *card, struct sis33_channel *chan, 
+				     enum  trigger_setup_parm parm, int *value)
+{
+	struct sis3320 *priv = card->private_data;
+			
+	u32 offset = 0;
+	u32 val = 0;
+
+	switch (chan->trigger.adc) {
+		case 1: offset = SIS3320_TRIGGER_SETUP_ADC1; break;
+		case 2: offset = SIS3320_TRIGGER_SETUP_ADC2; break;
+		case 3: offset = SIS3320_TRIGGER_SETUP_ADC3; break;
+		case 4: offset = SIS3320_TRIGGER_SETUP_ADC4; break;
+		case 5: offset = SIS3320_TRIGGER_SETUP_ADC5; break;
+		case 6: offset = SIS3320_TRIGGER_SETUP_ADC6; break;
+		case 7: offset = SIS3320_TRIGGER_SETUP_ADC7; break;
+		case 8: offset = SIS3320_TRIGGER_SETUP_ADC8; break;
+	}
+
+	val = sis3320_readw(priv, offset);
+
+	/*printk(KERN_ERR "sis3320_get_trigger_setup value read is 0x%08x - parm is %d\n", val, parm);*/
+
+	switch (parm) {
+		case PARM_PULSE_LENGTH: *value = (val & 0xFF0000) >> 16; break;
+		case PARM_SUMG: *value = (val & 0x1F00) >> 8; break;
+		case PARM_PEAKING: *value = (val & 0x1F); break;
+		default:
+			return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int sis3320_set_trigger_setup(struct sis33_card *card, struct sis33_channel *chan,
+				     enum  trigger_setup_parm parm, int value)
+{
+ 
+	struct sis3320 *priv = card->private_data;
+			
+	u32 offset = 0;
+	u32 setup_reg = 0;
+
+	switch (chan->trigger.adc) {
+		case 1: offset = SIS3320_TRIGGER_SETUP_ADC1; break;
+		case 2: offset = SIS3320_TRIGGER_SETUP_ADC2; break;
+		case 3: offset = SIS3320_TRIGGER_SETUP_ADC3; break;
+		case 4: offset = SIS3320_TRIGGER_SETUP_ADC4; break;
+		case 5: offset = SIS3320_TRIGGER_SETUP_ADC5; break;
+		case 6: offset = SIS3320_TRIGGER_SETUP_ADC6; break;
+		case 7: offset = SIS3320_TRIGGER_SETUP_ADC7; break;
+		case 8: offset = SIS3320_TRIGGER_SETUP_ADC8; break;
+	}
+
+	setup_reg = sis3320_readw(priv, offset);
+
+	switch (parm) {
+		case PARM_PULSE_LENGTH:
+			setup_reg &= 0xFF00FFFF;
+			setup_reg |= (value & 0xFF) << 16; 
+			break;
+		case PARM_SUMG:	
+			setup_reg &= 0xFFFFE0FF;
+			setup_reg |= (value & 0x1F) << 8; 
+			break;
+		case PARM_PEAKING:
+			setup_reg &= 0xFFFFFFE0;
+			setup_reg |= (value & 0x1F); 
+			break;
+		default:
+			return -EINVAL;
+	}
+
+	/*printk (KERN_ERR "sis3320_set_trigger_setup value wrote is 0x%08x param is %d\n", setup_reg, parm);*/
+
+	sis3320_writew(priv, offset, setup_reg);
+
+	return 0;
+}
+
+static int sis3320_reset_itrigger_all (struct sis33_card *card)
+{
+	struct sis3320 *priv = card->private_data;
+	int i;
+	int offset = 0x02000000;
+
+	for (i=0; i<4; i++) {
+		/* Reset threshold registers */
+		sis3320_writew(priv, offset + 0x34, 0x0);
+		sis3320_writew(priv, offset + 0x3C, 0x0);
+
+		/* Reset setup registers */
+		sis3320_writew(priv, offset + 0x30, 0x0);
+		sis3320_writew(priv, offset + 0x38, 0x0);
+		
+		offset +=0x800000;	
+	}
+	
+	/* Update trigger value in internal structure */
+	for (i = 0; i < card->n_channels; i++)
+		sis3320_get_trigger_internal(card, &card->channels[i], &card->channels[i].trigger);
+
+	/*printk(KERN_DEBUG "sis3320_reset_itrigger_all called\n");*/
+
+	return 0;
+}
+
+
 static int sis3320_conf_ev(struct sis33_card *card, struct sis33_acq_desc *desc)
 {
 	struct sis3320 *priv = card->private_data;
@@ -1098,6 +1377,15 @@ static struct sis33_card_ops sis3320_ops = {
 	.conf_channels		= sis3320_conf_channels,
 	.fetch			= sis3320_fetch,
 	.trigger		= sis3320_trigger,
+	.set_itrigger_enable	= sis3320_set_itrigger_enable,
+	.get_itrigger_enable	= sis3320_get_itrigger_enable,
+	.set_itrigger		= sis3320_set_trigger_internal,
+	.get_itrigger		= sis3320_get_trigger_internal,
+	.set_itrigger_setup	= sis3320_set_trigger_setup,
+	.get_itrigger_setup	= sis3320_get_trigger_setup,
+	.set_itrigger_fir	= sis3320_set_trigger_fir,
+	.get_itrigger_fir	= sis3320_get_trigger_fir,
+	.reset_itrigger_all	= sis3320_reset_itrigger_all,
 	.acq_start		= sis3320_acq_start,
 	.acq_wait		= sis3320_acq_wait,
 	.acq_cancel		= sis3320_acq_cancel,
@@ -1110,6 +1398,7 @@ static int __devinit sis3320_probe(struct device *pdev, unsigned int ndev)
 	struct sis3320 *priv;
 	struct sis33_channel *channels;
 	struct sis33_segment *segments;
+	int i;
 	int error;
 
 	error = sis33_card_create(index[ndev], THIS_MODULE, &card, pdev);
@@ -1211,6 +1500,8 @@ static int __devinit sis3320_probe(struct device *pdev, unsigned int ndev)
  alloc_priv_failed:
 	sis33_card_free(card);
  out:
+	for (i=0; i<card->n_channels; i++)
+		sis3320_get_trigger_internal(card, &card->channels[i], &card->channels[i].trigger);
 	return error;
 }
 
