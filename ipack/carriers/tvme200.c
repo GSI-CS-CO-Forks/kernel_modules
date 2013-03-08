@@ -477,6 +477,7 @@ static void tvme200_release_device (struct ipack_device *dev)
 
 static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
 {
+	int ret;
 	enum ipack_space space;
 	struct ipack_device *dev =
         	kzalloc(sizeof(struct ipack_device), GFP_KERNEL);
@@ -494,7 +495,17 @@ static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
                      	+ tvme200_space_interval[space] * i;
                  dev->region[space].size = tvme200_space_size[space];
          }
-	return ipack_device_register(dev);
+	ret = ipack_device_init(dev);
+	if (ret < 0) {
+		ipack_put_device(dev);
+		return ret;
+	}
+
+	ret = ipack_device_add(dev);
+	if (ret < 0)
+		ipack_put_device(dev);
+
+	return ret;
 
 }
 
