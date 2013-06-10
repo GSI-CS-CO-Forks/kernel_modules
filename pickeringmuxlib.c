@@ -1,4 +1,5 @@
 static __attribute__((unused)) char *rcsid(){return "$Id: pickeringmuxlib.c,v 1.9 2006/03/21 15:06:57 sdeghaye Exp $";}
+static __attribute__((unused)) char lib_version[] = "version: " GIT_VERSION;
 
 #include <unistd.h>
 #include <stdlib.h>

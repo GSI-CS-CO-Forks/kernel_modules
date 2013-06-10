@@ -7,4 +7,5 @@ pickeringmuxdrv-objs += pickering9to8.o
 pickeringmuxdrv-objs += pickering22to8.o
 pickeringmuxdrv-objs += pickeringattn.o
 ccflags-y += -g -Wall -I. -I/acc/local/$(CPU)/include
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 

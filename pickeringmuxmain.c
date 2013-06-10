@@ -764,4 +764,5 @@ void dumpMemory (void *addr, int size)
 
 MODULE_DESCRIPTION("Pickering MUX Linux driver");
 MODULE_AUTHOR("S. Deghaye");
+MODULE_VERSION(GIT_VERSION);
 MODULE_LICENSE("GPL");
