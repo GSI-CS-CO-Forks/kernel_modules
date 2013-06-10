@@ -75,7 +75,7 @@ static struct pci_device_id pickeringMuxIdtable[] __devinitdata =
 };
 	
 /* Structure for the Linux PCI layer */
-static struct pci_driver pickeringMuxDriver = 
+static struct pci_driver pickeringMux_driver =
 {
   .name = PICKERINGMUX_DIR_NAME,
   .id_table = pickeringMuxIdtable,
@@ -368,7 +368,7 @@ static int __init pickeringMuxInit(void)
     pickeringMuxMajor = MAJOR(firstDev);
     
     /* Init the hardware */
-    rc = pci_register_driver(&pickeringMuxDriver);
+    rc = pci_register_driver(&pickeringMux_driver);
     if (rc != 0)
     {
       /* Free the chrdev region */
@@ -389,7 +389,7 @@ static int __init pickeringMuxInit(void)
  */
 static void __exit pickeringMuxCleanup(void)
 {
-    pci_unregister_driver(&pickeringMuxDriver);
+    pci_unregister_driver(&pickeringMux_driver);
     
     /* Free the chrdev region */
     unregister_chrdev_region(MKDEV(pickeringMuxMajor, 0), MAX_BUS * MAX_SLOT);
