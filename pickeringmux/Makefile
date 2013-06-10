@@ -21,9 +21,7 @@ ifndef ACCS
     ACCS=lab oper oplhc
 endif
 
-LIB_SRCS=pickeringmuxlib.c
-DRV_SRCS=pickeringmuxmain.c pickering16to16.c pickering16to16a.c pickering4to1.c pickering9to8.c pickering22to8.c pickeringattn.c
-TST_SRCS=test_driver.c
+CFLAGS += -g -Wall
 LDFLAGS += -g
 
 all:     driver libpickeringmux.$(CPU).a test_driver.$(CPU)
@@ -53,4 +51,4 @@ install_lib: libpickeringmux.$(CPU).a  pickeringmuxlib.h
 
 
 clean:
-	rm -f *~ core .*.cmd *.o *.ko -r .tmp* *.cmd.? .es* ,*
+	rm -f *~ core .*.cmd *.o *.ko -r .tmp* *.cmd.? .es* ,* *.a
