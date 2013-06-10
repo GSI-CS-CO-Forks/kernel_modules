@@ -1,4 +1,4 @@
-static char *rcsid = "$Id: pickeringmuxmain.c,v 1.10 2012/04/18 13:13:31 sdeghaye Exp $";
+static __attribute__((unused)) char *rcsid = "$Id: pickeringmuxmain.c,v 1.10 2012/04/18 13:13:31 sdeghaye Exp $";
 
 #ifndef MODULE
 #define MODULE
