@@ -1,0 +1,28 @@
+#!/bin/bash
+
+here=`/etc/dirname $0`
+
+echo install Pickering Mux driver
+/etc/insmod $here/pickeringmuxdrv.ko
+
+MAJOR=`awk '/ pickeringmux/{print $1}' </proc/devices`
+if [  -z "$MAJOR" ]; then
+    echo Pickering Mux driver Not installed
+    exit 2
+fi
+
+mkdir -p /dev/pickeringmux
+devs=`awk '/pickeringmux/{print $1}' </proc/bus/pci/devices`
+
+declare -i x y z t
+set -f
+for f in $devs; do
+    x=`echo -n '0x';echo $f | cut -c1-2`
+    y=`echo -n '0x';echo $f | cut -c3-4`
+    z=`expr $y / 8`
+    t=`expr $x '*' 32`
+    t=`expr $t + $z`
+    /etc/mknod /dev/pickeringmux/slot$x-$z c $MAJOR $t
+done
+exit 0
+

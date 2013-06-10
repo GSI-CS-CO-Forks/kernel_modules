@@ -1,0 +1,76 @@
+head	1.2;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.2
+date	2012.04.18.13.14.00;	author sdeghaye;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2010.03.11.16.14.43;	author sdeghaye;	state Exp;
+branches;
+next	;
+
+
+desc
+@@
+
+
+1.2
+log
+@Added support for the 22 to 8 type
+@
+text
+@/* $Id: pickering22to8.h,v 1.1 2010/03/11 16:14:43 sdeghaye Exp sdeghaye $ */
+#ifndef PICKERING22TO8_H
+#define PICKERING22TO8_H
+
+#include <linux/pci.h>
+#include "pickeringmuxdrv.h"
+
+#define PICK_MUX_22_TO_8_1_SUBSYSTEM_ID 0X1011
+#define PICK_MUX_22_TO_8_2_SUBSYSTEM_ID 0X1010
+#define PICK_MUX_22_TO_8_3_SUBSYSTEM_ID 0X1013
+
+
+int   pickMux22to8Probe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc);
+void  pickMux22to8Remove(PickeringMuxDescr *muxDesc);
+int   pickMux22to8MaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput);
+int   pickMux22to8MaxInput(PickeringMuxDescr *muxDesc, int *maxInput);
+int   pickMux22to8Connect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data);
+int   pickMux22to8Disconnect(PickeringMuxDescr *muxDesc, int output);
+int   pickMux22to8Reset(PickeringMuxDescr *muxDesc);
+int   pickMux22to8Status(PickeringMuxDescr *muxDesc, int *status);
+
+#endif
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 3
+a3 3
+/* $Id: pickering16to16.h,v 1.4 2006/03/21 15:01:52 sdeghaye Exp $ */
+#ifndef PICKERING16TO16_H
+#define PICKERING16TO16_H
+d8 3
+a10 1
+#define PICK_MUX_16_TO_16_SUBSYSTEM_ID 0XD9
+d12 9
+a20 8
+int   pickMux16to16Probe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc);
+void  pickMux16to16Remove(PickeringMuxDescr *muxDesc);
+int   pickMux16to16MaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput);
+int   pickMux16to16MaxInput(PickeringMuxDescr *muxDesc, int *maxInput);
+int   pickMux16to16Connect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data);
+int   pickMux16to16Disconnect(PickeringMuxDescr *muxDesc, int output);
+int   pickMux16to16Reset(PickeringMuxDescr *muxDesc);
+int   pickMux16to16Status(PickeringMuxDescr *muxDesc, int *status);
+@

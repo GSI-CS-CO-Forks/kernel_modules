@@ -1,0 +1,270 @@
+
+pickering4to1.c,1121
+static char *rcsid = "$Id: pickering4to1.c,v 1.4 2005/06/29 07:53:20 sdeghaye Exp $";rcsid1,0
+#define INPUT1_CMD INPUT1_CMD6,140
+#define INPUT2_CMD INPUT2_CMD7,163
+#define INPUT3_CMD INPUT3_CMD8,186
+#define INPUT4_CMD INPUT4_CMD9,209
+#define PICK_MUX_4_TO_1_MAX_OUTPUT PICK_MUX_4_TO_1_MAX_OUTPUT10,232
+#define PICK_MUX_4_TO_1_MAX_INPUT PICK_MUX_4_TO_1_MAX_INPUT11,269
+int pickMux4to1Probe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc)pickMux4to1Probe16,414
+void pickMux4to1Remove(PickeringMuxDescr *muxDesc)pickMux4to1Remove79,3375
+int pickMux4to1MaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickMux4to1MaxOutput99,4055
+int pickMux4to1MaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickMux4to1MaxInput108,4292
+int pickMux4to1Connect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data)pickMux4to1Connect117,4525
+int pickMux4to1Disconnect(PickeringMuxDescr *muxDesc, int output)pickMux4to1Disconnect154,5683
+int pickMux4to1Reset(PickeringMuxDescr *muxDesc)pickMux4to1Reset171,6204
+int pickMux4to1Status(PickeringMuxDescr *muxDesc, int *status)pickMux4to1Status179,6410
+
+Makefile,800
+CPU=L86CPU4,67
+ENV_PREFIX=/acc/sys/$(CPU)ENV_PREFIX6,81
+KERNELVERSION=2.6.9-0.1.abKERNELVERSION8,126
+KDIR := $(ENV_PREFIX)/usr/src/linux-$(KERNELVERSION)KDIR9,153
+KERNELVERSION=2.6.9-34KERNELVERSION12,231
+KDIR := $(ENV_PREFIX)/usr/src/kernels/$(KERNELVERSION)KDIR13,254
+ACCS=lab operACCS16,327
+LIB_SRCS=pickeringmuxlib.cLIB_SRCS19,348
+DRV_SRCS=pickeringmuxmain.c pickering16to16.c pickering16to16a.c pickering4to1.c pickering9to8.c pickeringattn.cDRV_SRCS20,375
+TST_SRCS=test_driver.cTST_SRCS21,488
+MY_CFLAGS= -g -Wall -I. -I/ps/local/$(CPU)/includeMY_CFLAGS22,511
+MY_LDFLAGS= -gMY_LDFLAGS23,562
+obj-m := pickeringmuxdrv.om25,578
+pickeringmuxdrv-objs := $(DRV_SRCS:.c=.o)objs26,605
+PWD := $(shell pwd)PWD31,697
+	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modulesSUBDIRS47,1053
+
+pickering16to16.c,1415
+static char *rcsid = "$Id: pickering16to16.c,v 1.5 2005/06/29 07:53:46 sdeghaye Exp $";rcsid1,0
+#define PICK_MUX_16_TO_16_MAX_OUTPUT PICK_MUX_16_TO_16_MAX_OUTPUT6,144
+#define PICK_MUX_16_TO_16_MAX_INPUT PICK_MUX_16_TO_16_MAX_INPUT7,184
+#define PICK_MUX_16_TO_16_LOOP_LEN PICK_MUX_16_TO_16_LOOP_LEN8,223
+#define PICK_MUX_16_TO_16_NBR_LOOP PICK_MUX_16_TO_16_NBR_LOOP9,262
+static RelayMap relayMap[PICK_MUX_16_TO_16_MAX_INPUT][PICK_MUX_16_TO_16_MAX_OUTPUT] = relayMap12,330
+static int loopThruMap[PICK_MUX_16_TO_16_MAX_OUTPUT] = {334, 335, 332, 333, 330, 331, 328, 329, 326, 327, 324, 325, 322, 323, 320, 321};loopThruMap32,4402
+int pickMux16to16Probe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc)pickMux16to16Probe37,4649
+void pickMux16to16Remove(PickeringMuxDescr *muxDesc)pickMux16to16Remove90,6948
+int pickMux16to16MaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickMux16to16MaxOutput110,7580
+int pickMux16to16MaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickMux16to16MaxInput119,7821
+int pickMux16to16Connect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data)pickMux16to16Connect128,8058
+int pickMux16to16Disconnect(PickeringMuxDescr *muxDesc, int output)pickMux16to16Disconnect164,9368
+int pickMux16to16Reset(PickeringMuxDescr *muxDesc)pickMux16to16Reset236,11412
+int pickMux16to16Status(PickeringMuxDescr *muxDesc, int *status)pickMux16to16Status256,12121
+
+pickering16to16.h,126
+#define PICKERING16TO16_HPICKERING16TO16_H3,96
+#define PICK_MUX_16_TO_16_SUBSYSTEM_ID PICK_MUX_16_TO_16_SUBSYSTEM_ID8,176
+
+pickering16to16a.c,1604
+static char *rcsid = "$Id: pickering16to16a.c,v 1.3 2005/06/29 08:27:20 sdeghaye Exp $";rcsid1,0
+#define PICK_MUX_16_TO_16A_MAX_OUTPUT PICK_MUX_16_TO_16A_MAX_OUTPUT6,146
+#define PICK_MUX_16_TO_16A_MAX_INPUT PICK_MUX_16_TO_16A_MAX_INPUT7,187
+#define PICK_MUX_16_TO_16A_LOOP_LEN PICK_MUX_16_TO_16A_LOOP_LEN8,227
+#define PICK_MUX_16_TO_16A_NBR_LOOP PICK_MUX_16_TO_16A_NBR_LOOP9,267
+static RelayMap relayMap[PICK_MUX_16_TO_16A_MAX_INPUT][PICK_MUX_16_TO_16A_MAX_OUTPUT] = relayMap12,336
+static int loopThruMap[PICK_MUX_16_TO_16A_MAX_OUTPUT] =  {209, 211, 213, 215, 217, 219, 221, 223, 193, 195, 197, 199, 201, 203, 205, 207};loopThruMap32,4410
+static int globalIsoMap[PICK_MUX_16_TO_16A_MAX_OUTPUT] = {208, 210, 212, 214, 216, 218, 220, 222, 192, 194, 196, 198, 200, 202, 204, 206};globalIsoMap33,4549
+int pickMux16to16aProbe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc)pickMux16to16aProbe38,4798
+void pickMux16to16aRemove(PickeringMuxDescr *muxDesc)pickMux16to16aRemove91,7113
+int pickMux16to16aMaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickMux16to16aMaxOutput111,7749
+int pickMux16to16aMaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickMux16to16aMaxInput120,7992
+int pickMux16to16aConnect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data)pickMux16to16aConnect129,8231
+int pickMux16to16aDisconnect(PickeringMuxDescr *muxDesc, int output)pickMux16to16aDisconnect166,9640
+int pickMux16to16aReset(PickeringMuxDescr *muxDesc)pickMux16to16aReset239,11779
+int pickMux16to16aStatus(PickeringMuxDescr *muxDesc, int *status)pickMux16to16aStatus268,12735
+
+pickering16to16a.h,130
+#define PICKERING16TO16A_HPICKERING16TO16A_H3,98
+#define PICK_MUX_16_TO_16A_SUBSYSTEM_ID PICK_MUX_16_TO_16A_SUBSYSTEM_ID8,179
+
+pickering4to1.h,118
+#define PICKERING4TO1_HPICKERING4TO1_H3,97
+#define PICK_MUX_4_TO_1_SUBSYSTEM_ID PICK_MUX_4_TO_1_SUBSYSTEM_ID8,175
+
+pickering9to8.c,1202
+static char *rcsid = "$Id: pickering9to8.c,v 1.4 2005/06/29 07:52:23 sdeghaye Exp $";rcsid1,0
+#define PICK_MUX_9_TO_8_MAX_OUTPUT PICK_MUX_9_TO_8_MAX_OUTPUT6,140
+#define PICK_MUX_9_TO_8_MAX_INPUT PICK_MUX_9_TO_8_MAX_INPUT7,177
+#define PICK_MUX_9_TO_8_LOOP_LEN PICK_MUX_9_TO_8_LOOP_LEN8,213
+#define PICK_MUX_9_TO_8_NBR_LOOP PICK_MUX_9_TO_8_NBR_LOOP9,249
+static RelayMap relayMap[PICK_MUX_9_TO_8_MAX_INPUT][PICK_MUX_9_TO_8_MAX_OUTPUT] = relayMap12,315
+int pickMux9to8Probe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc)pickMux9to8Probe28,1641
+void pickMux9to8Remove(PickeringMuxDescr *muxDesc)pickMux9to8Remove81,3928
+int pickMux9to8MaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickMux9to8MaxOutput101,4550
+int pickMux9to8MaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickMux9to8MaxInput110,4787
+int pickMux9to8Connect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data)pickMux9to8Connect119,5020
+int pickMux9to8Disconnect(PickeringMuxDescr *muxDesc, int output)pickMux9to8Disconnect152,6209
+int pickMux9to8Reset(PickeringMuxDescr *muxDesc)pickMux9to8Reset221,8107
+int pickMux9to8Status(PickeringMuxDescr *muxDesc, int *status)pickMux9to8Status241,8804
+
+pickering9to8.h,118
+#define PICKERING9TO8_HPICKERING9TO8_H3,97
+#define PICK_MUX_9_TO_8_SUBSYSTEM_ID PICK_MUX_9_TO_8_SUBSYSTEM_ID8,175
+
+pickeringmuxdrv.h,2382
+#define PICKERINGMUXDRV_HPICKERINGMUXDRV_H3,96
+#define PICKERINGMUX_DIR_NAME PICKERINGMUX_DIR_NAME5,123
+#define PICKERINGMUX_FILE_TEMPLATE PICKERINGMUX_FILE_TEMPLATE6,168
+#define PICKERINGMUX_PATH_TEMPLATE PICKERINGMUX_PATH_TEMPLATE7,237
+#define MAX_SLOT MAX_SLOT9,307
+#define MAX_BUS MAX_BUS10,355
+#define PICKERINGMUX_MAGIC PICKERINGMUX_MAGIC14,454
+#define PICKERINGMUX_CONNECT PICKERINGMUX_CONNECT15,524
+#define PICKERINGMUX_DISCONNECT PICKERINGMUX_DISCONNECT16,609
+#define PICKERINGMUX_RESET PICKERINGMUX_RESET17,674
+#define PICKERINGMUX_MAXOUTPUT PICKERINGMUX_MAXOUTPUT18,733
+#define PICKERINGMUX_MAXINPUT PICKERINGMUX_MAXINPUT19,798
+#define PICKERINGMUX_STATUS PICKERINGMUX_STATUS20,863
+#define PICKERINGMUX_WIDTH PICKERINGMUX_WIDTH21,928
+#define PICKERING_SET_ATTN PICKERING_SET_ATTN22,993
+  int input;input27,1127
+  int output;output28,1140
+} PickeringMuxConnectData;PickeringMuxConnectData29,1154
+  int channel;channel34,1236
+  int attn;attn35,1251
+} PickeringAttnData;PickeringAttnData36,1263
+#define PICK_MUX_OE_SET PICK_MUX_OE_SET44,1425
+#define PICK_MUX_CLK_PERIOD PICK_MUX_CLK_PERIOD45,1456
+#define PICK_MUX_CLK_POS PICK_MUX_CLK_POS47,1487
+#define PICK_MUX_DATA_POS PICK_MUX_DATA_POS48,1514
+#define PICK_MUX_STRB1_POS PICK_MUX_STRB1_POS49,1542
+#define PICK_MUX_STRB2_POS PICK_MUX_STRB2_POS50,1571
+  unsigned long las0addr;las0addr55,1643
+  int las0len;las0len56,1669
+  void *las0;las057,1684
+  unsigned long las1addr;las1addr58,1698
+  int las1len;    las1len59,1724
+  void *las1;las160,1743
+  unsigned short type;type61,1757
+  unsigned char bus;	/* PCI bus number of the device */bus62,1780
+  unsigned int device;	/* PCI device number of the device */device63,1836
+  int *inputs;	/* input number currently connected to the outputs */inputs64,1897
+  int *loopData; /* Data held by the mux registers (Serial architecture)*/loopData65,1966
+  struct cdev charDev; /* Char device structure */charDev66,2041
+} PickeringMuxDescr;PickeringMuxDescr68,2142
+  int yIsoRelay; /* This is the relay that isolates an entry from a 4*4 matrix (see doc).*/yIsoRelay74,2302
+  int yxRelay;   /* This is the relay in the 4*4 matrix that connects a X to a Y. */yxRelay75,2394
+  int xIsoRelay; /* This is the relay that isolates an output from a 4*4 matrix.*/xIsoRelay76,2479
+} RelayMap;RelayMap77,2562
+
+pickeringmuxlib.c,1018
+static char *rcsid(){return "$Id: pickeringmuxlib.c,v 1.9 2006/03/21 15:06:57 sdeghaye Exp $";}rcsid1,0
+  int fd;fd16,356
+  int maxInput;maxInput17,366
+  int maxOutput;maxOutput18,382
+} MuxHandle;MuxHandle19,399
+static MuxHandle muxHanlde[MAX_SLOT];muxHanlde21,413
+static MuxHandle * checkMuxHandle(int aSlot)checkMuxHandle26,560
+int pickeringMuxConnect(int aSlot, int anInput, int anOutput)pickeringMuxConnect75,1549
+int pickeringMuxDisconnect(int aSlot, int anOutput)pickeringMuxDisconnect106,2210
+int pickeringMuxReset(int aSlot)pickeringMuxReset133,2727
+pickeringMuxWidth(pickeringMuxWidth163,3512
+int pickeringMuxMaxOutput(int aSlot)pickeringMuxMaxOutput185,4001
+int pickeringMuxMaxInput(int aSlot)pickeringMuxMaxInput198,4303
+int pickeringMuxOuputStatus(int aSlot, const int *outputs)pickeringMuxOuputStatus211,4603
+int  pickeringAttn(int aSlot, int aChannel, int anAttn)pickeringAttn233,5027
+void pickeringMuxPrintError(char *aMessage, int anError)pickeringMuxPrintError259,5525
+
+pickeringmuxlib.h,414
+#define PICKERINGMUXLIB_HPICKERINGMUXLIB_H3,96
+#define PICKERINGMUX_BAD_PARAMETER PICKERINGMUX_BAD_PARAMETER6,167
+#define PICKERINGMUX_NO_SUCH_MUX PICKERINGMUX_NO_SUCH_MUX7,205
+#define PICKERINGMUX_SYSTEM_ERROR PICKERINGMUX_SYSTEM_ERROR8,243
+#define PICKERINGMUX_BAD_PARAMETER_STRING PICKERINGMUX_BAD_PARAMETER_STRING11,361
+#define PICKERINGMUX_NO_SUCH_MUX_STRING PICKERINGMUX_NO_SUCH_MUX_STRING12,435
+
+pickeringmuxmain.c,2484
+static char *rcsid = "$Id: pickeringmuxmain.c,v 1.7 2006/03/21 15:04:45 sdeghaye Exp $";rcsid1,0
+#define MODULEMODULE4,105
+#define PICKERINGMUX_VENDOR PICKERINGMUX_VENDOR21,442
+#define PICKERINGMUX_DEVICE PICKERINGMUX_DEVICE22,482
+#define PICKERINGMUX_SUB_VENDOR PICKERINGMUX_SUB_VENDOR23,521
+#define PICKERINGMUX_SUB_DEVICE PICKERINGMUX_SUB_DEVICE26,669
+static struct file_operations pickeringMuxFileOps = pickeringMuxFileOps47,2062
+static unsigned int pickeringMuxMajor = 0;pickeringMuxMajor56,2292
+static struct pci_device_id pickeringMuxIdtable[] __devinitdata = __devinitdata59,2377
+static struct pci_driver pickeringMuxDriver = pickeringMuxDriver74,2733
+module_init(pickeringMuxInit);pickeringMuxInit83,2993
+module_exit(pickeringMuxCleanup);pickeringMuxCleanup84,3024
+static int __devinit pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id *pciid)pickeringMuxProbe89,3177
+static void __devexit pickeringMuxRemove(struct pci_dev *pcidev)pickeringMuxRemove170,5565
+static int pickeringMuxOpen(struct inode *inode, struct file *file)pickeringMuxOpen213,6717
+static int pickeringMuxRelease(struct inode *inode, struct file *file)pickeringMuxRelease226,7208
+static int pickeringMuxIoctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)pickeringMuxIoctl235,7570
+static int __init pickeringMuxInit(void)pickeringMuxInit312,9481
+static void __exit pickeringMuxCleanup(void)pickeringMuxCleanup358,10829
+static int pickeringMuxConnect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data)pickeringMuxConnect372,11236
+static int pickeringMuxDisconnect(PickeringMuxDescr *muxDesc, int output)pickeringMuxDisconnect401,12013
+static int pickeringMuxReset(PickeringMuxDescr *muxDesc)pickeringMuxReset430,12792
+static int pickeringMuxMaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickeringMuxMaxOutput462,13576
+static int pickeringMuxMaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickeringMuxMaxInput494,14460
+static int pickeringMuxStatus(PickeringMuxDescr *muxDesc, int *status)pickeringMuxStatus526,15330
+static int pickeringMuxWidth(PickeringMuxDescr *muxDesc, int *width)pickeringMuxWidth563,16356
+static int pickeringSetAttn(PickeringMuxDescr *muxDesc, PickeringAttnData data)pickeringSetAttn588,16986
+void pickeringMuxSendData(PickeringMuxDescr *muxDesc, int nbrLoop, int loopLen)pickeringMuxSendData609,17451
+void dumpMemory(void *addr, int size)dumpMemory658,18716
+
+pickmuxinstall,0
+
+pickeringmuxdrv.mod.c,162
+#undef unixunix7,124
+struct module __this_module__this_module8,136
+__attribute_used____attribute_used__18,397
+__attribute_used____attribute_used__50,1416
+
+test_driver.c,587
+static int testMode;testMode20,443
+static int tempoMode;tempoMode21,464
+static int statusMode;statusMode22,486
+static int attnMode;attnMode23,509
+static int resetMode;resetMode24,530
+static int closeMode;closeMode25,552
+static int openMode;openMode26,574
+int main(int argc, char *argv[])main29,597
+static void doOpen()doOpen336,7118
+static void printUsage(char *basename)printUsage344,7234
+static void printStatus(int *status, int size)printStatus359,7894
+static char waitUserInput()waitUserInput378,8210
+void dumpMemory(void *addr, int size)dumpMemory394,8422
+
+pickeringattn.c,1333
+static char *rcsid = "$Id: pickeringattn.c,v 1.3 2006/05/08 14:55:21 sdeghaye Exp pfreyerm $";rcsid1,0
+#define PICK_ATTN_MAX_CHANNEL PICK_ATTN_MAX_CHANNEL6,154
+#define PICK_ATTN_MAX_ATTN PICK_ATTN_MAX_ATTN7,187
+#define PICK_ATTN_LOOP_LEN PICK_ATTN_LOOP_LEN8,218
+#define PICK_ATTN_NBR_LOOP PICK_ATTN_NBR_LOOP9,249
+#define PICK_ATTN_NBR_VALUES PICK_ATTN_NBR_VALUES10,279
+#define PICK_ATTN_NBR_ATTN PICK_ATTN_NBR_ATTN11,312
+#define PICK_ATTN_IDX_ATTN_1 PICK_ATTN_IDX_ATTN_112,342
+#define PICK_ATTN_IDX_ATTN_2 PICK_ATTN_IDX_ATTN_213,375
+static unsigned int ctrlWordPosition[PICK_ATTN_MAX_CHANNEL] = ctrlWordPosition18,612
+static unsigned int ctrlWords[PICK_ATTN_NBR_VALUES][PICK_ATTN_NBR_ATTN] =ctrlWords27,922
+int pickAttnProbe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc)pickAttnProbe98,3410
+void  pickAttnRemove(PickeringMuxDescr *muxDesc)pickAttnRemove152,5659
+int   pickAttnSetAttn(PickeringMuxDescr *muxDesc, PickeringAttnData data)pickAttnSetAttn172,6289
+int   pickAttnReset(PickeringMuxDescr *muxDesc)pickAttnReset206,7831
+int   pickAttnStatus(PickeringMuxDescr *muxDesc, int *status)pickAttnStatus227,8509
+int pickAttnMaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput)pickAttnMaxOutput249,9317
+int pickAttnMaxInput(PickeringMuxDescr *muxDesc, int *maxInput)pickAttnMaxInput258,9555
+
+pickeringattn.h,107
+#define PICKERINGATTN_HPICKERINGATTN_H3,103
+#define PICK_ATTN_SUBSYSTEM_ID PICK_ATTN_SUBSYSTEM_ID8,186
+
+.pickeringmuxmain.o.cmd,0
+
+.pickering16to16.o.cmd,0
+
+.pickering16to16a.o.cmd,0
+
+.pickering4to1.o.cmd,0
+
+.pickering9to8.o.cmd,0
+
+.pickeringattn.o.cmd,0
+
+.pickeringmuxdrv.o.cmd,0
+
+.pickeringmuxdrv.ko.cmd,0
+
+.pickeringmuxdrv.mod.o.cmd,0

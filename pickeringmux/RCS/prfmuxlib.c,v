@@ -1,0 +1,174 @@
+head	1.2;
+access;
+symbols
+	Version2003:1.2;
+locks; strict;
+comment	@ * @;
+
+
+1.2
+date	2004.03.08.10.42.33;	author sdeghaye;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.05.12.15.34.35;	author sdeghaye;	state Exp;
+branches;
+next	;
+
+
+desc
+@I/O lib for the prfmux driver
+@
+
+
+1.2
+log
+@Use static or prefixed functions to avoid clashes.
+@
+text
+@static char *rcsid(){return "$Id: prfmuxlib.c,v 1.1 2003/05/12 15:34:35 sdeghaye Exp sdeghaye $";}
+
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "prfmuxdriver.h"
+#include "prfmuxlib.h"
+
+#define MAX_SLOT 32
+
+static int fd[MAX_SLOT];
+
+/***************************************************************************************************
+ *
+ */
+static int checkFileDescr(int aSlot)
+{
+  if(fd[aSlot] == 0)
+  {
+    char buf[50];
+  
+    sprintf(buf, "/dev/%s/%s%d", PRFMUX_DIR_NAME, PRFMUX_FILE_NAME, aSlot);
+    fd[aSlot] = open(buf, O_RDWR);
+    if(fd[aSlot] == 0)
+    {
+      return PRFMUXLIB_SYSTEM_ERROR;
+    }
+    else
+    {
+      return fd[aSlot];
+    }
+  }
+  else
+  {
+    return fd[aSlot];
+  }
+}
+
+/***************************************************************************************************
+ *
+ */
+int prfmuxConnect(int aSlot, int anInput, int anOutput)
+{
+  int muxFd;
+  int rc;
+  char buf[5];
+  
+  if(anInput > PRFMUX_MAX_INPUT || anOutput > PRFMUX_MAX_OUTPUT || aSlot > MAX_SLOT)
+  {
+    return PRFMUXLIB_BAD_PARAMETER;
+  }
+  else
+  {
+    muxFd = checkFileDescr(aSlot);
+    if(muxFd == PRFMUXLIB_SYSTEM_ERROR)
+    {
+      return PRFMUXLIB_NO_SUCH_MUX;
+    }
+    sprintf(buf, "%d", anInput);
+    rc = write(muxFd, buf, 1);
+    if(rc == PRFMUXLIB_SYSTEM_ERROR)
+    {
+      return rc;
+    }
+    return 0;
+  }
+}
+
+/***************************************************************************************************
+ *
+ */
+int prfmuxOuputStatus(int aSlot, int anOutput)
+{
+  int muxFd;
+  int rc;
+  char buf[5];
+  
+  if(anOutput > PRFMUX_MAX_OUTPUT || aSlot > MAX_SLOT)
+  {
+    return PRFMUXLIB_BAD_PARAMETER;
+  }
+  else
+  {
+    muxFd = checkFileDescr(aSlot);
+    if(muxFd == PRFMUXLIB_SYSTEM_ERROR)
+    {
+      return PRFMUXLIB_NO_SUCH_MUX;
+    }
+    rc = read(muxFd, buf, 1);
+    if(rc == PRFMUXLIB_SYSTEM_ERROR)
+    {
+      sscanf(buf, "%d", &rc);
+    }
+    return 0;
+  }
+}
+
+/***************************************************************************************************
+ *
+ */
+void prfmuxPrintError(char *aMessage, int anError)
+{
+  switch(anError)
+  {
+  case PRFMUXLIB_BAD_PARAMETER:
+    printf("%s: %s\n", aMessage, PRFMUXLIB_BAD_PARAMETER_STRING);
+    break;
+  case PRFMUXLIB_NO_SUCH_MUX:
+    printf("%s: %s\n", aMessage, PRFMUXLIB_NO_SUCH_MUX_STRING);
+    break;
+  case PRFMUXLIB_SYSTEM_ERROR:
+    perror(aMessage);
+    break;
+  default:
+    printf("%s: prfmuxlib: No such error code (%d)\n", aMessage, anError);
+    break;
+  } 
+}
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+static char *rcsid(){return "$Id:$";}
+d19 1
+a19 1
+int checkFileDescr(int aSlot)
+d45 1
+a45 1
+int connect(int aSlot, int anInput, int anOutput)
+d75 1
+a75 1
+int ouputStatus(int aSlot, int anOutput)
+d104 1
+a104 1
+void printError(char *aMessage, int anError)
+@
