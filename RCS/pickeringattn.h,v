@@ -1,0 +1,42 @@
+head	1.1;
+access;
+symbols;
+locks; strict;
+comment	@ * @;
+
+
+1.1
+date	2006.03.21.15.01.07;	author sdeghaye;	state Exp;
+branches;
+next	;
+
+
+desc
+@Specific files for the attenuator
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@/* $Id: pickering16to16.h,v 1.3 2005/06/08 07:44:55 sdeghaye Exp $ */
+#ifndef PICKERINGATTN_H
+#define PICKERINGATTN_H
+
+#include <linux/pci.h>
+#include "pickeringmuxdrv.h"
+
+#define PICK_ATTN_SUBSYSTEM_ID 0X4000
+
+int   pickAttnProbe(struct pci_dev *pcidev, PickeringMuxDescr *muxDesc);
+void  pickAttnRemove(PickeringMuxDescr *muxDesc);
+int   pickAttnSetAttn(PickeringMuxDescr *muxDesc, PickeringAttnData data);
+int   pickAttnReset(PickeringMuxDescr *muxDesc);
+int   pickAttnStatus(PickeringMuxDescr *muxDesc, int *status);
+int   pickAttnMaxOutput(PickeringMuxDescr *muxDesc, int *maxOutput);
+int   pickAttnMaxInput(PickeringMuxDescr *muxDesc, int *maxInput);
+
+#endif
+@

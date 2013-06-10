@@ -1,0 +1,156 @@
+head	1.6;
+access;
+symbols
+	VersionKernel2-4:1.5;
+locks; strict;
+comment	@ * @;
+
+
+1.6
+date	2006.03.21.15.06.57;	author sdeghaye;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2005.02.15.16.49.52;	author ygeorgie;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2005.02.15.14.08.38;	author ygeorgie;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2005.02.14.10.14.09;	author ygeorgie;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2004.03.16.14.10.27;	author sdeghaye;	state Released;
+branches;
+next	1.1;
+
+1.1
+date	2004.03.09.13.00.03;	author sdeghaye;	state Exp;
+branches;
+next	;
+
+
+desc
+@Header file of the user library for the Pickering Mux Driver
+@
+
+
+1.6
+log
+@Add a function for the attenuator
+@
+text
+@/* $Id: pickeringmuxlib.h,v 1.5 2005/02/15 16:49:52 ygeorgie Exp $ */
+#ifndef PICKERINGMUXLIB_H
+#define PICKERINGMUXLIB_H
+
+/* Error codes returned by lib functions */
+#define PICKERINGMUX_BAD_PARAMETER -3
+#define PICKERINGMUX_NO_SUCH_MUX   -2
+#define PICKERINGMUX_SYSTEM_ERROR  -1 /* More info in errno */
+
+/* Text messages for the corresponding error codes */
+#define PICKERINGMUX_BAD_PARAMETER_STRING "One parameter is out of range"
+#define PICKERINGMUX_NO_SUCH_MUX_STRING "There is no Pickering RF mux in the given slot"
+
+/* Lib functions */
+#ifdef __cplusplus
+extern "C" {
+#endif
+  int  pickeringMuxConnect(int aSlot, int anInput, int anOutput);
+  int  pickeringMuxDisconnect(int aSlot, int anOutput);
+  int  pickeringMuxMaxInput(int aSlot);
+  int  pickeringMuxMaxOutput(int aSlot);
+  int  pickeringMuxOuputStatus(int aSlot, const int *outputs);
+  void pickeringMuxPrintError(char *aMessage, int anError);
+  int  pickeringMuxReset(int aSlot);
+  int  pickeringMuxWidth(int aSlot);
+  int  pickeringAttn(int aSlot, int aChannel, int anAttn);
+#ifdef __cplusplus
+}
+#endif
+
+#endif
+@
+
+
+1.5
+log
+@MESSAGE: Add 'const' qualifier to library function
+@
+text
+@d1 1
+a1 1
+/* $Id: pickeringmuxlib.h,v 1.4 2005/02/15 14:08:38 ygeorgie Exp ygeorgie $ */
+d26 1
+@
+
+
+1.4
+log
+@MESSAGE: Now it's possible to obtain module width
+@
+text
+@d1 1
+a1 1
+/* $Id: pickeringmuxlib.h,v 1.3 2005/02/14 10:14:09 ygeorgie Exp ygeorgie $ */
+d22 1
+a22 1
+  int  pickeringMuxOuputStatus(int aSlot, int *outputs);
+@
+
+
+1.3
+log
+@MESSAGE: Assembling convention added.
+@
+text
+@d1 1
+a1 1
+/* $Id: pickeringmuxlib.h,v 1.2 2004/03/16 14:10:27 sdeghaye Released ygeorgie $ */
+d18 8
+a25 7
+int   pickeringMuxConnect(int aSlot, int anInput, int anOutput);
+int   pickeringMuxDisconnect(int aSlot, int anOutput);
+int   pickeringMuxMaxInput(int aSlot);
+int   pickeringMuxMaxOutput(int aSlot);
+int   pickeringMuxOuputStatus(int aSlot, int *outputs);
+void  pickeringMuxPrintError(char *aMessage, int anError);
+int   pickeringMuxReset(int aSlot);
+@
+
+
+1.2
+log
+@Driver & Library with support for the Pickering modules 4-1, 9-8 and 16-16.
+First working version.
+@
+text
+@d1 1
+a1 1
+/* $Id: pickeringmuxlib.h,v 1.1 2004/03/09 13:00:03 sdeghaye Exp $ */
+d15 3
+d25 3
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+/* $Id: prfmuxlib.h,v 1.2 2004/03/08 10:43:37 sdeghaye Exp $ */
+a14 1
+int   pickeringMuxOuputStatus(int aSlot, int anOutput);
+d16 4
+d21 1
+@

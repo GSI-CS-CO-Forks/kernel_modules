@@ -1,0 +1,65 @@
+head	1.2;
+access;
+symbols
+	Version2003:1.2;
+locks; strict;
+comment	@ * @;
+
+
+1.2
+date	2004.03.08.10.43.37;	author sdeghaye;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2003.05.12.15.35.30;	author sdeghaye;	state Exp;
+branches;
+next	;
+
+
+desc
+@Public interface for the I/O lib
+@
+
+
+1.2
+log
+@Use prefixed functions to avoid clashes.
+@
+text
+@/* $Id: prfmuxlib.h,v 1.1 2003/05/12 15:35:30 sdeghaye Exp sdeghaye $ */
+#ifndef PRFMUXLIB_H
+#define PRFMUXLIB_H
+
+/* Error codes returned by lib functions */
+#define PRFMUXLIB_BAD_PARAMETER -3
+#define PRFMUXLIB_NO_SUCH_MUX   -2
+#define PRFMUXLIB_SYSTEM_ERROR  -1 /* More info in errno */
+
+/* Text messages for the corresponding error codes */
+#define PRFMUXLIB_BAD_PARAMETER_STRING "One parameter is out of range"
+#define PRFMUXLIB_NO_SUCH_MUX_STRING "There is no Pickering RF mux in the given slot"
+
+/* Lib functions */
+int prfmuxOuputStatus(int aSlot, int anOutput);
+int prfmuxConnect(int aSlot, int anInput, int anOutput);
+void prfmuxPrintError(char *aMessage, int anError);
+
+#endif
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d1 1
+a1 1
+/* $Id:$ */
+d15 3
+a17 3
+int ouputStatus(int aSlot, int anOutput);
+int connect(int aSlot, int anInput, int anOutput);
+void printError(char *aMessage, int anError);
+@
