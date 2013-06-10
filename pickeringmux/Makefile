@@ -51,4 +51,6 @@ install_lib: libpickeringmux.$(CPU).a  pickeringmuxlib.h
 
 
 clean:
-	rm -f *~ core .*.cmd *.o *.ko -r .tmp* *.cmd.? .es* ,* *.a
+	rm -rf *~ core .*.cmd *.o *.ko .tmp* *.cmd.? \
+		.es* ,* *.a *.mod.c *.$(CPU) \
+		Module.symvers modules.order
