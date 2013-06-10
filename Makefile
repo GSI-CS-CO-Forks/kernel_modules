@@ -3,7 +3,7 @@
 CPU ?= L865
 ENV_PREFIX=/acc/sys/$(CPU)
 
-# include /acc/src/dsc/co/Make.auto
+include /acc/src/dsc/co/Make.auto
 
 ifeq ($(CPU),L866)
     KVER ?= 3.6.11.2-rt33.39.el6rt.x86_64
@@ -24,33 +24,26 @@ endif
 LIB_SRCS=pickeringmuxlib.c
 DRV_SRCS=pickeringmuxmain.c pickering16to16.c pickering16to16a.c pickering4to1.c pickering9to8.c pickering22to8.c pickeringattn.c
 TST_SRCS=test_driver.c
-ccflags-y += -g -Wall -I. -I/acc/local/$(CPU)/include
-MY_LDFLAGS= -g
+LDFLAGS += -g
 
-obj-m += pickeringmuxdrv.o
-pickeringmuxdrv-objs := $(DRV_SRCS:.c=.o)
+all:     driver libpickeringmux.$(CPU).a test_driver.$(CPU)
 
-PWD := $(shell pwd)
-
-all:    libpickeringmux.$(CPU).a test_driver.$(CPU) driver
-
-libpickeringmux.$(CPU).a: $(LIB_SRCS:.c=.$(CPU).o)
+libpickeringmux.$(CPU).a: pickeringmuxlib.$(CPU).o
 	@rm -f $@
 	ar crv $@ $^
 	ranlib $@
 
-
-test_driver.$(CPU): $(TST_SRCS:.c=.$(CPU).o) libpickeringmux.$(CPU).a
+test_driver.$(CPU): test_driver.$(CPU).o libpickeringmux.$(CPU).a
 	@rm -f $@ /tmp/$@
-	$(CC) $(MY_LDFLAGS) $^  -L/acc/local/$(CPU)/lib -lpciioconfig -o /tmp/$@
+	$(CC) $(LDFLAGS) $^  -L/acc/local/$(CPU)/lib -lpciioconfig -o /tmp/$@
 	mv /tmp/$@ $@
 
 driver:
-	$(MAKE) -C $(KDIR) SUBDIRS=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(PWD) modules
 
 install: install_driver install_lib
 
-install_driver: $(obj-m:.o=.ko) pickmuxinstall
+install_driver: pickeringmuxdrv.$(CPU).ko pickmuxinstall
 	for a in $(ACCS); do \
 	    dsc_install $^ /acc/dsc/$$a/$(CPU)/$(KERNELVERSION)/pickeringmux; \
 	done
