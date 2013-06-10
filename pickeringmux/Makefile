@@ -3,6 +3,8 @@
 CPU ?= L865
 ENV_PREFIX=/acc/sys/$(CPU)
 
+GIT_VERSION = $(shell git describe --tags --dirty --always)
+
 include /acc/src/dsc/co/Make.auto
 
 ifeq ($(CPU),L866)
@@ -22,6 +24,7 @@ ifndef ACCS
 endif
 
 CFLAGS += -g -Wall
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDFLAGS += -g
 
 all:     driver libpickeringmux.$(CPU).a test_driver.$(CPU)
@@ -37,7 +40,7 @@ test_driver.$(CPU): test_driver.$(CPU).o libpickeringmux.$(CPU).a
 	mv /tmp/$@ $@
 
 driver:
-	$(MAKE) -C $(KDIR) M=$(PWD) modules
+	$(MAKE) -C $(KDIR) M=$(PWD) GIT_VERSION=$(GIT_VERSION) modules
 
 install: install_driver install_lib
 

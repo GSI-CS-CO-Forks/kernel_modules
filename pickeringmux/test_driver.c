@@ -1,4 +1,6 @@
-/* $Id: test_driver.c,v 1.6 2008/06/24 13:07:20 ygeorgie Exp $ */
+
+static __attribute__((unused)) char test_version[] = "version: " GIT_VERSION;
+
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
