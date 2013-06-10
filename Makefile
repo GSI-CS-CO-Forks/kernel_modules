@@ -1,21 +1,24 @@
 # Makefile for building the Kernel-Space Device Driver
 
-ifndef CPU
-CPU=L865
-endif
-
+CPU ?= L865
 ENV_PREFIX=/acc/sys/$(CPU)
 
+# include /acc/src/dsc/co/Make.auto
+
+ifeq ($(CPU),L866)
+    KVER ?= 3.6.11.2-rt33.39.el6rt.x86_64
+endif
 ifeq ($(CPU),L865)
-KERNELVERSION=3.2.43-rt63
+    KVER ?= 3.2.43-rt63
 endif
 ifeq ($(CPU),L864)
-KERNELVERSION=2.6.9-34
+    KVER ?= 2.6.9-34
 endif
-KDIR := $(ENV_PREFIX)/usr/src/kernels/$(KERNELVERSION)
+
+KDIR = $(ENV_PREFIX)/usr/src/kernels/$(KVER)
 
 ifndef ACCS
-ACCS=lab oper oplhc
+    ACCS=lab oper oplhc
 endif
 
 LIB_SRCS=pickeringmuxlib.c
@@ -24,7 +27,7 @@ TST_SRCS=test_driver.c
 MY_CFLAGS= -g -Wall -I. -I/acc/local/$(CPU)/include
 MY_LDFLAGS= -g
 
-obj-m := pickeringmuxdrv.o
+obj-m += pickeringmuxdrv.o
 pickeringmuxdrv-objs := $(DRV_SRCS:.c=.o)
 
 %.$(CPU).o: %.c
