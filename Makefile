@@ -24,14 +24,11 @@ endif
 LIB_SRCS=pickeringmuxlib.c
 DRV_SRCS=pickeringmuxmain.c pickering16to16.c pickering16to16a.c pickering4to1.c pickering9to8.c pickering22to8.c pickeringattn.c
 TST_SRCS=test_driver.c
-MY_CFLAGS= -g -Wall -I. -I/acc/local/$(CPU)/include
+ccflags-y += -g -Wall -I. -I/acc/local/$(CPU)/include
 MY_LDFLAGS= -g
 
 obj-m += pickeringmuxdrv.o
 pickeringmuxdrv-objs := $(DRV_SRCS:.c=.o)
-
-%.$(CPU).o: %.c
-	$(CC) $(MY_CFLAGS) $< -c -o $@
 
 PWD := $(shell pwd)
 
