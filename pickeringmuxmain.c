@@ -4,6 +4,7 @@ static char *rcsid = "$Id: pickeringmuxmain.c,v 1.10 2012/04/18 13:13:31 sdeghay
 #define MODULE
 #endif
 
+#include <linux/fs.h>
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/pci.h>
@@ -33,7 +34,7 @@ static int  __devinit pickeringMuxProbe(struct pci_dev *pcidev, const struct pci
 static void __devexit pickeringMuxRemove(struct pci_dev *dev);
 static int            pickeringMuxOpen(struct inode *inode, struct file *file);
 static int            pickeringMuxRelease(struct inode *inode, struct file *file);
-static int            pickeringMuxIoctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg);
+static long           pickeringMuxIoctl(struct file *file, unsigned int cmd, unsigned long arg);
 static int            pickeringMuxConnect(PickeringMuxDescr *muxDesc, PickeringMuxConnectData data);
 static int            pickeringMuxDisconnect(PickeringMuxDescr *muxDesc, int output);
 static int            pickeringMuxReset(PickeringMuxDescr *muxDesc);
@@ -52,7 +53,7 @@ static struct file_operations pickeringMuxFileOps =
   .owner = THIS_MODULE,
   .open = pickeringMuxOpen,
   .release = pickeringMuxRelease,
-  .ioctl = pickeringMuxIoctl,
+  .unlocked_ioctl = pickeringMuxIoctl,
 };
 
 /* Major number which will be dyna,ically allocated */
@@ -257,7 +258,7 @@ static int pickeringMuxRelease(struct inode *inode, struct file *file)
 /***************************************************************************************************
  *
  */
-static int pickeringMuxIoctl(struct inode *inode, struct file *file, unsigned int cmd, unsigned long arg)
+static long pickeringMuxIoctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
   PickeringMuxDescr *muxDesc;
   PickeringMuxConnectData connectData;
