@@ -1,4 +1,4 @@
-static char *rcsid = "$Id: pickering16to16.c,v 1.6 2012/04/18 13:01:32 aradeva Exp $";
+static __attribute__((unused)) char *rcsid = "$Id: pickering16to16.c,v 1.6 2012/04/18 13:01:32 aradeva Exp $";
 
 #include <asm/uaccess.h>
 #include "pickering16to16.h"
