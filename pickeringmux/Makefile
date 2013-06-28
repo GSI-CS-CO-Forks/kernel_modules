@@ -1,7 +1,6 @@
 # Makefile for building the Kernel-Space Device Driver
 
 CPU ?= L865
-ENV_PREFIX=/acc/sys/$(CPU)
 
 GIT_VERSION = $(shell git describe --tags --dirty --always)
 
@@ -17,7 +16,7 @@ ifeq ($(CPU),L864)
     KVER ?= 2.6.9-34
 endif
 
-KDIR = $(ENV_PREFIX)/usr/src/kernels/$(KVER)
+KDIR = /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 
 ifndef ACCS
     ACCS=lab oper oplhc
