@@ -534,7 +534,6 @@ static int tvme200_remove(struct device *dev, unsigned int ndev)
 	tvme200_uninstall(tvme200);	
 
 	kfree(tvme200->info);
-	kfree(tvme200);
 
 	return 0;
 }
