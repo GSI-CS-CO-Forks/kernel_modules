@@ -60,13 +60,15 @@ static unsigned int num_irq;
 module_param_array(irq, int, &num_irq, S_IRUGO);
 MODULE_PARM_DESC(irq, "IRQ vectors for mezzanines, 4 for each board. Expected -1 if slot empty.");
 
-static const size_t tvme200_space_size[IPACK_SPACE_COUNT] = {
+#define TVME200_SPACE_NUM 3 
+
+static const size_t tvme200_space_size[TVME200_SPACE_NUM] = {
         [IPACK_IO_SPACE]    = TVME200_IO_SPACE_SIZE,
         [IPACK_ID_SPACE]    = TVME200_ID_SPACE_SIZE,
         [IPACK_INT_SPACE]   = TVME200_INT_SPACE_SIZE,
 };
 
-static const size_t tvme200_space_interval[IPACK_SPACE_COUNT] = {
+static const size_t tvme200_space_interval[TVME200_SPACE_NUM] = {
         [IPACK_IO_SPACE]    = TVME200_IO_SPACE_INTERVAL,
         [IPACK_ID_SPACE]    = TVME200_ID_SPACE_INTERVAL,
         [IPACK_INT_SPACE]   = TVME200_INT_SPACE_INTERVAL,
@@ -503,12 +505,11 @@ static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
 	if (!dev)
 		return -ENOMEM;
 
-
 	dev->slot = i;
 	dev->bus = tvme200->info->ipack_bus;
 	dev->release = tvme200_release_device;
 
-	for (space = 0; space < IPACK_SPACE_COUNT; space++) {
+	for (space = 0; space < TVME200_SPACE_NUM; space++) {
 		dev->region[space].start = 
 			tvme200->mod_mem[space]
                      	+ tvme200_space_interval[space] * i;
