@@ -374,6 +374,7 @@ static int tvme200_request_irq(struct ipack_device *dev, irqreturn_t (*handler)(
 	iowrite8(slot_irq->vector, irq_reg);
 	res = vme_request_irq(slot_irq->vector, slot_irq->handler, slot_irq->arg, slot_irq->name);
 
+	iounmap(irq_reg);
 out_unlock:
 	mutex_unlock(&tvme200->mutex);
 	return res;
