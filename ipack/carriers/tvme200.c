@@ -269,8 +269,6 @@ static int tvme200_register(struct tvme200_board *tvme200)
 	tvme200->mod_mem[IPACK_ID_SPACE] = ioidint_base + TVME200_ID_SPACE_OFF;
 	tvme200->mod_mem[IPACK_INT_SPACE] = ioidint_base + TVME200_INT_SPACE_OFF;
 
-	spin_lock_init(&tvme200->regs_lock);
-
 	return 0;
 
 out_release_ioid :
@@ -290,15 +288,13 @@ static void tvme200_unregister(struct tvme200_board *tvme200)
 	int error = 0;
 	
 	error = vme_release_mapping(&tvme200->info->ioid_mapping, 1);
-	error |= vme_release_mapping(&tvme200->info->mem_mapping, 1);
+	error = error || vme_release_mapping(&tvme200->info->mem_mapping, 1);
 
 	if (!error)
 		dev_info(tvme200->info->dev,"%s: vme mappings released\n", __func__);
 	else
 		dev_info(tvme200->info->dev,"%s: can't release vme mappings [err %d]\n",
 			 __func__,error);
-
-	kfree(tvme200->slots);
 }
 
 static struct tvme200_board *check_slot(struct ipack_device *dev)
@@ -307,7 +303,6 @@ static struct tvme200_board *check_slot(struct ipack_device *dev)
 
         if (dev == NULL)
                 return NULL;
-
 
         tvme200 = dev_get_drvdata(dev->bus->parent);
 
@@ -328,13 +323,12 @@ static struct tvme200_board *check_slot(struct ipack_device *dev)
 
 static int tvme200_request_irq(struct ipack_device *dev, irqreturn_t (*handler)(void *), void *arg)
 {
-
 	
 	int res = 0;
 	struct slot_irq *slot_irq;
 	struct tvme200_board *tvme200;
 	void *irq_reg;
-	
+
 	tvme200 = check_slot(dev);
 	if (tvme200 == NULL)
 		return -EINVAL;
@@ -389,6 +383,7 @@ static int tvme200_free_irq_slot(struct tvme200_board *tvme200, int slot)
 {
         struct slot_irq *slot_irq;
 	int err;
+	struct device *dev = tvme200->info->dev;
 
         if (tvme200 == NULL)
                 return -EINVAL;
@@ -402,12 +397,14 @@ static int tvme200_free_irq_slot(struct tvme200_board *tvme200, int slot)
         }
 
         slot_irq = tvme200->slots[slot].irq;
+	dev_info (dev, "slot %d trying to free irq vector 0x%x\n", slot, slot_irq->vector);
 	err = vme_free_irq(slot_irq->vector);
 	if (!err)
-		dev_info(tvme200->info->dev, "slot %d irq vector 0x%x freed\n", slot, slot_irq->vector);
+		dev_info(dev, "slot %d irq vector 0x%x freed\n", slot, slot_irq->vector);
 	else
-		dev_info(tvme200->info->dev, "error: slot %d irq vector 0x%x can not be freed\n", slot, slot_irq->vector);
+		dev_info(dev, "error: slot %d irq vector 0x%x can not be freed\n", slot, slot_irq->vector);
         kfree(slot_irq);
+	slot_irq = NULL;
         mutex_unlock(&tvme200->mutex);
         return 0;
 }
@@ -522,22 +519,18 @@ static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
 static void tvme200_uninstall(struct tvme200_board *tvme200)
 {
 	tvme200_unregister(tvme200);
+	
 	if (tvme200->slots != NULL)
 		kfree(tvme200->slots);
 }
 
-static int tvme200_remove (struct device *dev, unsigned int ndev)
+static int tvme200_remove(struct device *dev, unsigned int ndev)
 {
-
 	struct tvme200_board *tvme200 = &carrier_boards[ndev];
 
-	if (tvme200) {
-		tvme200_uninstall(tvme200);	
-		ipack_bus_unregister(tvme200->info->ipack_bus);
-	} else {
-		dev_err(dev, "Error in %s\n", __func__);
-		return -EINVAL;
-	}
+	ipack_bus_unregister(tvme200->info->ipack_bus);
+	
+	tvme200_uninstall(tvme200);	
 
 	kfree(tvme200->info);
 	kfree(tvme200);
@@ -579,26 +572,19 @@ static int tvme200_probe(struct device *dev, unsigned int ndev)
 	}
 
 	dev_set_drvdata(dev, tvme200);
-
+	
 	for (i = 0; i < TVME200_NB_SLOT; i++)
         	tvme200_create_mezz_device(tvme200, i);
-
+	
 	return 0;
 
 out_free :
 	tvme200_uninstall(tvme200);
 	kfree(tvme200->info);
+	tvme200->info = NULL;
 out_err :
 	return res;
 }
-
-	static struct vme_driver tvme200_driver = {
-        .probe          = tvme200_probe,
-        .remove         = tvme200_remove,
-        .driver         = {
-        .name           = KBUILD_MODNAME,
-        },
-};
 
 static int tvme200_check_params(void) 
 {
@@ -629,40 +615,51 @@ static int tvme200_check_params(void)
 	return res;
 }
 
+static struct vme_driver tvme200_driver = {
+        .probe          = tvme200_probe,
+        .remove         = __devexit_p(tvme200_remove),
+        .driver         = {
+        .name           = KBUILD_MODNAME,
+        },
+};
+
 static int __init tvme200_init(void)
 {
 	int error = 0;
-
-	printk(KERN_INFO PFX "Carrier driver loading...\n");
 
 	error = tvme200_check_params();
 	if (error)
 		return -EINVAL;
 
-	carrier_boards = (struct tvme200_board*) kzalloc(num_lun * sizeof(struct tvme200_board), GFP_KERNEL);
+	carrier_boards = (struct tvme200_board*) 
+			kzalloc(num_lun * sizeof(struct tvme200_board), GFP_KERNEL);
 	if (carrier_boards == NULL) {
 		printk(KERN_ERR PFX "Unable to allocate carrier boards structure !\n");
 		return -ENOMEM;
 	}
 
-	 error = vme_register_driver(&tvme200_driver, num_lun);
-	 if (error) {
-        	 pr_err("%s: Cannot register vme driver - lun [%d]\n", __func__,
-	                 num_lun);
-		return error;
-	 }
+	error = vme_register_driver(&tvme200_driver, num_lun);
+	if (error) {
+		pr_err("%s: Cannot register vme driver \n", __func__);
+		goto vme_error;
+	}
 
 	printk(KERN_INFO PFX "Carrier driver loaded.\n");
 
 	return 0;
+
+vme_error:
+	kfree(carrier_boards);
+	carrier_boards = NULL;
+	return error;
 }
 
 static void __exit tvme200_exit(void)
 {
-	printk(KERN_INFO PFX "Carrier driver unloading...\n");
-
 	vme_unregister_driver(&tvme200_driver);
+	
 	kfree(carrier_boards);
+	carrier_boards = NULL;
 
 	printk(KERN_INFO PFX "Carrier driver unloaded.\n");
 }
