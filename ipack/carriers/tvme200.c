@@ -206,13 +206,13 @@ static int set_mem_params(struct tvme200_board *tvme200, struct vme_addr_space *
 
 
 /**
- * tvme200_init_mem - Initialisation of the TVME200 board.
+ * tvme200_register - Initialisation of the TVME200 board.
  *
  * @carrier		Base structure of the carrier.
  * @dev_specific	Specific device informations.
  *
  */
-static int tvme200_init_mem(struct tvme200_board *tvme200)
+static int tvme200_register(struct tvme200_board *tvme200)
 {
 	int res = 0;
 	struct tvme200_infos *info = tvme200->info;
@@ -471,13 +471,14 @@ static int tvme200_install(struct tvme200_board *tvme200, unsigned int n)
 		res = -ENOMEM;
 		goto out_err;
 	}
-
-	res = tvme200_init_mem(tvme200);
+	
+	
+	res = tvme200_register(tvme200);
 	if (res){
 		dev_err(dev, "Carrier %d, unable to init board !\n", n);
 		goto out_free;
 	}
-
+	
 	mutex_init(&tvme200->mutex);
 	dev_info(dev, "Carrier %s lun %d installed.\n", TVME200_SHORTNAME, lun[n]);
 	return 0;
