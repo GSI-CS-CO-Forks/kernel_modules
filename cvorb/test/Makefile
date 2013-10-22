@@ -5,6 +5,7 @@ include /acc/src/dsc/co/Make.auto
 VPATH = ../lib
 LOCAL_INCDIR := ../include
 CFLAGS := -Wall -g -I$(LOCAL_INCDIR) -I../lib  \
+	-I/acc/local/$(CPU)/drv \
 	-DDRIVER_NAME=\"cvorb\"
 
 LOADLIBES := -L../lib -L/acc/sys/$(CPU)/usr/lib -L/acc/local/$(CPU)/drv/extest -L/acc/local/$(CPU)/lib
