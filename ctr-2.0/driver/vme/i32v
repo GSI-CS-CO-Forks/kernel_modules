@@ -1,0 +1,16 @@
+#!/bin/sh
+
+echo "======================================================="
+echo "install CTRV driver                                    "
+echo "======================================================="
+
+CPU=L865
+KVER=3.2.43-rt63
+
+echo 8 > /proc/sys/kernel/printk
+
+/sbin/insmod ctrv.ko luns=1 vmeb=0xc00000 vecs=0xB8
+
+MAJOR=`cat /proc/devices | awk '{if ($2 == "ctrv") printf $1}'`
+rm -f /dev/ctr.*
+mknod  -m 0666 /dev/ctr.1 c ${MAJOR} 0
