@@ -16,6 +16,8 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 
+#include <linux/pci.h>
+
 #include <ctrhard.h>   /* Hardware description */
 #include <ctrdrvr.h>   /* Public driver interface */
 #include <ctrdrvrP.h>  /* Private driver structures */
@@ -312,6 +314,36 @@ static int init_mod_pars(char *name, int vid, int did, int bars)
 }
 
 /*========================================================================*/
+/* 32 Bit int access for CTR structure to write to hardware               */
+/*========================================================================*/
+
+static void Io32Write(uint32_t *dst, /* Hardware destination address */
+		      uint32_t *src,
+		      uint32_t size)
+{
+	int i, sb;
+
+	sb = size/sizeof(uint32_t);
+	for (i=0; i<sb; i++)
+		iowrite32be(src[i],(void *) &(dst[i]));
+}
+
+/*========================================================================*/
+/* 32 Bit int access for CTR structure to read from hardware             */
+/*========================================================================*/
+
+static void Io32Read(uint32_t *dst,
+		     uint32_t *src, /* Hardware Source address */
+		     uint32_t size)
+{
+	int i, sb;
+
+	sb = size/sizeof(uint32_t);
+	for (i=0; i<sb; i++)
+		dst[i] = ioread32be((void *) &(src[i]));
+}
+
+/*========================================================================*/
 /* 32 Bit int access copy                                                 */
 /*========================================================================*/
 
@@ -466,8 +498,8 @@ static int PingModule(CtrDrvrModuleContext *mcon)
 static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk) {
 
 	CtrDrvrMemoryMap *mmap; /* Module Memory map */
-	uint32_t intcsr;        /* Plx control word  */
-
+	uint16_t intcsr;        /* Plx control word  */
+	uint16_t *sp;
 	mmap = mcon->Map;
 
 	/* We want level triggered interrupts for Plx INT1  */
@@ -478,7 +510,8 @@ static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk) {
 	       | Plx9030IntcsrLINT_HIGH
 	       | Plx9030IntcsrPCI_INT_ENABLE;
 
-	iowrite16be(intcsr, (uint16_t) &((uint16_t *)(&mcon->Local))[PLX9030_INTCSR>>1];
+	sp = (uint16_t *) mcon->Local;
+	iowrite16be(intcsr, &(sp[PLX9030_INTCSR>>1]));
 
 	mcon->InterruptEnable |= msk;
 	mmap->InterruptEnable = mcon->InterruptEnable;
@@ -1175,7 +1208,7 @@ int i, midx;
 /* The ISR                                                    */
 /* ========================================================== */
 
-irqreturn_t ctr_irq(void *arg) {
+static irqreturn_t ctr_irq(int irq, void *arg) {
 
 	CtrDrvrModuleContext *mcon = arg;
 
@@ -1543,10 +1576,12 @@ int ctr_install(void)
 	CtrDrvrModuleContext *mcon;
 
 	uint32_t *vadr;
-	int modix, mid, cc, j;
+	int modix, cc, j;
 
 	CtrDrvrMemoryMap *mmap;
 	mod_par_t        *mpar;
+
+	struct pci_dev *pcur;
 
 	if (check_args(ctr_major_name) == 0)
 		printk("CtrDrvrInstall: No/Bad hardware installation parameters\n");
@@ -1576,7 +1611,8 @@ int ctr_install(void)
 		vadr = (uint32_t *) mpar->map[0];
 		mcon->Local = (uint32_t *) vadr;
 
-		cc = request_irq(mcon->dev->irq, ctr_irq, IRQF_SHARED, ctr_major_name, mcon);
+		pcur = mcon->dev;
+		cc = request_irq(pcur->irq, ctr_irq, IRQF_SHARED, ctr_major_name, mcon);
 		if (cc < 0) {
 		       pci_disable_device(mcon->dev);
 		       printk("mil1553:request_irq:ERROR%d\n",cc);
@@ -1623,7 +1659,7 @@ void ctr_uninstall(void)
 			mmap = mcon->Map;
 			src = mmap->InterruptSource;
 			mmap->InterruptEnable = 0;
-			free_irq(mcon->pdev->irq, mcon);
+			free_irq(mcon->dev->irq, mcon);
 
 			release_device(mcon->dev, mcon->Local, 0);
 			release_device(mcon->dev, mcon->Map, 2);
@@ -1751,7 +1787,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		break;
 
 		case CtrIoctlSET_MODULE_BY_SLOT:
-			for (i=0; i<Wa->Modules; i++) {
+			for (i=0; i<Wa.Modules; i++) {
 				mcon = &(Wa.ModuleContexts[i]);
 				if (mcon->PciSlot == lav) {
 					ccon->ModuleIndex = i;

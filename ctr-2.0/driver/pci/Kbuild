@@ -1,4 +1,5 @@
 EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%s) -g -Wall \
+		-I/acc/src/dsc/drivers/cohtdrep/lewis/ctr_linux/driver/pci \
 		-DCTR_PCI -DHARD_FLOAT -mhard-float
 
 obj-m:=ctrp.o
