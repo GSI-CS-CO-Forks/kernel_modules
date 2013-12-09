@@ -1,52 +1,42 @@
-/* ********************************************************** */
-/*                                                            */
-/* CTR (Controls Timing Receiver) Driver code.                */
-/*                                                            */
-/* Julian Lewis December 2003                                 */
-/* Linux PCI only. version July 2009 Julian Major revision    */
-/*                                                            */
-/* ********************************************************** */
 
-#include "EmulateLynxOs.h"
-#include "DrvrSpec.h"
-#include "plx9030.h"   /* PLX9030 Registers and definition   */
+#include <asm/io.h>
+#include <asm/uaccess.h>
+#include <asm/types.h>
+#include <linux/fs.h>
+#include <linux/interrupt.h>
+#include <linux/sched.h>
+#include <linux/slab.h>
 
-#include <linux/interrupt.h>	/* enable_irq, disable_irq */
+#include <linux/spinlock.h>
+#include <linux/types.h>
+#include <linux/module.h>
+#include <linux/interrupt.h>
+#include <linux/wait.h>
+#include <linux/mutex.h>
+#include <linux/delay.h>
+#include <linux/sched.h>
 
-/* These next defines are needed just here for the emulation */
+#include <ctrhard.h>   /* Hardware description */
+#include <ctrdrvr.h>   /* Public driver interface */
+#include <ctrdrvrP.h>  /* Private driver structures */
+#include <ctrhard.h>   /* Hardware layout */
+#include <hptdc.h>     /* High prescision time to digital convertor */
 
-#define sel LynxSel
-#define enable restore
+#include <plx9030.h>   /* PLX9030 Registers and definition   */
 
-#include "ctrhard.h"   /* Hardware description               */
-#include "ctrdrvr.h"   /* Public driver interface            */
-#include "ctrdrvrP.h"  /* Private driver structures          */
+#define OK 0
+#define SYSERR (-1)
 
-#include "ports.h"     /* XILINX Jtag stuff                  */
-#include "hptdc.h"     /* High prescision time to digital convertor */
+static int ctr_major = 0;
+static char *ctr_major_name = "ctrv";
 
-/**
- * ====================================================================
- * Handle PCI module parameters
- * Julian Lewis 3rd/Oct/2011 BE/CO/HT
- *
- * Example: insmod drv.ko luns=7,4,3,5 pci_buses=1,1,2,3 pci_slots=4,5,4,5
- *
- * Constraints are imposed here that force lun numbers to be in the
- * range MIN_DEV..LAST_DEV to be backwards compatible.
- *
- * This code hunts for all installed PCI modules with the given vendor
- * and device IDs. If they correspond to the installation parameters
- * they get installed using the given lun, otherwise hardware found
- * that is not in the arg list will be assigned a free LUN if one is
- * available. If modules are specified in the parameter list that are
- * not present, they are not used. The driver must decide what it wants
- * to do when there is a mismatch between the number of installed luns
- * and the number specified in the argument list.
- */
+MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
+MODULE_LICENSE("GPL");
+MODULE_DESCRIPTION("Timing Receiver");
+MODULE_SUPPORTED_DEVICE("CTRP");
 
+#define MAX_DEVS CtrDrvrMODULE_CONTEXTS
 #define MIN_DEV 1                         /** First valid LUN number */
-#define MAX_DEVS 16                       /** Max number of devices */
 #define LAST_DEV (MAX_DEVS - 1 + MIN_DEV) /** Last valid LUN number */
 
 static int luns[MAX_DEVS];
@@ -83,7 +73,7 @@ typedef struct {
 
 static mod_par_t mods[MAX_DEVS]; /* An array of MAX_DEVS module parameter blocks */
 
-static int iluns = 0;       /* Installed luns so far */
+static int iluns = 0;            /* Installed luns so far */
 
 /**
  * =========================================================
@@ -309,229 +299,67 @@ static int init_mod_pars(char *name, int vid, int did, int bars)
 		if (!pcur)
 			break;
 	}
-	printk("%s:Initialized:%d modules\n",
-	       name,
-	       iluns);
+
+	printk("%s:Initialized:%d modules\n",name,iluns);
+
 	if (iluns != luns_num)
-		printk("%s:ModPars declared luns:%d - Mismatch\n",
-		       name,
-		       luns_num);
+		printk("%s:ModPars declared luns:%d - Mismatch\n",name,luns_num);
+
 	return iluns;
 }
 
-/**
- * =========================================================
- * @brief Initialize old drm crap, I am getting rid of this
- * @param name  name of module
- * @return      1=OK else Fail
- */
+static CtrDrvrWorkingArea Wa;
+static DEFINE_MUTEX(ctr_drvr_mutex); /* Driver exclusive mutex */
 
-static int old_drm_crap(char *name, struct pci_dev *dev)
+/*========================================================================*/
+/* 32 Bit int access copy                                                 */
+/*========================================================================*/
+
+static void Int32Copy(uint32_t *dst,
+		      uint32_t *src,
+		      uint32_t size)
 {
-	int i;
-	for (i=0; i<MAX_DEVS; i++) {
-		if (lynxos_isrs[i].Handle == NULL) {
-			lynxos_isrs[i].Handle = dev;
-			lynxos_isrs[i].Slot = (dev->devfn >> 3);
-			if (dev->irq) {
-				lynxos_isrs[i].Irq = dev->irq;
-				 pci_write_config_byte(dev, PCI_INTERRUPT_LINE, dev->irq);
-			}
-			return 1;
-		}
-	}
-	return 0;
-}
+	int i, sb;
 
-/*========================================================================*/
-/* Define prototypes and forward references for local driver routines.    */
-/*========================================================================*/
-
-static char *CtrDrvrInstall(CtrDrvrInfoTable *info);
-static int CtrDrvrUninstall(CtrDrvrWorkingArea * wa);
-
-static void Int32Copy(volatile unsigned int *dst, volatile unsigned int *src, unsigned int size);
-
-static void CancelTimeout(int *t);
-
-static int ReadTimeout(CtrDrvrClientContext *ccon);
-
-static void DebugIoctl(CtrDrvrControlFunction cm, char *arg);
-
-static int GetVersion(CtrDrvrModuleContext *mcon,
-		      CtrDrvrVersion       *ver);
-
-static int PingModule(CtrDrvrModuleContext *mcon);
-
-static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk);
-
-static int DisableInterrupts(unsigned int           tndx,
-			     unsigned int           midx,
-			     CtrDrvrConnectionClass clss,
-			     CtrDrvrClientContext  *ccon);
-
-static int Reset(CtrDrvrModuleContext *mcon);
-
-static unsigned int GetStatus(CtrDrvrModuleContext *mcon);
-
-static unsigned int HptdcBitTransfer(volatile unsigned int  *jtg,
-					      unsigned int   tdi,
-					      unsigned int   tms);
-
-static void HptdcStateReset(volatile unsigned int *jtg);
-
-static int HptdcCommand(CtrDrvrModuleContext  *mcon,
-			 HptdcCmd              cmd,
-			 HptdcRegisterVlaue   *wreg,
-			 HptdcRegisterVlaue   *rreg,
-			 int                   size,
-			 int                   pflg,
-			 int                   rflg);
-
-static CtrDrvrCTime *GetTime(CtrDrvrModuleContext *mcon);
-
-static int SetTime(CtrDrvrModuleContext *mcon, unsigned int tod);
-
-static int RawIo(CtrDrvrModuleContext *mcon,
-		 CtrDrvrRawIoBlock    *riob,
-		 unsigned int          flag,
-		 unsigned int          debg);
-
-static CtrDrvrHwTrigger *TriggerToHard(CtrDrvrTrigger *strg);
-
-static CtrDrvrTrigger *HardToTrigger(volatile CtrDrvrHwTrigger *htrg);
-
-static CtrDrvrHwCounterConfiguration *ConfigToHard(CtrDrvrCounterConfiguration *scnf);
-
-static CtrDrvrCounterConfiguration *HardToConfig(volatile CtrDrvrHwCounterConfiguration *hcnf);
-
-static unsigned int  AutoShiftLeft(unsigned int  mask, unsigned int  value);
-
-static unsigned int  AutoShiftRight(unsigned int  mask, unsigned int  value);
-
-static unsigned int  GetPtimModule(unsigned int  eqpnum);
-
-static int Connect(CtrDrvrConnection    *conx,
-		   CtrDrvrClientContext *ccon);
-
-static int DisConnectOne(unsigned int           tndx,
-			 unsigned int           midx,
-			 CtrDrvrConnectionClass clss,
-			 CtrDrvrClientContext  *ccon);
-
-static int DisConnect(CtrDrvrConnection    *conx,
-		      CtrDrvrClientContext *ccon);
-
-static int DisConnectAll(CtrDrvrClientContext *ccon);
-
-/* ==================================================== */
-
-static void SetEndian(void);
-
-static void ToLittleEndian(char *from, char *to, int size);
-
-static void SwapWords(unsigned int  *dst, unsigned int  size);
-
-static int DrmLocalReadWrite(CtrDrvrModuleContext *mcon,
-			     unsigned int   addr,
-			     unsigned int  *value,
-			     unsigned int   size,
-			     unsigned int   flag);
-
-static int DrmConfigReadWrite(CtrDrvrModuleContext *mcon,
-			      unsigned int   addr,
-			      unsigned int  *value,
-			      unsigned int   size,
-			      unsigned int   flag);
-
-static int Remap(CtrDrvrModuleContext *mcon);
-
-static void SendEpromCommand(CtrDrvrModuleContext *mcon,
-			     EpCmd cmd, unsigned int  adr);
-
-static int WriteEpromWord(CtrDrvrModuleContext *mcon, unsigned int  word);
-
-static void ReadEpromWord(CtrDrvrModuleContext *mcon, unsigned int  *word);
-
-/* ========================= */
-/* Driver entry points       */
-/* ========================= */
-
-irqreturn_t IntrHandler(CtrDrvrModuleContext *);
-
-/* Flash the i/o pipe line */
-
-#define EIEIO
-#define SYNC
-
-static CtrDrvrWorkingArea *Wa       = NULL;
-
-/*========================================================================*/
-/* 32 Bit int access for CTR structure to/from hardware copy              */
-/*========================================================================*/
-
-static void Int32Copy(volatile unsigned int *dst,
-		      volatile unsigned int *src,
-			       unsigned int size) {
-int i, sb;
-
-   sb = size/sizeof(unsigned int);
-   for (i=0; i<sb; i++) dst[i] = src[i];
+	sb = size/sizeof(uint32_t);
+	for (i=0; i<sb; i++)
+		dst[i] = src[i];
 }
 
 /*========================================================================*/
 /* Swap words                                                             */
 /*========================================================================*/
 
-static void SwapWords(unsigned int *dst,
-		      unsigned int size) {
+static void SwapWords(uint32_t *dst,
+		      uint32_t size)
+{
+	int i, sb;
+	uint32_t lft, rgt;
 
-int i, sb;
-unsigned int lft, rgt;
-
-   sb = size/sizeof(unsigned int);
-   for (i=0; i<sb; i++) {
-      rgt = lft = dst[i];
-      lft = (lft & 0xFFFF0000) >> 16;
-      rgt = (rgt & 0x0000FFFF);
-      dst[i] = (rgt<<16) | lft;
-   }
+	sb = size/sizeof(uint32_t);
+	for (i=0; i<sb; i++) {
+		rgt = lft = dst[i];
+		lft = (lft & 0xFFFF0000) >> 16;
+		rgt = (rgt & 0x0000FFFF);
+		dst[i] = (rgt<<16) | lft;
+	}
 }
 
-/*========================================================================*/
-/* Cancel a timeout in a safe way                                         */
-/*========================================================================*/
+/* ============================== */
+/* To prevent accidents only      */
+/* ============================== */
 
-static void CancelTimeout(int *t) {
+static void clr_uplock(CtrDrvrModuleContext *mcon, uint32_t pw)
+{
+	uint32_t ck = 0;
+	int i;
 
-int v;
-
-   if ((v = *t)) {
-      *t = 0;
-      cancel_timeout(v);
-   }
-}
-
-/*========================================================================*/
-/* Handel read timeouts                                                   */
-/*========================================================================*/
-
-static int ReadTimeout(CtrDrvrClientContext *ccon) {
-
-   ccon->Timer = 0;
-   sreset(&(ccon->Semaphore));
-   return 0;
-}
-
-/*========================================================================*/
-/* Handel reset timeouts                                                  */
-/*========================================================================*/
-
-static int ResetTimeout(CtrDrvrModuleContext *mcon) {
-
-   mcon->Timer = 0;
-   sreset(&(mcon->Semaphore));
-   return 0;
+	for (i=0; i<8; i++) {
+		ck += (pw & 0xF);
+		pw = pw >> 4;
+	}
+	if (ck == 0x0024)
+		mcon->UpLock = 0;
 }
 
 /* =========================================================================================== */
@@ -540,346 +368,50 @@ static int ResetTimeout(CtrDrvrModuleContext *mcon) {
 
 static char *ioctl_names[CtrDrvrLAST_IOCTL] = {
 
-"SET_SW_DEBUG", "GET_SW_DEBUG", "GET_VERSION", "SET_TIMEOUT", "GET_TIMEOUT",
-"SET_QUEUE_FLAG", "GET_QUEUE_FLAG", "GET_QUEUE_SIZE", "GET_QUEUE_OVERFLOW",
-"GET_MODULE_DESCRIPTOR", "SET_MODULE",
-"GET_MODULE", "GET_MODULE_COUNT", "RESET", "ENABLE", "GET_STATUS", "GET_INPUT_DELAY",
-"SET_INPUT_DELAY", "GET_CLIENT_LIST", "CONNECT", "DISCONNECT", "GET_CLIENT_CONNECTIONS",
-"SET_UTC", "GET_UTC", "GET_CABLE_ID", "GET_ACTION", "SET_ACTION", "CREATE_CTIM_OBJECT",
-"DESTROY_CTIM_OBJECT", "LIST_CTIM_OBJECTS", "CHANGE_CTIM_FRAME", "CREATE_PTIM_OBJECT",
-"DESTROY_PTIM_OBJECT", "LIST_PTIM_OBJECTS", "GET_PTIM_BINDING",
-"GET_OUT_MASK", "SET_OUT_MASK", "GET_COUNTER_HISTORY", "GET_REMOTE",
-"SET_REMOTE", "REMOTE", "GET_CONFIG", "SET_CONFIG", "GET_PLL", "SET_PLL", "SET_PLL_ASYNC_PERIOD",
-"GET_PLL_ASYNC_PERIOD", "READ_TELEGRAM", "READ_EVENT_HISTORY", "JTAG_OPEN", "JTAG_READ_BYTE",
-"JTAG_WRITE_BYTE", "JTAG_CLOSE", "HPTDC_OPEN", "HPTDC_IO", "HPTDC_CLOSE", "RAW_READ", "RAW_WRITE",
-"GET_RECEPTION_ERRORS", "GET_IO_STATUS", "GET_IDENTITY",
-"SET_DEBUG_HISTORY","SET_BRUTAL_PLL","GET_MODULE_STATS","SET_CABLE_ID",
-"IOCTL64","IOCTL65","IOCTL66","IOCTL67","IOCTL68","IOCTL69",
+	"SET_SW_DEBUG", "GET_SW_DEBUG", "GET_VERSION", "SET_TIMEOUT", "GET_TIMEOUT",
+	"SET_QUEUE_FLAG", "GET_QUEUE_FLAG", "GET_QUEUE_SIZE", "GET_QUEUE_OVERFLOW",
+	"GET_MODULE_DESCRIPTOR", "SET_MODULE",
+	"GET_MODULE", "GET_MODULE_COUNT", "RESET", "ENABLE", "GET_STATUS", "GET_INPUT_DELAY",
+	"SET_INPUT_DELAY", "GET_CLIENT_LIST", "CONNECT", "DISCONNECT", "GET_CLIENT_CONNECTIONS",
+	"SET_UTC", "GET_UTC", "GET_CABLE_ID", "GET_ACTION", "SET_ACTION", "CREATE_CTIM_OBJECT",
+	"DESTROY_CTIM_OBJECT", "LIST_CTIM_OBJECTS", "CHANGE_CTIM_FRAME", "CREATE_PTIM_OBJECT",
+	"DESTROY_PTIM_OBJECT", "LIST_PTIM_OBJECTS", "GET_PTIM_BINDING",
+	"GET_OUT_MASK", "SET_OUT_MASK", "GET_COUNTER_HISTORY", "GET_REMOTE",
+	"SET_REMOTE", "REMOTE", "GET_CONFIG", "SET_CONFIG", "GET_PLL", "SET_PLL", "SET_PLL_ASYNC_PERIOD",
+	"GET_PLL_ASYNC_PERIOD", "READ_TELEGRAM", "READ_EVENT_HISTORY", "JTAG_OPEN", "JTAG_READ_BYTE",
+	"JTAG_WRITE_BYTE", "JTAG_CLOSE", "HPTDC_OPEN", "HPTDC_IO", "HPTDC_CLOSE", "RAW_READ", "RAW_WRITE",
+	"GET_RECEPTION_ERRORS", "GET_IO_STATUS", "GET_IDENTITY",
+	"SET_DEBUG_HISTORY","SET_BRUTAL_PLL","GET_MODULE_STATS","SET_CABLE_ID",
+	"LOCK","UNLOCK","IOCTL66","IOCTL67","IOCTL68","IOCTL69",
 
-"SET_MODULE_BY_SLOT", "GET_MODULE_SLOT",
-"REMAP", "93LC56B_EEPROM_OPEN", "93LC56B_EEPROM_READ", "93LC56B_EEPROM_WRITE",
-"93LC56B_EEPROM_ERASE", "93LC56B_EEPROM_CLOSE", "PLX9030_RECONFIGURE", "PLX9030_CONFIG_OPEN",
-"PLX9030_CONFIG_READ", "PLX9030_CONFIG_WRITE", "PLX9030_CONFIG_CLOSE", "PLX9030_LOCAL_OPEN",
-"PLX9030_LOCAL_READ", "PLX9030_LOCAL_WRITE", "PLX9030_LOCAL_CLOSE",
+	"SET_MODULE_BY_SLOT", "GET_MODULE_SLOT",
+	"REMAP", "93LC56B_EEPROM_OPEN", "93LC56B_EEPROM_READ", "93LC56B_EEPROM_WRITE",
+	"93LC56B_EEPROM_ERASE", "93LC56B_EEPROM_CLOSE", "PLX9030_RECONFIGURE", "PLX9030_CONFIG_OPEN",
+	"PLX9030_CONFIG_READ", "PLX9030_CONFIG_WRITE", "PLX9030_CONFIG_CLOSE", "PLX9030_LOCAL_OPEN",
+	"PLX9030_LOCAL_READ", "PLX9030_LOCAL_WRITE", "PLX9030_LOCAL_CLOSE",
 
 };
 
 /* =========================================================================================== */
 
-static void DebugIoctl(CtrDrvrControlFunction cm, char *arg) {
-int i;
-char *iocname;
+static void DebugIoctl(uint32_t cm, void *arg)
+{
+	int *ip;
+	char *iocname;
 
-   if (cm < CtrDrvrLAST_IOCTL) {
-      iocname = ioctl_names[(int) cm];
-      if (arg) {
-	 i = (int) *arg;
-	 cprintf("CtrDrvr: Debug: Called with IOCTL: %s Arg: %d\n",iocname, i);
-      } else {
-	 cprintf("CtrDrvr: Debug: Called with IOCTL: %s Arg: NULL\n",iocname);
-      }
-      return;
-   }
-   cprintf("CtrDrvr: Debug: ERROR: Illegal IOCTL number: %d\n",(int) cm);
-}
+	if (cm < CtrDrvrLAST_IOCTL) {
+		iocname = ioctl_names[(int) cm];
+		if (arg) {
+			ip = arg;
+			printk("CtrDrvr: Debug: Called with IOCTL: %s Arg: %d\n",iocname, *ip);
 
-/* ========================================================== */
-/* This driver works on platforms that have different endians */
-/* so this routine finds out which one we are.                */
-/* ========================================================== */
+		} else {
 
-static void SetEndian(void) {
-
-static unsigned int str[2] = { 0x41424344, 0x0 };
-
-   if (strcmp ((char *) &str[0], "ABCD") == 0)
-      Wa->Endian = CtrDrvrEndianBIG;
-   else
-      Wa->Endian = CtrDrvrEndianLITTLE;
-}
-
-/* ========================================================== */
-/* Arrange bytes if we are on a Big Endian platform           */
-/* The Plx9030 local space is always little endian            */
-/* ========================================================== */
-
-static void ToLittleEndian(char *from, char *to, int size) {
-
-int i;
-char buff[4];    /* Buffer because "to" and "from" can be the same address */
-
-   if (Wa->Endian == CtrDrvrEndianBIG) {
-      for (i=0; i<size; i++) buff[size-i-1] = from[i];
-      for (i=0; i<size; i++) to[i] = buff[i];
-   }
-}
-
-/* ========================================================== */
-/* Read/Write PLX9030 local config registers.                 */
-/* The local config space is always Little Endian.            */
-/* This routine always uses Long access, for smaller sizes    */
-/* the Long is first read, modified, and written back.        */
-/* ========================================================== */
-
-static int DrmLocalReadWrite(CtrDrvrModuleContext *mcon,
-			     unsigned int   addr,
-			     unsigned int  *value,
-			     unsigned int   size,
-			     unsigned int   flag) {
-
-int i;
-unsigned int  regnum, regval;
-unsigned char *cp;
-unsigned short *sp;
-
-   if (mcon->Local) {
-
-      cp = (char  *) &regval;                   /* For size 1, byte */
-      sp = (short *) &regval;                   /* For size 2, short */
-      regnum = addr>>2;                         /* Long address is the regnum */
-
-      regval = (mcon->Local)[regnum];           /* First Read the Long, Little Endian */
-      ToLittleEndian((char *) &regval,
-		     (char *) &regval,
-			      4);               /* Endian convert the Long to local Endian */
-
-      if (flag) {                               /* Write flag set ? */
-	 switch (size) {
-	    case 1:                             /* Is it a Byte ? */
-	       i = 3 - (addr & 3);              /* Address of Byte in regval */
-	       cp[i] = (unsigned char) *value;  /* Overwrite the Byte */
-	    break;
-
-	    case 2:                             /* Is it a Short ? */
-	       i = 1 - ((addr>>1) & 1);         /* Address of Short in regval */
-	       sp[i] = (unsigned short) *value; /* Overwrute the short */
-	    break;
-
-	    default:                            /* It must be a Long */
-	       regval = *value;                 /* Overwrite the Long */
-	 }
-
-	 ToLittleEndian((char *) &regval,
-			(char *) &regval,
-				 4);            /* Endian convert the Long back to Little */
-	 (mcon->Local)[regnum] = regval;        /* Write back the Long */
-
-      } else {                                  /* Write flag is down so it's a Read */
-	 switch (size) {
-	    case 1:                             /* Is it a Byte ? */
-	       i = 3 - (addr & 3);              /* Address of Byte in regval */
-	       *value = (unsigned int) cp[i];  /* Return Byte value */
-	    break;
-
-	    case 2:                             /* Is it a Short ? */
-	       i = 1 - ((addr>>1) & 1);         /* Address of Short in regval */
-	       *value = (unsigned int) sp[i];  /* Return Short value */
-	    break;
-
-	    default:                            /* It must be a Long */
-	       *value = regval;
-	 }
-      }
-      return OK;
-   }
-   return SYSERR;
-}
-
-/* ========================================================== */
-/* Read/Write PLX9030 config registers.                       */
-/* This is needed because of the brain dead definition of the */
-/* offset field in drm_read/write as int addresses.           */
-/* ========================================================== */
-
-static int DrmConfigReadWrite(CtrDrvrModuleContext *mcon,
-			      unsigned int   addr,
-			      unsigned int  *value,
-			      unsigned int   size,
-			      unsigned int   flag) {
-
-int i, cc;
-unsigned int regnum, regval;
-unsigned char *cp;
-unsigned short *sp;
-
-   cp = (char  *) &regval;  /* For size 1, byte */
-   sp = (short *) &regval;  /* For size 2, short */
-   regnum = addr>>2;        /* The regnum turns out to be the int address */
-
-   /* First read the int register value (Forced because of drm lib) */
-
-   cc = drm_device_read(mcon->Handle,PCI_RESID_REGS,regnum,0,&regval);
-   if (cc) {
-      cprintf("CtrDrvr: DrmConfigReadWrite: Error: %d From drm_device_read\n",cc);
-      return cc;
-   }
-
-   /* For read/write access the byte or short or int in regval */
-
-   if (flag) {                                  /* Write */
-
-      /* Modify regval according to address and size */
-
-      switch (size) {
-	 case 1:                                /* Byte */
-	    i = 3 - (addr & 3);                 /* Byte in regval */
-	    cp[i] = (unsigned char) *value;
-	 break;
-
-	 case 2:                                /* Short */
-	   i = 1 - ((addr>>1) & 1);             /* Shorts in regval */
-	   sp[i] = (unsigned short) *value;
-	 break;
-
-	 default: regval = *value;              /* Long */
-      }
-
-      /* Write back modified configuration register */
-
-      cc = drm_device_write(mcon->Handle,PCI_RESID_REGS,regnum,0,&regval);
-      if (cc) {
-	 cprintf("CtrDrvr: DrmConfigReadWrite: Error: %d From drm_device_write\n",cc);
-	 return cc;
-      }
-
-   } else {                                     /* Read */
-
-      /* Extract the data from regval according to address and size */
-
-      switch (size) {
-	 case 1:
-	    i = 3 - (addr & 3);
-	    *value = (unsigned int) cp[i];
-	 break;
-
-	 case 2:
-	   i = 1 - ((addr>>1) & 1);
-	   *value = (unsigned int) sp[i];
-	 break;
-
-	 default: *value = regval;
-      }
-   }
-   return OK;
-}
-
-/* ========================================================== */
-/* Send a command to the 93lc56b EEPROM                       */
-/* See plx9030.h                                              */
-/* ========================================================== */
-
-static void SendEpromCommand(CtrDrvrModuleContext *mcon,
-			     EpCmd cmd, unsigned int adr) {
-
-unsigned int cntrl;
-unsigned short cmnd, msk;
-int i;
-
-   /* Reset flash memory state machine */
-
-   cntrl = Plx9030CntrlCHIP_UNSELECT;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Chip select off */
-   cntrl |= Plx9030CntrlDATA_CLOCK;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Strobe Clk up */
-   cntrl = Plx9030CntrlCHIP_UNSELECT;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Strobe Clk down */
-
-   cmnd = ((0x7F & (unsigned short) adr) << 5) | (unsigned short) cmd;
-   msk = 0x8000;
-   for (i=0; i<EpClkCycles; i++) {
-      if (msk & cmnd) cntrl = Plx9030CntrlDATA_OUT_ONE;
-      else            cntrl = Plx9030CntrlDATA_OUT_ZERO;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Write 1 or 0 */
-      cntrl |= Plx9030CntrlDATA_CLOCK;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Clk Up */
-      msk = msk >> 1;
-   }
-}
-
-/* ========================================================== */
-/* Write a data word to the 93lc56b EEPROM                    */
-/* See plx9030.h                                              */
-/* ========================================================== */
-
-static int WriteEpromWord(CtrDrvrModuleContext *mcon, unsigned int word) {
-
-unsigned int cntrl;
-unsigned short bits, msk;
-int i, plxtmo;
-
-   bits = (unsigned short) word;
-   msk = 0x8000;
-   for (i=0; i<16; i++) {
-      if (msk & bits) cntrl = Plx9030CntrlDATA_OUT_ONE;
-      else            cntrl = Plx9030CntrlDATA_OUT_ZERO;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Write 1 or 0 */
-      cntrl |= 0x01000000;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1); /* Strobe Clk */
-      msk = msk >> 1;
-   }
-   cntrl = Plx9030CntrlCHIP_UNSELECT;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);    /* Chip select off */
-   cntrl = Plx9030CntrlCHIP_SELECT;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);    /* Chip select on */
-
-   plxtmo = 6000;                                       /* At 1us per cycle = 6ms */
-   while (((Plx9030CntrlDONE_FLAG & cntrl) == 0) && (plxtmo-- >0)) {
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,0); /* Read Busy Status */
-   }
-   cntrl = Plx9030CntrlCHIP_UNSELECT;
-   DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);    /* Chip select off */
-
-   if (plxtmo <= 0) {
-      cprintf("WriteEpromWord: Timout from 93lc56B\n");
-      return SYSERR;
-   }
-   return OK;
-}
-
-/* ========================================================== */
-/* Read a data word from the 93lc56b EEPROM                   */
-/* See plx9030.h                                              */
-/* ========================================================== */
-
-static void ReadEpromWord(CtrDrvrModuleContext *mcon, unsigned int *word) {
-
-unsigned int cntrl;
-unsigned short bits, msk;
-int i;
-
-   bits = 0;
-   msk = 0x8000;
-   for (i=0; i<16; i++) {
-      cntrl = Plx9030CntrlCHIP_SELECT;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-      cntrl |= Plx9030CntrlDATA_CLOCK;
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-      DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,0);
-      if (cntrl & Plx9030CntrlDATA_IN_ONE) bits |= msk;
-      msk = msk >> 1;
-   }
-   *word = (unsigned int) bits;
-}
-
-/* ========================================================== */
-/* Rebuild PCI device tree, uninstall devices and reinstall.  */
-/* Needed if device descriptions (ie IDs)  are modified.      */
-/* This should be done after the Plx9030 EEPROM has been      */
-/* reloaded, or simply do a reboot of the DSC.                */
-/* ========================================================== */
-
-static int RemapFlag = 0;
-
-static int Remap(CtrDrvrModuleContext *mcon) {
-
-   drm_locate(mcon->Handle);                    /* Rebuild PCI tree */
-
-   RemapFlag = 1;                               /* Don't release memory */
-   CtrDrvrUninstall((CtrDrvrWorkingArea *) Wa); /* Uninstall all */
-   CtrDrvrInstall((CtrDrvrInfoTable *) Wa);     /* Re-install all */
-   RemapFlag = 0;                               /* Normal uninstall */
-
-   return OK;
+			printk("CtrDrvr: Debug: Called with IOCTL: %s Arg: NULL\n",iocname);
+		}
+		return;
+	}
+	printk("CtrDrvr: Debug: ERROR: Illegal IOCTL number: %d\n",(int) cm);
 }
 
 /* ========================================================== */
@@ -891,46 +423,45 @@ static int Remap(CtrDrvrModuleContext *mcon) {
 #endif
 
 static int GetVersion(CtrDrvrModuleContext *mcon,
-		      CtrDrvrVersion       *ver) {
+		      CtrDrvrVersion       *ver)
+{
+	CtrDrvrMemoryMap *mmap;
+	uint32_t          stat;    /* Module status */
 
-volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
-unsigned long             ps;      /* Processor status  */
-unsigned int              stat;    /* Module status */
+	mmap = mcon->Map;
+	ver->VhdlVersion  = ioread32be(&mmap->VhdlVersion);
+	ver->DrvrVersion  = COMPILE_TIME;
+	ver->HardwareType = CtrDrvrHardwareTypeNONE;
 
-   ps = 0;
-   mmap = mcon->Map;
+	stat  = ioread32be(&mmap->Status);
+	stat &= CtrDrvrTypeStatusMask;
 
-   ver->VhdlVersion  = mmap->VhdlVersion;
-   ver->DrvrVersion  = COMPILE_TIME;
-   ver->HardwareType = CtrDrvrHardwareTypeNONE;
+	if (stat != CtrDrvrTypeStatusMask) {
+		if (stat & CtrDrvrStatusCTRI)
+			ver->HardwareType = CtrDrvrHardwareTypeCTRI;
 
-   EIEIO;
-   SYNC;
+		if (stat & CtrDrvrStatusCTRP)
+			ver->HardwareType = CtrDrvrHardwareTypeCTRP;
 
-   stat  = mmap->Status;
-
-   EIEIO;
-   SYNC;
-
-   stat &= CtrDrvrTypeStatusMask;
-   if (stat != CtrDrvrTypeStatusMask) {
-      if (stat & CtrDrvrStatusCTRI) ver->HardwareType = CtrDrvrHardwareTypeCTRI;
-      if (stat & CtrDrvrStatusCTRP) ver->HardwareType = CtrDrvrHardwareTypeCTRP;
-      if (stat & CtrDrvrStatusCTRV) ver->HardwareType = CtrDrvrHardwareTypeCTRV;
-   }
-
-   return OK;
+		if (stat & CtrDrvrStatusCTRV)
+			ver->HardwareType = CtrDrvrHardwareTypeCTRV;
+	}
+	return OK;
 }
 
 /* ========================================================== */
-/* Ping module using GetVersion to check for bus errors       */
-/* ========================================================== */
 
-static int PingModule(CtrDrvrModuleContext *mcon) {
+static int PingModule(CtrDrvrModuleContext *mcon)
+{
+	CtrDrvrVersion ver;
+	int cc;
 
-CtrDrvrVersion ver;
-
-   return GetVersion(mcon,&ver);
+	cc = GetVersion(mcon,&ver);
+	if ((ver.HardwareType == CtrDrvrHardwareTypeCTRI)
+	||  (ver.HardwareType == CtrDrvrHardwareTypeCTRP)
+	||  (ver.HardwareType == CtrDrvrHardwareTypeCTRV))
+		return OK;
+	return SYSERR;
 }
 
 /* ========================================================== */
@@ -939,190 +470,164 @@ CtrDrvrVersion ver;
 
 static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk) {
 
-volatile CtrDrvrMemoryMap *mmap; /* Module Memory map */
+	CtrDrvrMemoryMap *mmap; /* Module Memory map */
+	uint32_t intcsr;        /* Plx control word  */
 
-unsigned int intcsr;           /* Plx control word  */
+	mmap = mcon->Map;
 
-   mmap = mcon->Map;
+	/* We want level triggered interrupts for Plx INT1  */
+	/* for an active high. Level type interrupts do not */
+	/* require clearing on the Plx chip it self.        */
 
-   /* We want level triggered interrupts for Plx INT1  */
-   /* for an active high. Level type interrupts do not */
-   /* require clearing on the Plx chip it self.        */
+	intcsr = Plx9030IntcsrLINT_ENABLE
+	       | Plx9030IntcsrLINT_HIGH
+	       | Plx9030IntcsrPCI_INT_ENABLE;
 
-   intcsr = Plx9030IntcsrLINT_ENABLE
-	  | Plx9030IntcsrLINT_HIGH
-	  | Plx9030IntcsrPCI_INT_ENABLE;
+	iowrite16be(intcsr, (uint16_t) &((uint16_t *)(&mcon->Local))[PLX9030_INTCSR>>1];
 
-   DrmLocalReadWrite(mcon,PLX9030_INTCSR,&intcsr,2,1);
-   mcon->InterruptEnable |= msk;
-   mmap->InterruptEnable = mcon->InterruptEnable;
+	mcon->InterruptEnable |= msk;
+	mmap->InterruptEnable = mcon->InterruptEnable;
 
-   EIEIO;
-   SYNC;
-
-/* After a JTAG upgrade interrupt must be re-enabled once */
-/* and at least one time on startup. */
-
-   if (mcon->IrqBalance == 0) {
-      enable_irq(mcon->IVector);
-      mcon->IrqBalance = 1;
-   }
-   return OK;
+	return OK;
 }
-
 /* ========================================================== */
 /* Disable Interrupt                                          */
 /* ========================================================== */
 
-static int DisableInterrupts(unsigned int          tndx,
-			     unsigned int          midx,
-			     CtrDrvrConnectionClass clss,
-			     CtrDrvrClientContext  *ccon) {
+static int DisableInterrupts(uint32_t                tndx,
+			     uint32_t                midx,
+			     CtrDrvrConnectionClass  clss,
+			     CtrDrvrClientContext   *ccon)
+{
+	CtrDrvrModuleContext *mcon;
+	CtrDrvrMemoryMap     *mmap;
 
-CtrDrvrModuleContext       *mcon;
-volatile CtrDrvrMemoryMap  *mmap;
-int i, cmsk, hmsk, cntr;
+	int i, cmsk, hmsk, cntr;
 
-   cmsk = 1 << ccon->ClientIndex;
-   mcon = &(Wa->ModuleContexts[midx]);
+	cmsk = 1 << ccon->ClientIndex;
+	mcon = &(Wa.ModuleContexts[midx]);
 
-   if (clss != CtrDrvrConnectionClassHARD) cntr = mcon->Trigs[tndx].Counter;
-   else if (tndx <= CtrDrvrCOUNTERS)       cntr = tndx;
-   else                                    cntr = -1;
+	if (clss != CtrDrvrConnectionClassHARD)
+		cntr = mcon->Trigs[tndx].Counter;
 
-   if (cntr != -1) {
-      if (mcon->HardClients[cntr] & ~cmsk) return OK;
-      hmsk = 1 << cntr;
-      for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-	 if ((mcon->Trigs[i].Counter == cntr)
-	 &&  (mcon->Clients[i] & ~cmsk)) {
-	    return OK;
-	 }
-      }
-   } else hmsk = 1 << tndx;
+	else if (tndx <= CtrDrvrCOUNTERS)
+		cntr = tndx;
 
-   if (mcon->HardClients[tndx] & ~cmsk) return OK;
+	else
+		cntr = -1;
 
-   mmap = mcon->Map;
-   mcon->InterruptEnable &= ~hmsk;
-   mmap->InterruptEnable = mcon->InterruptEnable;
+	if (cntr != -1) {
+		if (mcon->HardClients[cntr] & ~cmsk)
+			return OK;
 
-   EIEIO;
-   SYNC;
+		hmsk = 1 << cntr;
+		for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+			if ((mcon->Trigs[i].Counter == cntr)
+			&&  (mcon->Clients[i] & ~cmsk)) {
+				return OK;
+			}
+		}
 
-   return OK;
+	} else
+	       hmsk = 1 << tndx;
+
+	if (mcon->HardClients[tndx] & ~cmsk)
+		return OK;
+
+	mmap = mcon->Map;
+	mcon->InterruptEnable &= ~hmsk;
+	iowrite32be(mcon->InterruptEnable,&mmap->InterruptEnable);
+
+	return OK;
 }
 
 /* ========================================================== */
 /* Reset a module                                             */
 /* ========================================================== */
 
-static unsigned char RecoverMode = 0;
+static void HptdcStateReset(uint32_t *jtg);
+static uint32_t AutoShiftLeft(uint32_t mask, uint32_t value);
 
-static int Reset(CtrDrvrModuleContext *mcon) {
+static void Reset(CtrDrvrModuleContext *mcon)
+{
 
-volatile CtrDrvrMemoryMap *mmap;     /* Module Memory map */
-unsigned long              ps;       /* Processor status  */
-volatile unsigned int     *jtg;      /* Hptdc JTAG register */
-int i = 0;
+	CtrDrvrModuleAddress *moad;
+	CtrDrvrMemoryMap     *mmap;
+	uint32_t             *jtg;
+	int i;
 
-   ps = 0;
-   if (RecoverMode) {
-      RecoverMode--;
-      return OK;  /* Do nothing in recover mode */
-   }
-   mmap = mcon->Map;
+	mmap = mcon->Map;
 
-   i = 0;                 /* Used to say more about bus error */
+	iowrite32be(CtrDrvrCommandRESET,&mmap->Command);
+	mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS;
 
-   mmap->Command = CtrDrvrCommandRESET;
-   mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS | CtrDrvrStatusNO_BUS_ERROR;
-   mcon->BusErrorCount = 0;
+	msleep(10);
 
-   EIEIO;
-   SYNC;
+	mcon->Command &= ~CtrDrvrCommandSET_HPTDC; /* Hptdc needs to be re-initialized */
+	iowrite32be(mcon->Command,&mmap->Command);
 
-   /* Wait at least 10 ms after a "reset", for the module to recover */
+	for (i=CtrDrvrCounter1; i<=CtrDrvrCounter8; i++) {
+		if (ioread32be(&mmap->Counters[i].Control.RemOutMask) == 0) {
+			iowrite32be(AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i)),
+				    &mmap->Counters[i].Control.RemOutMask);
+		}
+	}
 
-   sreset(&(mcon->Semaphore));
-   mcon->Timer = timeout((void *) ResetTimeout, (char *) mcon, 2);
-   if (mcon->Timer < 0) mcon->Timer = 0;
-   if (mcon->Timer) swait(&(mcon->Semaphore), SEM_SIGABORT);
-   if (mcon->Timer) CancelTimeout(&(mcon->Timer));
+	if (mcon->OutputByte)
+		iowrite32be(0x100 | (1 << (mcon->OutputByte -1)),&mmap->OutputByte);
+	else
+		iowrite32be(0x100,&mmap->OutputByte);
 
-   mcon->Command &= ~CtrDrvrCommandSET_HPTDC; /* Hptdc needs to be re-initialized */
-   mmap->Command = mcon->Command;
+	moad = &(mcon->Address);
+	iowrite32be((uint32_t) ((moad->InterruptLevel << 8) | (moad->InterruptVector & 0xFF)),&mmap->Setup);
 
-   for (i=CtrDrvrCounter1; i<=CtrDrvrCounter8; i++) {
-      if (mmap->Counters[i].Control.RemOutMask == 0) {
-	 mmap->Counters[i].Control.RemOutMask = AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i));
-      }
-   }
-   i = 0;                /* Not a counter bus error */
+	if (mcon->Pll.KP == 0) {
+		mcon->Pll.KP = 337326;
+		mcon->Pll.KI = 901;
+		mcon->Pll.NumAverage = 100;
+		mcon->Pll.Phase = 1950;
+	}
+	Io32Write((uint32_t *) &(mmap->Pll),
+		  (uint32_t *) &(mcon->Pll),
+		  (uint32_t  ) sizeof(CtrDrvrPll));
 
-   mmap->OutputByte = 0x100;  /* Enable front pannel output */
+	EnableInterrupts(mcon,mcon->InterruptEnable);
 
-   if (mcon->Pll.KP == 0) {
-      mcon->Pll.KP = 337326;
-      mcon->Pll.KI = 901;
-      mcon->Pll.NumAverage = 100;
-      mcon->Pll.Phase = 1950;
-   }
-   Int32Copy((unsigned int *) &(mmap->Pll),
-	    (unsigned int *) &(mcon->Pll),
-	    (unsigned int  ) sizeof(CtrDrvrPll));
-
-   EnableInterrupts(mcon,mcon->InterruptEnable);
-
-   EIEIO;
-   SYNC;
-
-   jtg = &mmap->HptdcJtag;
-   HptdcStateReset(jtg);           /* GOTO: Run test/idle */
-
-   return OK;
+	jtg = &mmap->HptdcJtag;
+	HptdcStateReset(jtg);           /* GOTO: Run test/idle */
 }
 
 /* ========================================================== */
 /* Get Status                                                 */
 /* ========================================================== */
 
-static unsigned int GetStatus(CtrDrvrModuleContext *mcon) {
+static uint32_t GetStatus(CtrDrvrModuleContext *mcon)
+{
+	CtrDrvrMemoryMap *mmap;
+	uint32_t          stat;
 
-volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
-unsigned int              stat;    /* Status */
-
-   if (PingModule(mcon) == OK) {
-      mmap  = mcon->Map;
-      stat  = mmap->Status & CtrDrvrHwStatusMASK;
-      if (mcon->BusErrorCount >  0) --mcon->BusErrorCount;
-      if (mcon->BusErrorCount == 0) mcon->Status |= CtrDrvrStatusNO_BUS_ERROR;
-      stat  = stat | (mcon->Status & ~CtrDrvrHwStatusMASK);
-      return stat;
-   }
-   return SYSERR;
+	mmap = mcon->Map;
+	stat = ioread32be(&mmap->Status) & CtrDrvrHwStatusMASK;
+	stat  = stat | (mcon->Status & ~CtrDrvrHwStatusMASK);
+	return stat;
 }
 
 /* ========================================================== */
 /* HPTDC JTAG Bit transfer                                    */
 /* ========================================================== */
 
-static unsigned int HptdcBitTransfer(volatile unsigned int *jtg,
-					       unsigned int  tdi,
-					       unsigned int  tms) {
-unsigned int jwd, tdo;
+static uint32_t HptdcBitTransfer(uint32_t *jtg,
+				 uint32_t  tdi,
+				 uint32_t  tms) {
+uint32_t jwd, tdo;
 
    jwd = HptdcJTAG_TRST | tdi | tms;
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    jwd = HptdcJTAG_TRST | HptdcJTAG_TCK | tdi | tms;
-   *jtg = jwd;
-   EIEIO;
-   tdo = *jtg;
-   EIEIO;
+   iowrite32be(jwd,jtg);
+   tdo = ioread32be(jtg);
    jwd = HptdcJTAG_TRST | tdi | tms;
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    if (tdo & HptdcJTAG_TDO) return 1;
    else                     return 0;
 }
@@ -1131,24 +636,19 @@ unsigned int jwd, tdo;
 /* HPTDC JTAG State machine reset                             */
 /* ========================================================== */
 
-static void HptdcStateReset(volatile unsigned int *jtg) {
-unsigned int jwd;
+static void HptdcStateReset(uint32_t *jtg) {
+uint32_t jwd;
 
    jwd = HptdcJTAG_TRST; /* TRST is active on zero */
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    jwd = 0;              /* TCK and TRST are down */
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    jwd = HptdcJTAG_TCK;  /* Clock in reset on rising edge */
-   *jtg = jwd;           /* GOTO: Test logic reset */
-   EIEIO;
+   iowrite32be(jwd,jtg);
    jwd = HptdcJTAG_TRST | HptdcJTAG_TCK;
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    jwd = HptdcJTAG_TRST; /* Remove TRST */
-   *jtg = jwd;
-   EIEIO;
+   iowrite32be(jwd,jtg);
    HptdcBitTransfer(jtg,0,0); /* GOTO: Run test/idle */
    return;
 }
@@ -1158,17 +658,17 @@ unsigned int jwd;
 /* ========================================================== */
 
 static int HptdcCommand(CtrDrvrModuleContext *mcon,
-			 HptdcCmd              cmd,
-			 HptdcRegisterVlaue   *wreg,
-			 HptdcRegisterVlaue   *rreg,    /* No read back if NULL */
-			 int                   size,    /* Number of registers */
-			 int                   pflg,    /* Parity flag */
-			 int                   rflg) {  /* Reset state flag */
+			 HptdcCmd             cmd,
+			 HptdcRegisterVlaue  *wreg,
+			 HptdcRegisterVlaue  *rreg,    /* No read back if NULL */
+			 int                  size,    /* Number of registers */
+			 int                  pflg,    /* Parity flag */
+			 int                  rflg) {  /* Reset state flag */
 
-volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
-volatile unsigned int    *jtg;
+CtrDrvrMemoryMap *mmap;    /* Module Memory map */
+uint32_t     *jtg;
 
-unsigned int tdi, msk, parity, bits, wval, rval, cval;
+uint32_t tdi, msk, parity, bits, wval, rval, cval;
 int i, j;
 
    if (PingModule(mcon) == OK) {
@@ -1238,8 +738,7 @@ int i, j;
 
       return OK;
    }
-   pseterr(ENXIO);                              /* No such device or address */
-   return SYSERR;
+   return -ENXIO;
 }
 
 /* ========================================================== */
@@ -1250,17 +749,14 @@ static CtrDrvrCTime *GetTime(CtrDrvrModuleContext *mcon) {
 
 static CtrDrvrCTime t;
 
-volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
+CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 
    mmap = mcon->Map;
-   mmap->Command = CtrDrvrCommandLATCH_UTC;
+   iowrite32be(CtrDrvrCommandLATCH_UTC,&mmap->Command);
 
-   EIEIO;
-   SYNC;
-
-   t.CTrain          = mmap->ReadTime.CTrain;
-   t.Time.Second     = mmap->ReadTime.Time.Second;
-   t.Time.TicksHPTDC = mmap->ReadTime.Time.TicksHPTDC;
+   t.CTrain          = ioread32be(&mmap->ReadTime.CTrain);
+   t.Time.Second     = ioread32be(&mmap->ReadTime.Time.Second);
+   t.Time.TicksHPTDC = ioread32be(&mmap->ReadTime.Time.TicksHPTDC);
    return &t;
 }
 
@@ -1268,17 +764,14 @@ volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 /* Set the time on the CTR                                    */
 /* ========================================================== */
 
-static int SetTime(CtrDrvrModuleContext *mcon, unsigned int tod) {
+static int SetTime(CtrDrvrModuleContext *mcon, uint32_t tod) {
 
-volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
+CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 
    if (PingModule(mcon) == OK) {
       mmap = mcon->Map;
-      mmap->SetTime = tod;
-      mmap->Command = CtrDrvrCommandSET_UTC;
-
-      EIEIO;
-      SYNC;
+      iowrite32be(tod,&mmap->SetTime);
+      iowrite32be(CtrDrvrCommandSET_UTC,&mmap->Command);
 
       return OK;
    }
@@ -1290,48 +783,28 @@ volatile CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 /* The correct PLX9030 endian settings must have been made    */
 /*=========================================================== */
 
-static int RawIo(CtrDrvrModuleContext *mcon,
-		 CtrDrvrRawIoBlock    *riob,
-		 unsigned int         flag,
-		 unsigned int         debg) {
+static void RawIo(CtrDrvrModuleContext *mcon,
+		 uint32_t              *ibuf,
+		 uint32_t               icnt,
+		 uint32_t               ioff,
+		 uint32_t               flag)
+{
+	uint32_t *mmap = (uint32_t *) mcon->Map;
+	int       i, j;
 
-volatile unsigned int    *mmap; /* Module Memory map */
-int                       rval; /* Return value */
-unsigned long             ps;   /* Processor status word */
-int                       i, j;
-unsigned int             *uary;
-char                     *iod;
-
-   ps = 0;
-   mmap = (unsigned int *) mcon->Map;
-   uary = riob->UserArray;
-   rval = OK;
-
-   if (flag)  iod = "Write"; else iod = "Read";
-
-   i = j = 0;
-
-   for (i=0; i<riob->Size; i++) {
-      j = riob->Offset+i;
-      if (flag) {
-	 mmap[j] = uary[i];
-	 if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
-      } else {
-	 uary[i] = mmap[j];
-	 if (debg >= 2) cprintf("RawIo: %s: %d:0x%x\n",iod,j,(int) uary[i]);
-      }
-      EIEIO;
-      SYNC;
-   }
-   riob->Size = i+1;
-   return rval;
+	for (i=0,j=ioff; i<icnt; i++,j++) {
+		if (flag)
+			iowrite32be(ibuf[i],&mmap[j]);
+		else
+			ibuf[i] = ioread32be(&mmap[j]);
+	}
 }
 
 /* ========================================================== */
 /* Auto shift left  a value for a given mask                  */
 /* ========================================================== */
 
-static unsigned int AutoShiftLeft(unsigned int mask, unsigned int value) {
+static uint32_t AutoShiftLeft(uint32_t mask, uint32_t value) {
 int i,m;
 
    m = mask;
@@ -1346,7 +819,7 @@ int i,m;
 /* Auto shift right a value for a given mask                  */
 /* ========================================================== */
 
-static unsigned int AutoShiftRight(unsigned int mask, unsigned int value) {
+static uint32_t AutoShiftRight(uint32_t mask, uint32_t value) {
 int i,m;
 
    m = mask;
@@ -1367,7 +840,7 @@ int i,m;
 
 static CtrDrvrHwTrigger *TriggerToHard(CtrDrvrTrigger *strg) {
 static CtrDrvrHwTrigger htrg;
-unsigned int trigger;
+uint32_t trigger;
 
    trigger  = AutoShiftLeft(CtrDrvrTrigGROUP_VALUE_MASK ,strg->Group.GroupValue);
    trigger |= AutoShiftLeft(CtrDrvrTrigCONDITION_MASK   ,strg->TriggerCondition);
@@ -1385,12 +858,12 @@ unsigned int trigger;
 /* Convert compact hardware trigger to driver API trigger     */
 /* ========================================================== */
 
-static CtrDrvrTrigger *HardToTrigger(volatile CtrDrvrHwTrigger *htrg) {
+static CtrDrvrTrigger *HardToTrigger(CtrDrvrHwTrigger *htrg) {
 static CtrDrvrTrigger strg;
-unsigned int trigger;
+uint32_t trigger;
 
-   strg.Frame = htrg->Frame;
-   trigger    = htrg->Trigger;
+   strg.Frame.Long = ioread32be(&htrg->Frame);
+   trigger         = ioread32be(&htrg->Trigger);
 
    strg.Group.GroupValue  = AutoShiftRight(CtrDrvrTrigGROUP_VALUE_MASK ,trigger);
    strg.TriggerCondition  = AutoShiftRight(CtrDrvrTrigCONDITION_MASK   ,trigger);
@@ -1407,7 +880,7 @@ unsigned int trigger;
 
 static CtrDrvrHwCounterConfiguration *ConfigToHard(CtrDrvrCounterConfiguration *scnf) {
 static CtrDrvrHwCounterConfiguration hcnf;
-unsigned int config;
+uint32_t config;
 
    config  = AutoShiftLeft(CtrDrvrCounterConfigPULSE_WIDTH_MASK,scnf->PulsWidth);
    config |= AutoShiftLeft(CtrDrvrCounterConfigCLOCK_MASK      ,scnf->Clock);
@@ -1425,12 +898,12 @@ unsigned int config;
 /* Convert a compacr hardware counter configuration to API form.                      */
 /* ================================================================================== */
 
-static CtrDrvrCounterConfiguration *HardToConfig(volatile CtrDrvrHwCounterConfiguration *hcnf) {
+static CtrDrvrCounterConfiguration *HardToConfig(CtrDrvrHwCounterConfiguration *hcnf) {
 static CtrDrvrCounterConfiguration scnf;
-unsigned int config;
+uint32_t config;
 
-   config     = hcnf->Config;
-   scnf.Delay = hcnf->Delay;
+   config     = ioread32be(&hcnf->Config);
+   scnf.Delay = ioread32be(&hcnf->Delay);
 
    scnf.OnZero    = AutoShiftRight(CtrDrvrCounterConfigON_ZERO_MASK    ,config);
    scnf.Start     = AutoShiftRight(CtrDrvrCounterConfigSTART_MASK      ,config);
@@ -1445,12 +918,12 @@ unsigned int config;
 /* Get a PTIM module number                                   */
 /* ========================================================== */
 
-static unsigned int GetPtimModule(unsigned int eqpnum) {
+static uint32_t GetPtimModule(uint32_t eqpnum) {
 int i;
 
-   for (i=0; i<Wa->Ptim.Size; i++) {
-      if (eqpnum == Wa->Ptim.Objects[i].EqpNum) {
-	 return Wa->Ptim.Objects[i].ModuleIndex + 1;
+   for (i=0; i<Wa.Ptim.Size; i++) {
+      if (eqpnum == Wa.Ptim.Objects[i].EqpNum) {
+	 return Wa.Ptim.Objects[i].ModuleIndex + 1;
       }
    }
    return 0;
@@ -1461,166 +934,168 @@ int i;
 /* ========================================================== */
 
 static int Connect(CtrDrvrConnection    *conx,
-		   CtrDrvrClientContext *ccon) {
+		   CtrDrvrClientContext *ccon)
+{
+	CtrDrvrModuleContext       *mcon;
+	CtrDrvrMemoryMap           *mmap;
+	CtrDrvrTrigger              trig;
+	CtrDrvrCounterConfiguration conf;
+	CtrDrvrEventFrame           frme;
 
-CtrDrvrModuleContext       *mcon;
-volatile CtrDrvrMemoryMap  *mmap;
-CtrDrvrTrigger              trig;
-CtrDrvrCounterConfiguration conf;
-CtrDrvrEventFrame           frme;
+	int i, midx, cmsk, hmsk, count, valu;
 
-int i, midx, cmsk, hmsk, count;
+	/* Get the module to make the connection on */
 
-   /* Get the module to make the connection on */
+	midx = conx->Module -1;
+	if ((midx < 0) || (midx >= CtrDrvrMODULE_CONTEXTS))
+		midx = ccon->ModuleIndex;
 
-   midx = conx->Module -1;
-   if ((midx < 0) || (midx >= CtrDrvrMODULE_CONTEXTS))
-      midx = ccon->ModuleIndex;
+	/* Set up connection mask and module map and context */
 
-   /* Set up connection mask and module map and context */
+	cmsk  = 1 << ccon->ClientIndex;
+	mcon  = &(Wa.ModuleContexts[midx]);
+	mmap  =  mcon->Map;
 
-   cmsk  = 1 << ccon->ClientIndex;
-   mcon  = &(Wa->ModuleContexts[midx]);
-   mmap  =  mcon->Map;
+	/* Connect to an existing PTIM instance */
 
-   /* Connect to an existing PTIM instance */
+	count = 0;   /* Number of connections made so far is zero */
 
-   count = 0;   /* Number of connections made so far is zero */
+	if (conx->EqpClass == CtrDrvrConnectionClassPTIM) {
+		midx = GetPtimModule(conx->EqpNum) -1;
+		if (midx >= 0) {
+			mcon = &(Wa.ModuleContexts[midx]);
+			mmap = mcon->Map;
+			for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+				if ((conx->EqpNum   == mcon->EqpNum[i])
+				&&  (conx->EqpClass == mcon->EqpClass[i])) {
 
-   if (conx->EqpClass == CtrDrvrConnectionClassPTIM) {
-      midx = GetPtimModule(conx->EqpNum) -1;
-      if (midx >= 0) {
-	 mcon = &(Wa->ModuleContexts[midx]);
-	 mmap = mcon->Map;
-	 for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-	    if ((conx->EqpNum   == mcon->EqpNum[i])
-	    &&  (conx->EqpClass == mcon->EqpClass[i])) {
-	       count++;
-	       mcon->Clients[i]        |= cmsk;
-	       mcon->InterruptEnable   |= (1 << mcon->Trigs[i].Counter);
-	       mmap->Configs[i].Config |= AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK,
-						     CtrDrvrCounterOnZeroBUS);
-	    }
-	 }
-      }
+					count++;
 
-   /* Connect to a CTIM object, may need to create an instance */
+					mcon->Clients[i]      |= cmsk;
+					mcon->InterruptEnable |= (1 << mcon->Trigs[i].Counter);
 
-   } else if (conx->EqpClass == CtrDrvrConnectionClassCTIM) {
+					valu = ioread32be(&mmap->Configs[i].Config);
+					valu |= AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK, CtrDrvrCounterOnZeroBUS);
 
-      /* Check to see if there is already an instance, and connect to it */
+					iowrite32be(valu,&mmap->Configs[i].Config);
+				}
+			}
+		}
 
-      for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-	 if ((conx->EqpNum   == mcon->EqpNum[i])
-	 &&  (conx->EqpClass == mcon->EqpClass[i])) {
-	    mcon->Clients[i]        |= cmsk;
-	    mcon->InterruptEnable   |= CtrDrvrInterruptMaskCOUNTER_0;
-	    mmap->Configs[i].Config |= AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK,
-						     CtrDrvrCounterOnZeroBUS);
-	    count = 1;
-	    break;
-	 }
-      }
+	} else if (conx->EqpClass == CtrDrvrConnectionClassCTIM) {
 
-      /* Need to create a new CTIM instance, so first find the CTIM object */
+		/* Check to see if there is already an instance, and connect to it */
 
-      if (count == 0) {
-	 frme.Struct = (CtrDrvrFrameStruct) {0,0,0};    /* No frame has been found yet */
-	 for (i=0; i<Wa->Ctim.Size; i++) {
-	    if (conx->EqpNum == Wa->Ctim.Objects[i].EqpNum) {
-	       frme = Wa->Ctim.Objects[i].Frame;
-	       break;
-	    }
-	 }
+		for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+			if ((conx->EqpNum   == mcon->EqpNum[i])
+			&&  (conx->EqpClass == mcon->EqpClass[i])) {
 
-	 /* If we found the CTIM object, look for an empty slot and create the instance */
+				mcon->Clients[i]        |= cmsk;
+				mcon->InterruptEnable   |= CtrDrvrInterruptMaskCOUNTER_0;
 
-	 if (frme.Struct.Header != 0) {
-	    for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-	       if (mcon->EqpNum[i] == 0) {      /* Is the slot empty ? */
-		  mcon->EqpNum[i]   = conx->EqpNum;
-		  mcon->EqpClass[i] = CtrDrvrConnectionClassCTIM;
+				valu = ioread32be(&mmap->Configs[i].Config);
+				valu |= AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK, CtrDrvrCounterOnZeroBUS);
 
-		  trig.Ctim             = conx->EqpNum;
-		  trig.Frame            = frme;
-		  trig.TriggerCondition = CtrDrvrTriggerConditionNO_CHECK;
-		  trig.Machine          = CtrDrvrMachineNONE;
-		  trig.Counter          = CtrDrvrCounter0;
-		  trig.Group            = (CtrDrvrTgmGroup) {0,0}; /* Number and Value */
-		  mcon->Trigs[i]        = trig;
+				iowrite32be(valu,&mmap->Configs[i].Config);
+				count = 1;
+				break;
+			}
+		}
 
-		  conf.OnZero           = CtrDrvrCounterOnZeroBUS;
-		  conf.Start            = CtrDrvrCounterStartNORMAL;
-		  conf.Mode             = CtrDrvrCounterModeNORMAL;
-		  conf.Clock            = CtrDrvrCounterClock1KHZ;
-		  conf.Delay            = 0;
-		  conf.PulsWidth        = 0;
-		  mcon->Configs[i]      = conf;
+		/* Need to create a new CTIM instance, so first find the CTIM object */
 
-		  Int32Copy((unsigned int *) &(mmap->Trigs[i]),
-			   (unsigned int *) TriggerToHard(&trig),
-			   (unsigned int  ) sizeof(CtrDrvrHwTrigger));
+		if (count == 0) {
+			frme.Struct = (CtrDrvrFrameStruct) {0,0,0};    /* No frame has been found yet */
+			for (i=0; i<Wa.Ctim.Size; i++) {
+				if (conx->EqpNum == Wa.Ctim.Objects[i].EqpNum) {
+					frme = Wa.Ctim.Objects[i].Frame;
+					break;
+				}
+			}
 
-		  Int32Copy((unsigned int *) &(mmap->Configs[i]),
-			   (unsigned int *) ConfigToHard(&conf),
-			   (unsigned int  ) sizeof(CtrDrvrHwCounterConfiguration));
+			/* If we found the CTIM object, look for an empty slot and create the instance */
 
-		  mcon->Clients[i]      |= cmsk;
-		  mcon->InterruptEnable |= CtrDrvrInterruptMaskCOUNTER_0;
-		  count = 1;
-		  break;
-	       }
-	    }
+			if (frme.Struct.Header != 0) {
+				for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+					if (mcon->EqpNum[i] == 0) {      /* Is the slot empty ? */
+						mcon->EqpNum[i]   = conx->EqpNum;
+						mcon->EqpClass[i] = CtrDrvrConnectionClassCTIM;
 
-	    /* Give a NOMEM error if no empty slot available */
+						trig.Ctim             = conx->EqpNum;
+						trig.Frame            = frme;
+						trig.TriggerCondition = CtrDrvrTriggerConditionNO_CHECK;
+						trig.Machine          = CtrDrvrMachineNONE;
+						trig.Counter          = CtrDrvrCounter0;
+						trig.Group            = (CtrDrvrTgmGroup) {0,0}; /* Number and Value */
+						mcon->Trigs[i]        = trig;
 
-	    if (count == 0) {
-	       pseterr(ENOMEM);        /* No memory/slot available */
-	       return SYSERR;
-	    }
-	 }
-      }
+						conf.OnZero           = CtrDrvrCounterOnZeroBUS;
+						conf.Start            = CtrDrvrCounterStartNORMAL;
+						conf.Mode             = CtrDrvrCounterModeNORMAL;
+						conf.Clock            = CtrDrvrCounterClock1KHZ;
+						conf.Delay            = 0;
+						conf.PulsWidth        = 0;
+						mcon->Configs[i]      = conf;
 
-   /* Connect to a hardware interrupt directly */
+						Io32Write((uint32_t *) &(mmap->Trigs[i]),
+							  (uint32_t *) TriggerToHard(&trig),
+							  (uint32_t  ) sizeof(CtrDrvrHwTrigger));
 
-   } else {
-      for (i=0; i<CtrDrvrInterruptSOURCES; i++) {
-	 hmsk = 1 << i;
-	 if (conx->EqpNum & hmsk) {
-	    count++;
-	    mcon->InterruptEnable |= hmsk;
-	    mcon->HardClients[i]  |= cmsk;
-	 }
-      }
-   }
+						Io32Write((uint32_t *) &(mmap->Configs[i]),
+							  (uint32_t *) ConfigToHard(&conf),
+							  (uint32_t  ) sizeof(CtrDrvrHwCounterConfiguration));
 
-   /* If the connection count is non zero, go enable interrupt on hardware */
+						mcon->Clients[i]      |= cmsk;
+						mcon->InterruptEnable |= CtrDrvrInterruptMaskCOUNTER_0;
+						count = 1;
+						break;
+					}
+				}
 
-   if (count) return EnableInterrupts(mcon,mcon->InterruptEnable);
+				/* Give a NOMEM error if no empty slot available */
 
-   /* If count is zero, no connection was made, so give an error */
+				if (count == 0)
+					return -ENOMEM;
+			}
+		}
 
-   pseterr(ENXIO);        /* No such device or address */
-   return SYSERR;
+	} else {
+		for (i=0; i<CtrDrvrInterruptSOURCES; i++) {
+			hmsk = 1 << i;
+			if (conx->EqpNum & hmsk) {
+				count++;
+				mcon->InterruptEnable |= hmsk;
+				mcon->HardClients[i]  |= cmsk;
+			 }
+		}
+	}
+
+	if (count)
+		return EnableInterrupts(mcon,mcon->InterruptEnable);
+
+	/* If count is zero, no connection was made, so give an error */
+
+	return -ENXIO;
 }
 
 /* ========================================================== */
 /* Disconnect from one specified trigger                      */
 /* ========================================================== */
 
-static int DisConnectOne(unsigned int          tndx,
-			 unsigned int          midx,
+static int DisConnectOne(uint32_t           tndx,
+			 uint32_t           midx,
 			 CtrDrvrConnectionClass clss,
 			 CtrDrvrClientContext  *ccon) {
 
 CtrDrvrModuleContext       *mcon;
-volatile CtrDrvrMemoryMap  *mmap;
+CtrDrvrMemoryMap           *mmap;
 CtrDrvrTrigger              trig;
 CtrDrvrCounterConfiguration conf;
-unsigned int ncmsk, cmsk;
+uint32_t ncmsk, cmsk;
+int valu;
 
    cmsk = 1 << ccon->ClientIndex; ncmsk = ~cmsk;
-   mcon = &(Wa->ModuleContexts[midx]);
+   mcon = &(Wa.ModuleContexts[midx]);
    mmap = mcon->Map;
 
    if ((clss == CtrDrvrConnectionClassCTIM) || (clss == CtrDrvrConnectionClassPTIM)) {
@@ -1630,24 +1105,25 @@ unsigned int ncmsk, cmsk;
 	    DisableInterrupts(tndx,midx,clss,ccon);
 	    if (mcon->EqpClass[tndx] == CtrDrvrConnectionClassCTIM) {
 
-	       bzero((void *) &trig,sizeof(CtrDrvrTrigger));
-	       bzero((void *) &conf,sizeof(CtrDrvrCounterConfiguration));
+	       memset(&trig,0,sizeof(CtrDrvrTrigger));
+	       memset(&conf,0,sizeof(CtrDrvrCounterConfiguration));
 
-	       Int32Copy((unsigned int *) &(mmap->Trigs[tndx]),
-			(unsigned int *) TriggerToHard(&trig),
-			(unsigned int  ) sizeof(CtrDrvrHwTrigger));
+	       Io32Write((uint32_t *) &(mmap->Trigs[tndx]),
+			 (uint32_t *) TriggerToHard(&trig),
+			 (uint32_t  ) sizeof(CtrDrvrHwTrigger));
 
-	       Int32Copy((unsigned int *) &(mmap->Configs[tndx]),
-			(unsigned int *) ConfigToHard(&conf),
-			(unsigned int  ) sizeof(CtrDrvrHwCounterConfiguration));
+	       Io32Write((uint32_t *) &(mmap->Configs[tndx]),
+			 (uint32_t *) ConfigToHard(&conf),
+			 (uint32_t  ) sizeof(CtrDrvrHwCounterConfiguration));
 
 	       mcon->EqpNum[tndx]   = 0;
 	       mcon->EqpClass[tndx] = 0;
 
 	    } else {
 
-	       mmap->Configs[tndx].Config &= ~(AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK,
-							     CtrDrvrCounterOnZeroBUS));
+	       valu = ioread32be(&mmap->Configs[tndx].Config);
+	       valu &= ~(AutoShiftLeft(CtrDrvrCounterConfigON_ZERO_MASK, CtrDrvrCounterOnZeroBUS));
+	       iowrite32be(valu,&mmap->Configs[tndx].Config);
 	    }
 	 }
       }
@@ -1676,7 +1152,7 @@ CtrDrvrModuleContext *mcon;
 int i, midx;
 
    midx = conx->Module -1;
-   mcon = &(Wa->ModuleContexts[midx]);
+   mcon = &(Wa.ModuleContexts[midx]);
 
    if (conx->EqpClass != CtrDrvrConnectionClassHARD) {
       for (i=0; i<CtrDrvrRamTableSIZE; i++)
@@ -1697,8 +1173,8 @@ static int DisConnectAll(CtrDrvrClientContext *ccon) {
 CtrDrvrModuleContext *mcon;
 int i, midx;
 
-   for (midx=0; midx<Wa->Modules; midx++) {
-      mcon = &(Wa->ModuleContexts[midx]);
+   for (midx=0; midx<Wa.Modules; midx++) {
+      mcon = &(Wa.ModuleContexts[midx]);
       for (i=0; i<CtrDrvrRamTableSIZE;     i++) {
 	 if (mcon->EqpNum[i]) {
 	    DisConnectOne(i,midx,mcon->EqpClass[i],ccon);
@@ -1713,289 +1189,253 @@ int i, midx;
 /* The ISR                                                    */
 /* ========================================================== */
 
-static int debug_isr = 0;
+irqreturn_t ctr_irq(void *arg) {
 
-irqreturn_t IntrHandler(CtrDrvrModuleContext *mcon) {
+	CtrDrvrModuleContext *mcon = arg;
 
-unsigned int  isrc, clients, msk, i, hlock, tndx = 0;
-unsigned char inum;
-unsigned long ps;
+	uint32_t isrc, clients, msk, i, hlock, tndx = 0;
+	unsigned char inum;
 
-CtrDrvrMemoryMap      *mmap = NULL;
-CtrDrvrFpgaCounter    *fpgc = NULL;
-CtrDrvrCounterHistory *hist = NULL;
+	unsigned long flags;
 
-CtrDrvrQueue          *queue;
-CtrDrvrClientContext  *ccon;
-CtrDrvrReadBuf         rbf;
+	CtrDrvrMemoryMap      *mmap = NULL;
+	CtrDrvrFpgaCounter    *fpgc = NULL;
+	CtrDrvrCounterHistory *hist = NULL;
 
-   mmap = mcon->Map;
-   isrc = mmap->InterruptSource;                 /* Read and clear interrupt sources */
-   if (isrc == 0) return IRQ_NONE;               /* Pass it on to the next ISR */
+	CtrDrvrQueue          *queue;
+	CtrDrvrClientContext  *ccon;
+	CtrDrvrReadBuf         rbf;
 
-   /* For each interrupt source/counter */
+	mmap = mcon->Map;
+	isrc = ioread32be(&mmap->InterruptSource);
+	if (!isrc)
+		return IRQ_NONE;
 
-   for (inum=0; inum<CtrDrvrInterruptSOURCES; inum++) {
-      msk = 1 << inum;                           /* Get counter source mask bit */
-      if (msk & isrc) {
-	 bzero((void *) &rbf, sizeof(CtrDrvrReadBuf));
-	 clients = 0;                            /* No clients yet */
+	for (inum=0; inum<CtrDrvrInterruptSOURCES; inum++) {
+		msk = 1 << inum;
+		if (msk & isrc) {
+			memset(&rbf,0,sizeof(CtrDrvrReadBuf));
+			clients = 0;                            /* No clients yet */
 
-	 if (inum < CtrDrvrCOUNTERS) {           /* Counter Interrupt ? */
-	    fpgc = &(mmap->Counters[inum]);      /* Get counter FPGA configuration */
-	    hist = &(fpgc->History);             /* History of counter */
+			if (inum < CtrDrvrCOUNTERS) {           /* Counter Interrupt ? */
+				fpgc = &(mmap->Counters[inum]); /* Get counter FPGA configuration */
+				hist = &(fpgc->History);        /* History of counter */
 
-	    if (fpgc->Control.LockConfig == 0) {    /* If counter not in remote */
-	       tndx = hist->Index;                  /* Index into trigger table */
-	       if (tndx < CtrDrvrRamTableSIZE) {
+				if (ioread32be(&fpgc->Control.LockConfig) == 0) {    /* If counter not in remote */
+					tndx = ioread32be(&hist->Index);             /* Index into trigger table */
+					if (tndx < CtrDrvrRamTableSIZE) {
+						clients = mcon->Clients[tndx];       /* Clients connected to timing objects */
+						if (clients) {
+							rbf.TriggerNumber = tndx +1;                  /* Trigger that loaded counter */
+							rbf.Frame.Long    = ioread32be(&hist->Frame); /* Actual event that interrupted */
 
-		  clients = mcon->Clients[tndx];    /* Clients connected to timing objects */
-		  if (clients) {
-		     rbf.TriggerNumber = tndx +1;            /* Trigger that loaded counter */
-		     rbf.Frame         = hist->Frame;        /* Actual event that interrupted */
-		     rbf.TriggerTime   = hist->TriggerTime;  /* Time counter was loaded */
-		     rbf.StartTime     = hist->StartTime;    /* Time start arrived */
-		     rbf.OnZeroTime    = hist->OnZeroTime;   /* Time of interrupt */
+							rbf.TriggerTime.Time.Second     = ioread32be(&hist->TriggerTime.Time.Second);
+							rbf.TriggerTime.Time.TicksHPTDC = ioread32be(&hist->TriggerTime.Time.TicksHPTDC);
+							rbf.TriggerTime.CTrain          = ioread32be(&hist->TriggerTime.CTrain);
 
-		     hlock = fpgc->Control.LockHistory;      /* Unlock history count Read/Clear */
-		     if (hlock > 1)
-			mcon->Status &= ~CtrDrvrStatusNO_LOST_INTERRUPTS;
+							rbf.StartTime.Time.Second       = ioread32be(&hist->StartTime.Time.Second);
+							rbf.StartTime.Time.TicksHPTDC   = ioread32be(&hist->StartTime.Time.TicksHPTDC);
+							rbf.StartTime.CTrain            = ioread32be(&hist->StartTime.CTrain);
 
-		     /* Copy the rest of the information from the module context */
+							rbf.OnZeroTime.Time.Second      = ioread32be(&hist->OnZeroTime.Time.Second);
+							rbf.OnZeroTime.Time.TicksHPTDC  = ioread32be(&hist->OnZeroTime.Time.TicksHPTDC);
+							rbf.OnZeroTime.CTrain           = ioread32be(&hist->OnZeroTime.CTrain);
 
-		     rbf.Ctim                = mcon->Trigs[tndx].Ctim;
-		     rbf.Connection.Module   = mcon->ModuleIndex +1;
-		     rbf.Connection.EqpClass = mcon->EqpClass[tndx];
-		     rbf.Connection.EqpNum   = mcon->EqpNum[tndx];
-		  }
-	       }
-	    }
-	 }
+							hlock = ioread32be(&fpgc->Control.LockHistory);
+							if (hlock > 1)
+								mcon->Status &= ~CtrDrvrStatusNO_LOST_INTERRUPTS;
 
-	 if (clients == 0) {                     /* No object clients connections */
-	    clients = mcon->HardClients[inum];   /* Hardware only connection */
-	    if (clients) {
-	       if (inum < CtrDrvrCOUNTERS) rbf.OnZeroTime = hist->OnZeroTime;
-	       else                        rbf.OnZeroTime = *GetTime(mcon);
-	       rbf.Connection.Module   = mcon->ModuleIndex +1;
-	       rbf.Connection.EqpClass = CtrDrvrConnectionClassHARD;
-	       rbf.Connection.EqpNum   = msk;
-	    }
-	 }
+							/* Copy the rest of the information from the module context */
 
-	 /* If client is connected to a hardware interrupt, and   */
-	 /* other clients are connected to a timing object on the */
-	 /* same counter; the client needs the interrupt number   */
-	 /* to know from where the interrupt came. */
+							rbf.Ctim                = mcon->Trigs[tndx].Ctim;
+							rbf.Connection.Module   = mcon->ModuleIndex +1;
+							rbf.Connection.EqpClass = mcon->EqpClass[tndx];
+							rbf.Connection.EqpNum   = mcon->EqpNum[tndx];
+						}
+					}
+				}
+			}
 
-	 rbf.InterruptNumber = inum; /* Source of interrupt, Counter or other */
+		       if (clients == 0) {
+				clients = mcon->HardClients[inum];   /* Hardware only connection */
+				if (clients) {
+					if (inum < CtrDrvrCOUNTERS) {
+						rbf.OnZeroTime.Time.Second      = ioread32be(&hist->OnZeroTime.Time.Second);
+						rbf.OnZeroTime.Time.TicksHPTDC  = ioread32be(&hist->OnZeroTime.Time.TicksHPTDC);
+						rbf.OnZeroTime.CTrain           = ioread32be(&hist->OnZeroTime.CTrain);
+					} else
+						rbf.OnZeroTime = *GetTime(mcon);
 
-	 /* Place read buffer on connected clients queues */
+					rbf.Connection.Module   = mcon->ModuleIndex +1;
+					rbf.Connection.EqpClass = CtrDrvrConnectionClassHARD;
+					rbf.Connection.EqpNum   = msk;
+				}
+		       }
 
-	 clients |= mcon->HardClients[inum];
-	 for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
-	    if (clients & (1 << i)) {
-	       ccon = &(Wa->ClientContexts[i]);
+		       /* If client is connected to a hardware interrupt, and   */
+		       /* other clients are connected to a timing object on the */
+		       /* same counter; the client needs the interrupt number   */
+		       /* to know from where the interrupt came. */
 
-	       disable(ps);
-	       queue = &(ccon->Queue);
-	       queue->Entries[queue->WrPntr] = rbf;
-	       queue->WrPntr = (queue->WrPntr + 1) % CtrDrvrQUEUE_SIZE;
-	       if (queue->Size < CtrDrvrQUEUE_SIZE) {
-		  queue->Size++;
-		  ssignal(&(ccon->Semaphore));
-	       } else {
-		  queue->Missed++;
-		  queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
-	       }
-	       restore(ps);
-	    }
-	 }
+		       rbf.InterruptNumber = inum; /* Source of interrupt, Counter or other */
 
-	 if ((clients == 0) && (debug_isr)) {
-	    kkprintf("CtrDrvr: Spurious interrupt: Module:%d Source:0x%X Number:%d Tindex:%d\n",
-		    (int) mcon->ModuleIndex +1,
-		    (int) isrc, (int) inum, tndx);
-	 }
-      }
-   }
-   return IRQ_HANDLED;
+		       /* Place read buffer on connected clients queues */
+
+		       clients |= mcon->HardClients[inum];
+		       for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
+				if (clients & (1 << i)) {
+					ccon = &(Wa.ClientContexts[i]);
+					queue = &(ccon->Queue);
+
+					spin_lock_irqsave(&ccon->Lock,flags);
+
+					queue->Entries[queue->WrPntr] = rbf;
+					queue->WrPntr = (queue->WrPntr + 1) % CtrDrvrQUEUE_SIZE;
+
+					if (queue->Size < CtrDrvrQUEUE_SIZE)
+
+						queue->Size++;
+
+					else {
+
+						queue->Missed++;
+						queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
+					}
+
+					spin_unlock_irqrestore(&ccon->Lock,flags);
+					wake_up(&ccon->Wq);
+				}
+			}
+		}
+	}
+	return IRQ_HANDLED;
 }
 
 /*========================================================================*/
 /* OPEN                                                                   */
 /*========================================================================*/
 
-static int CtrDrvrOpen(CtrDrvrWorkingArea *wa, int dnm, struct LynxFile *flp) {
+static int __ctr_open(struct inode *inode, struct file *filp)
+{
+	CtrDrvrClientContext *ccon;
+	uint32_t cindx;
 
-int cnum;                       /* Client number */
-CtrDrvrClientContext * ccon;    /* Client context */
+	for (cindx=0; cindx<CtrDrvrCLIENT_CONTEXTS; cindx++) {
+		ccon = &(Wa.ClientContexts[cindx]);
+		if (ccon->InUse)
+			continue;
+		break;
+	}
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array. */
+	if (cindx >= CtrDrvrCLIENT_CONTEXTS)
+		return -EBUSY;
 
-   cnum = minor(flp->dev) -1;
-   if ((cnum < 0) || (cnum >= CtrDrvrCLIENT_CONTEXTS)) {
+	memset(ccon,0,sizeof(CtrDrvrClientContext));
 
-      /* EFAULT = "Bad address" */
+	ccon->ClientIndex = cindx;
+	ccon->InUse       = 1;
+	ccon->Pid         = current->pid;
+	ccon->Timeout     = CtrDrvrDEFAULT_TIMEOUT;
 
-      pseterr(EFAULT);
-      return SYSERR;
-   }
-   ccon = &(wa->ClientContexts[cnum]);
+	spin_lock_init(&ccon->Lock);
+	init_waitqueue_head(&ccon->Wq);
 
-   /* If already open by someone else, give a permission denied error */
+	filp->private_data = ccon;
 
-   if (ccon->InUse) {
+	return 0;
+}
 
-      /* This next error is normal */
-
-      /* EBUSY = "Resource busy" */
-
-      pseterr(EBUSY);           /* File descriptor already open */
-      return SYSERR;
-   }
-
-   /* Initialize a client context */
-
-   bzero((void *) ccon, sizeof(CtrDrvrClientContext));
-   ccon->ClientIndex = cnum;
-   ccon->Timeout     = CtrDrvrDEFAULT_TIMEOUT;
-   ccon->InUse       = 1;
-   ccon->Pid         = getpid();
-   sreset(&(ccon->Semaphore));
-   return OK;
+int ctr_open(struct inode *inode, struct file *filp)
+{
+	int cc;
+	mutex_lock(&ctr_drvr_mutex);
+	cc = __ctr_open(inode,filp);
+	mutex_unlock(&ctr_drvr_mutex);
+	return cc;
 }
 
 /*========================================================================*/
 /* CLOSE                                                                  */
 /*========================================================================*/
 
-static int CtrDrvrClose(CtrDrvrWorkingArea *wa, struct LynxFile *flp) {
+int __ctr_close(struct inode *inode, struct file *filp)
+{
+	CtrDrvrClientContext *ccon = (CtrDrvrClientContext *) filp->private_data;
 
-int cnum;                   /* Client number */
-CtrDrvrClientContext *ccon; /* Client context */
+	DisConnectAll(ccon);
+	ccon->InUse = 0;
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array.            */
+	filp->private_data = NULL;
+	return 0;
+}
 
-   cnum = minor(flp->dev) -1;
-   if ((cnum >= 0) && (cnum < CtrDrvrCLIENT_CONTEXTS)) {
-
-      ccon = &(Wa->ClientContexts[cnum]);
-
-      if (ccon->DebugOn)
-	 cprintf("CtrDrvrClose: Close client: %d for Pid: %d\n",
-		 (int) ccon->ClientIndex,
-		 (int) ccon->Pid);
-
-      if (ccon->InUse == 0)
-	 cprintf("CtrDrvrClose: Error bad client context: %d  Pid: %d Not in use\n",
-		 (int) ccon->ClientIndex,
-		 (int) ccon->Pid);
-
-      ccon->InUse = 0; /* Free the context */
-
-      /* Cancel any pending timeouts */
-
-      CancelTimeout(&ccon->Timer);
-
-      /* Disconnect this client from events */
-
-      DisConnectAll(ccon);
-
-      return(OK);
-
-   } else {
-
-      cprintf("CtrDrvrClose: Error bad client context: %d\n",cnum);
-
-      /* EFAULT = "Bad address" */
-
-      pseterr(EFAULT);
-      return SYSERR;
-   }
+int ctr_close(struct inode *inode, struct file *filp)
+{
+	int cc;
+	mutex_lock(&ctr_drvr_mutex);
+	cc = __ctr_close(inode,filp);
+	mutex_unlock(&ctr_drvr_mutex);
+	return cc;
 }
 
 /*========================================================================*/
 /* READ                                                                   */
 /*========================================================================*/
 
-static int CtrDrvrRead(CtrDrvrWorkingArea *wa, struct LynxFile *flp, char *u_buf, int cnt) {
+ssize_t ctr_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
+{
+	CtrDrvrClientContext *ccon = (CtrDrvrClientContext *) filp->private_data;
 
-CtrDrvrClientContext *ccon;    /* Client context */
-CtrDrvrQueue         *queue;
-CtrDrvrReadBuf       *rb;
-int                   cnum;    /* Client number */
-unsigned long         ps;
+	CtrDrvrQueue   *queue;
+	size_t          wcnt;
+	unsigned long   flags;
+	int             cc;
 
-   ps = 0;
+	if (ccon->DebugOn)
+		printk("CtrDrvrRead: PID:%d\n",ccon->Pid);
 
-   cnum = minor(flp->dev) -1;
-   ccon = &(wa->ClientContexts[cnum]);
+	queue = &ccon->Queue;
+	if (queue->QueueOff) {
+		spin_lock_irqsave(&ccon->Lock,flags);
+		queue->Size   = 0;
+		queue->Missed = 0;
+		queue->WrPntr = 0;
+		queue->RdPntr = 0;
+		spin_unlock_irqrestore(&ccon->Lock,flags);
+	}
 
-   queue = &(ccon->Queue);
-   if (queue->QueueOff) {
-      disable(ps);
-      {
-	 queue->Size   = 0;
-	 queue->Missed = 0;         /* ToDo: What to do with this info ? */
-	 queue->WrPntr = 0;
-	 queue->RdPntr = 0;
-	 sreset(&(ccon->Semaphore));
-      }
-      restore(ps);
-   }
+	if (!queue->Size) {
+		if (ccon->Timeout)
+			cc = wait_event_interruptible_timeout(ccon->Wq,
+							      queue->Size > 0,
+							      ccon->Timeout);
+		else
+			cc = wait_event_interruptible(ccon->Wq,
+						      queue->Size > 0);
+		if (cc <= 0) {
+			if (cc == 0)
+				cc = -ETIMEDOUT;
+			return cc;
+		}
+	}
 
-   if (ccon->Timeout) {
-      ccon->Timer = timeout((void *) ReadTimeout, (char *) ccon, ccon->Timeout);
-      if (ccon->Timer < 0) {
+	wcnt = count;
+	if (wcnt > sizeof(CtrDrvrReadBuf))
+		wcnt = sizeof(CtrDrvrReadBuf);
 
-	 ccon->Timer = 0;
+	spin_lock_irqsave(&ccon->Lock,flags);
+	cc = copy_to_user(buf, &queue->Entries[queue->RdPntr], wcnt);
+	queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
+	queue->Size--;
+	spin_unlock_irqrestore(&ccon->Lock,flags);
 
-	 /* EBUSY = "Device or resource busy" */
+	if (cc)
+		return -EACCES;
 
-	 pseterr(EBUSY);    /* No available timers */
-	 return 0;
-      }
-   }
+	if (ccon->DebugOn)
+		printk("CtrDrvrRead:PID:%d OK\n",ccon->Pid);
 
-   if (swait(&(ccon->Semaphore), SEM_SIGABORT)) {
-
-      /* EINTR = "Interrupted system call" */
-
-      CancelTimeout(&(ccon->Timer));
-
-      pseterr(EINTR);   /* We have been signaled */
-      return 0;
-   }
-
-   if (ccon->Timeout) {
-      if (ccon->Timer) {
-	 CancelTimeout(&(ccon->Timer));
-      } else {
-
-	 /* ETIME = "Timer expired */
-
-	 pseterr(ETIME);
-	 return 0;
-      }
-   }
-
-   rb = (CtrDrvrReadBuf *) u_buf;
-   if (queue->Size) {
-      disable(ps);
-      {
-	 *rb = queue->Entries[queue->RdPntr];
-	 queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
-	 queue->Size--;
-      }
-      restore(ps);
-      return sizeof(CtrDrvrReadBuf);
-   }
-
-   pseterr(EINTR);
-   return 0;
+	return wcnt;
 }
 
 /*========================================================================*/
@@ -2005,236 +1445,169 @@ unsigned long         ps;
 /* with the supplied CtrDrvrReadBuf.                                     */
 /*========================================================================*/
 
-static int CtrDrvrWrite(CtrDrvrWorkingArea *wa, struct LynxFile *flp, char *u_buf, int cnt) {
+ssize_t ctr_write(struct file *filp, const char __user *buf, size_t count, loff_t *f_pos)
+{
+	CtrDrvrClientContext *ccon = (CtrDrvrClientContext *) filp->private_data;
 
-CtrDrvrClientContext *ccon;    /* Client context */
-CtrDrvrModuleContext *mcon;
-CtrDrvrQueue         *queue;
-CtrDrvrConnection    *conx;
-CtrDrvrReadBuf        rb;
-CtrDrvrWriteBuf      *wb;
-unsigned long         ps;
-int                   i, tndx, midx, hmsk;
-unsigned int          clients;
+	CtrDrvrModuleContext *mcon;
+	CtrDrvrQueue         *queue;
+	CtrDrvrConnection    *conx;
+	CtrDrvrReadBuf        rb;
+	CtrDrvrWriteBuf       wb;
+	unsigned long         flags;
+	uint32_t              clients = 0;
+	int                   cc, i, tndx, midx, hmsk;
 
-   ps = 0;
-   wb = (CtrDrvrWriteBuf *) u_buf;
-   conx = &(wb->Connection);
+	size_t          wcnt;
 
-   midx = conx->Module -1;
-   if ((midx<0) || (midx>=CtrDrvrMODULE_CONTEXTS)) {
-      pseterr(EINVAL);  /* Caller error */
-      return 0;
-   }
-   mcon = &(wa->ModuleContexts[midx]);
+	wcnt = count;
+	if (wcnt > sizeof(CtrDrvrWriteBuf))
+		wcnt = sizeof(CtrDrvrWriteBuf);
 
-   bzero((void *) &rb,sizeof(CtrDrvrReadBuf));
+	cc = copy_from_user(&wb,buf,wcnt);
+	if (cc)
+		return -EACCES;
 
-   clients = 0;
-   if (conx->EqpClass != CtrDrvrConnectionClassHARD) {
+	conx = &(wb.Connection);
 
-      if (wb->TriggerNumber == 0) {
+	midx = conx->Module -1;
+	if ((midx<0) || (midx>=CtrDrvrMODULE_CONTEXTS))
+		return -EACCES;
 
-	 /* This code provokes the first matching trigger */
+	mcon = &(Wa.ModuleContexts[midx]);
 
-	 for (tndx=0; tndx<CtrDrvrRamTableSIZE; tndx++) {
-	    if ((mcon->EqpNum[tndx]   == conx->EqpNum)
-	    &&  (mcon->EqpClass[tndx] == conx->EqpClass)) {
-	       clients = mcon->Clients[tndx];
-	       rb.TriggerNumber = tndx +1;
-	       rb.Frame = mcon->Trigs[tndx].Frame;
-	       rb.Frame.Struct.Value = wb->Payload;
-	       rb.Ctim = mcon->Trigs[tndx].Ctim;
-	       rb.InterruptNumber = mcon->Trigs[tndx].Counter;
-	       break;
-	    }
-	 }
-      } else {
-	 tndx = wb->TriggerNumber -1;
-	 clients = mcon->Clients[tndx];
-	 rb.TriggerNumber = tndx +1;
-	 rb.Frame = mcon->Trigs[tndx].Frame;
-	 rb.Ctim = mcon->Trigs[tndx].Ctim;
-	 rb.InterruptNumber = mcon->Trigs[tndx].Counter;
-      }
-   } else {
-      for (i=0; i<CtrDrvrInterruptSOURCES; i++) {
-	 hmsk = 1 << i;
-	 if (conx->EqpNum & hmsk) {
-	    clients |= mcon->HardClients[i];
-	    rb.InterruptNumber = i + 1;
-	 }
-      }
-   }
+	memset(&rb,0,sizeof(CtrDrvrReadBuf));
 
-   /* Place read buffer on connected clients queues */
+	if (conx->EqpClass != CtrDrvrConnectionClassHARD) {
+		if (wb.TriggerNumber == 0) {
 
-   if (clients) {
+			/* This code provokes the first matching trigger */
 
-      rb.Connection = *conx;
-      rb.TriggerTime = *GetTime(mcon);
-      rb.StartTime = rb.TriggerTime;
-      rb.OnZeroTime = rb.TriggerTime;
+			for (tndx=0; tndx<CtrDrvrRamTableSIZE; tndx++) {
+				if ((mcon->EqpNum[tndx]   == conx->EqpNum)
+				&&  (mcon->EqpClass[tndx] == conx->EqpClass)) {
+					clients = mcon->Clients[tndx];
+					rb.TriggerNumber = tndx +1;
+					rb.Frame = mcon->Trigs[tndx].Frame;
+					rb.Frame.Struct.Value = wb.Payload;
+					rb.Ctim = mcon->Trigs[tndx].Ctim;
+					rb.InterruptNumber = mcon->Trigs[tndx].Counter;
+					break;
+				}
+			}
+		} else {
+			tndx = wb.TriggerNumber -1;
+			clients = mcon->Clients[tndx];
+			rb.TriggerNumber = tndx +1;
+			rb.Frame = mcon->Trigs[tndx].Frame;
+			rb.Ctim = mcon->Trigs[tndx].Ctim;
+			rb.InterruptNumber = mcon->Trigs[tndx].Counter;
+		}
+	} else {
+		for (i=0; i<CtrDrvrInterruptSOURCES; i++) {
+			hmsk = 1 << i;
+			if (conx->EqpNum & hmsk) {
+				clients |= mcon->HardClients[i];
+				rb.InterruptNumber = i + 1;
+			}
+		}
+	}
 
-      for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
-	 if (clients & (1 << i)) {
-	    ccon = &(Wa->ClientContexts[i]);
-	    queue = &(ccon->Queue);
+	/* Place read buffer on connected clients queues */
 
-	    disable(ps);
-	    queue->Entries[queue->WrPntr] = rb;
-	    queue->WrPntr = (queue->WrPntr + 1) % CtrDrvrQUEUE_SIZE;
-	    if (queue->Size < CtrDrvrQUEUE_SIZE) {
-	       queue->Size++;
-	       ssignal(&(ccon->Semaphore));
-	    } else {
-	       queue->Missed++;
-	       queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
-	    }
-	    restore(ps);
-	 }
-      }
-   }
-   return sizeof(CtrDrvrConnection);
+	if (clients) {
+
+		rb.Connection = *conx;
+		rb.TriggerTime = *GetTime(mcon);
+		rb.StartTime = rb.TriggerTime;
+		rb.OnZeroTime = rb.TriggerTime;
+
+		for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
+			if (clients & (1 << i)) {
+				ccon = &(Wa.ClientContexts[i]);
+				queue = &(ccon->Queue);
+
+				spin_lock_irqsave(&ccon->Lock,flags);
+				queue->Entries[queue->WrPntr] = rb;
+				queue->WrPntr = (queue->WrPntr + 1) % CtrDrvrQUEUE_SIZE;
+				if (queue->Size < CtrDrvrQUEUE_SIZE) {
+					queue->Size++;
+					wake_up(&ccon->Wq);
+				} else {
+					queue->Missed++;
+					queue->RdPntr = (queue->RdPntr + 1) % CtrDrvrQUEUE_SIZE;
+				}
+				spin_unlock_irqrestore(&ccon->Lock,flags);
+			}
+		}
+	}
+	return sizeof(CtrDrvrConnection);
 }
 
 /*========================================================================*/
-/* SELECT                                                                 */
-/*========================================================================*/
-
-static int CtrDrvrSelect(CtrDrvrWorkingArea *wa, struct LynxFile *flp, int wch, struct sel *myffs) {
-
-CtrDrvrClientContext * ccon;
-int cnum;
-
-   cnum = minor(flp->dev) -1;
-   ccon = &(wa->ClientContexts[cnum]);
-
-   if (wch == SREAD) {
-      myffs->iosem = (int *) &(ccon->Semaphore); /* Watch out here I hope   */
-      return OK;                               /* the system dosn't swait */
-   }                                           /* the read does it too !! */
-
-   pseterr(EACCES);         /* Permission denied */
-   return SYSERR;
-}
-
-/*========================================================================*/
-/* INSTALL  LynxOS Version 4 with Full DRM support                        */
-/* Assumes that all Ctr modules are brothers                              */
+/* Install driver and initialize hardware                                 */
 /*========================================================================*/
 
 #define CTRP_BARS 0x5
 
-static char *CtrDrvrInstall(CtrDrvrInfoTable *info)
+struct file_operations ctr_fops;
+
+int ctr_install(void)
 {
+	CtrDrvrModuleContext *mcon;
 
-CtrDrvrWorkingArea *wa;
-drm_node_handle handle;
-CtrDrvrModuleContext *mcon;
-uintptr_t vadr;
-unsigned int las0brd, ivec;
-int modix, mid, cc, j;
-CtrDrvrMemoryMap *mmap;
-int cmd;
+	uint32_t *vadr;
+	int modix, mid, cc, j;
 
-   mod_par_t *mpar;
+	CtrDrvrMemoryMap *mmap;
+	mod_par_t        *mpar;
 
-   Wa = (CtrDrvrWorkingArea *) sysbrk(sizeof(CtrDrvrWorkingArea));
-   if (!Wa) {
-     cprintf("CtrDrvrInstall: NOT ENOUGH MEMORY(WorkingArea)\n");
-     pseterr(ENOMEM);
-     return (char *) SYSERR;
-   }
-   bzero((void *) Wa,sizeof(CtrDrvrWorkingArea));  /* Clear working area */
-   wa = Wa;
+	if (check_args(ctr_major_name) == 0)
+		printk("CtrDrvrInstall: No/Bad hardware installation parameters\n");
 
-   SetEndian(); /* Set Big/Little endian flag in driver working area */
+	if (!init_mod_pars(ctr_major_name,CERN_VENDOR_ID,CTRP_DEVICE_ID,CTRP_BARS)) {
+		printk("CtrDrvrInstall: No hardware installed\n");
+		return -ENODEV;
+	}
 
-   if (!check_args("ctrp"))
-      cprintf("CtrDrvrInstall: No/Bad hardware installation parameters\n");
+	cc = register_chrdev(ctr_major, ctr_major_name, &ctr_fops);
+	if (cc < 0)
+		return cc;
 
+	for (modix=0; modix<CtrDrvrMODULE_CONTEXTS; modix++) {
+		mpar = &mods[modix];
+		if (!mpar->dev) break;
 
-   if (!init_mod_pars("ctrp",CERN_VENDOR_ID,CTRP_DEVICE_ID,CTRP_BARS)) {
-      cprintf("CtrDrvrInstall: No hardware installed\n");
-      return NULL;
-   }
+		mcon = &(Wa.ModuleContexts[modix]);
+		mcon->PciSlot     = mpar->pci_slot_num;
+		mcon->ModuleIndex = modix;
+		mcon->dev         = mpar->dev;
+		mcon->InUse       = 1;
 
-   for (modix=0; modix<CtrDrvrMODULE_CONTEXTS; modix++) {
-      mpar = &mods[modix];
-      if (!mpar->dev) break;
-      handle = mpar->dev;
+		vadr = (uint32_t *) mpar->map[2];
+		mcon->Map = (CtrDrvrMemoryMap *) vadr;
 
-      old_drm_crap("ctrp",mpar->dev);
+		vadr = (uint32_t *) mpar->map[0];
+		mcon->Local = (uint32_t *) vadr;
 
-      mcon = &(wa->ModuleContexts[mpar->lun -1]);
+		cc = request_irq(mcon->dev->irq, ctr_irq, IRQF_SHARED, ctr_major_name, mcon);
+		if (cc < 0) {
+		       pci_disable_device(mcon->dev);
+		       printk("mil1553:request_irq:ERROR%d\n",cc);
+		       return cc;
+		}
 
-      if (mcon->InUse == 0) {
-	 drm_device_read(handle,PCI_RESID_DEVNO,0,0,&mid);
-	 mcon->PciSlot     = mid;
-	 mcon->ModuleIndex = modix;
-	 mcon->Handle      = handle;
-	 mcon->InUse       = 1;
-	 mcon->DeviceId    = CTRP_DEVICE_ID;
-      }
+		/* Wipe out any old triggers left in Ram after a warm reboot */
 
-      /* Ensure using memory mapped I/O */
+		mmap = mcon->Map;
+		for (j=0; j<CtrDrvrRamTableSIZE; j++) {
+			mmap->Trigs[j].Frame.Long = 0;
+			mmap->Trigs[j].Trigger    = 0;
+		}
+	}
 
-      drm_device_read(handle,  PCI_RESID_REGS, 1, 0, &cmd);
-      cmd |= 2;
-      drm_device_write(handle, PCI_RESID_REGS, 1, 0, &cmd);
-
-      vadr = (uintptr_t) mpar->map[2];
-      mcon->Map = (CtrDrvrMemoryMap *) vadr;
-
-      vadr = (uintptr_t) mpar->map[0];
-      mcon->Local = (unsigned int *) vadr;
-
-      /* Set up the LAS0BRD local configuration register to do appropriate */
-      /* endian mapping, and enable the address space for CTR hardware.    */
-      /* See PLX PCI 9030 Data Book Chapter 10-2 & 10-21 for more details. */
-
-      if (Wa->Endian == CtrDrvrEndianBIG)
-	 las0brd = Plx9030Las0brdBIG_ENDIAN;    /* Big endian mapping, enable space */
-      else
-	 las0brd = Plx9030Las0brdLITTLE_ENDIAN; /* Little endian mapping, enable space */
-
-      DrmLocalReadWrite(mcon,PLX9030_LAS0BRD,&las0brd,4,1);
-
-      /* register the ISR */
-      cc = drm_register_isr(handle,(void *) IntrHandler, (void *) mcon);
-      if (cc == SYSERR) {
-	cprintf("CtrDrvrInstall: Can't register ISR for timing module: %d\n",
-	  modix + 1);
-	return (char *)SYSERR;
-      } else {
-	mcon->LinkId = cc;
-
-	ivec = (unsigned int) handle->irq;
-	mcon->IVector = 0xFF & ivec;
-
-	cprintf("CtrDrvrInstall: Isr installed OK: LinkId: %d Vector: 0x%2X\n",
-		cc, (int)mcon->IVector);
-      }
-
-      wa->Modules = iluns;
-
-      mcon->IrqBalance = 1; /* don't enable IRQ twice */
-      if (Reset(mcon) == SYSERR) {   /* Soft reset and initialize module */
-	 cprintf("CtrDrvrInstall: Error returned from Reset on module: %d Recovering\n",(int) modix+1);
-	 if (Reset(mcon) == OK) cprintf("CtrDrvrInstall: Recovered from error OK\n");
-      } else {
-
-	 /* Wipe out any old triggers left in Ram after a warm reboot */
-
-	 mmap = mcon->Map;
-	 for (j=0; j<CtrDrvrRamTableSIZE; j++) {
-	    mmap->Trigs[j].Frame.Long = 0;
-	    mmap->Trigs[j].Trigger    = 0;
-	 }
-      }
-   }
-   return (char *) wa;
+	Wa.Modules = iluns;
+	return 0;
 }
 
 /*========================================================================*/
@@ -2249,1237 +1622,905 @@ static void release_device(struct pci_dev *pdev, void *mem, int bar)
 	pci_dev_put(pdev);
 }
 
-static int CtrDrvrUninstall(CtrDrvrWorkingArea * wa) {
+void ctr_uninstall(void)
+{
+	CtrDrvrMemoryMap *mmap;
+	int i;
+	uint32_t src;
 
-CtrDrvrMemoryMap *mmap;
-CtrDrvrClientContext *ccon;
-int i;
+	CtrDrvrModuleContext *mcon;
 
-CtrDrvrModuleContext *mcon;
+	for (i=0; i<CtrDrvrMODULE_CONTEXTS; i++) {
+		mcon = &(Wa.ModuleContexts[i]);
+		if (mcon->InUse) {
 
-   for (i=0; i<CtrDrvrMODULE_CONTEXTS; i++) {
-      mcon = &(wa->ModuleContexts[i]);
-      if (mcon->InUse) {
+			mmap = mcon->Map;
+			src = mmap->InterruptSource;
+			mmap->InterruptEnable = 0;
+			free_irq(mcon->pdev->irq, mcon);
 
-	 mmap = mcon->Map;
-	 if (mmap) mmap->InterruptEnable = 0;
-
-	 drm_unregister_isr(mcon->Handle);
-	 drm_free_handle(mcon->Handle);
-
-	 if (mcon->Local) {
-	    release_device((struct pci_dev *) mcon->Handle, (void *) mcon->Local, 0);
-	    cprintf("CtrDrvrUninstall: Unmap BAR0 Module:%d 0x%lX\n",mcon->ModuleIndex+1,(long) (mcon->Local));
-
-	    mcon->LocalOpen = 0;
-	    mcon->Local = NULL;
-	 }
-
-	 if (mcon->Map) {
-	    release_device((struct pci_dev *) mcon->Handle, (void *) mcon->Map, 2);
-	    cprintf("CtrDrvrUninstall: Unmap BAR2 Module:%d 0x%lX\n",mcon->ModuleIndex+1,(long) (mcon->Map));
-	    mcon->Map = NULL;
-	 }
-
-	 bzero((void *) mcon, sizeof(CtrDrvrModuleContext));
-      }
-   }
-
-   for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
-      ccon = &(wa->ClientContexts[i]);
-      if (ccon->InUse) {
-	 if (ccon->Timer) {
-	    CancelTimeout(&(ccon->Timer));
-	  }
-	  ssignal(&(ccon->Semaphore));         /* Wakeup client */
-	  ccon->InUse = 0;
-      }
-   }
-
-   if (RemapFlag) return OK;
-
-   sysfree((void *) wa,sizeof(CtrDrvrWorkingArea)); Wa = NULL;
-   cprintf("CtrDrvr: Driver: UnInstalled\n");
-   return OK;
+			release_device(mcon->dev, mcon->Local, 0);
+			release_device(mcon->dev, mcon->Map, 2);
+		}
+	}
+	unregister_chrdev(ctr_major,ctr_major_name);
+	printk("%s:Driver uninstalled\n",ctr_major_name);
 }
 
 /*========================================================================*/
 /* IOCTL                                                                  */
 /*========================================================================*/
 
-static int CtrDrvrIoctl(CtrDrvrWorkingArea *wa, struct LynxFile *flp, CtrDrvrControlFunction cm, char *arg) {
+long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
+{
+	CtrDrvrClientContext *ccon = (CtrDrvrClientContext *) filp->private_data;
 
-CtrDrvrModuleContext           *mcon;   /* Module context */
-CtrDrvrClientContext           *ccon;   /* Client context */
-CtrDrvrConnection              *conx;
-CtrDrvrClientList              *cls;
-CtrDrvrClientConnections       *ccn;
-CtrDrvrRawIoBlock              *riob;
-CtrDrvrVersion                 *ver;
-CtrDrvrModuleAddress           *moad;
-CtrDrvrCTime                   *ctod;
-CtrDrvrHwTrigger               *htrg;
-CtrDrvrTrigger                 *strg;
-CtrDrvrAction                  *act;
-CtrDrvrCtimBinding             *ctim;
-CtrDrvrPtimBinding             *ptim;
-CtrDrvrCtimObjects             *ctimo;
-CtrDrvrPtimObjects             *ptimo;
-CtrDrvrHptdcIoBuf              *hpio;
-CtrDrvrCounterConfigurationBuf *conf;
-CtrDrvrCounterHistoryBuf       *hisb;
-CtrdrvrRemoteCommandBuf        *remc;
-CtrDrvrCounterMaskBuf          *cmsb;
-CtrDrvrPll                     *pll;
-CtrDrvrPllAsyncPeriodNs        *asyp;
-CtrDrvrTgmBuf                  *tgmb;
-CtrDrvrEventHistory            *evhs;
-CtrDrvrReceptionErrors         *rcpe;
-CtrDrvrBoardId                 *bird;
-CtrDrvrModuleStats             *mymods;
+	CtrDrvrModuleContext           *mcon;
+	CtrDrvrConnection              *conx;
+	CtrDrvrClientList              *cls;
+	CtrDrvrClientConnections       *ccn;
+	CtrDrvrRawIoBlock              *riob;
+	CtrDrvrVersion                 *ver;
+	CtrDrvrModuleAddress           *moad;
+	CtrDrvrCTime                   *ctod;
+	CtrDrvrHwTrigger               *htrg;
+	CtrDrvrTrigger                 *strg;
+	CtrDrvrAction                  *act;
+	CtrDrvrCtimBinding             *ctim;
+	CtrDrvrPtimBinding             *ptim;
+	CtrDrvrCtimObjects             *ctimo;
+	CtrDrvrPtimObjects             *ptimo;
+	CtrDrvrHptdcIoBuf              *hpio;
+	CtrDrvrCounterConfigurationBuf *conf;
+	CtrDrvrCounterHistoryBuf       *hisb;
+	CtrdrvrRemoteCommandBuf        *remc;
+	CtrDrvrCounterMaskBuf          *cmsb;
+	CtrDrvrPll                     *pll;
+	CtrDrvrPllAsyncPeriodNs        *asyp;
+	CtrDrvrTgmBuf                  *tgmb;
+	CtrDrvrEventHistoryBuf         *evhs;
+	CtrDrvrReceptionErrors         *rcpe;
+	CtrDrvrBoardId                 *bird;
+	CtrDrvrModuleStats             *mods;
 
-volatile CtrDrvrMemoryMap   *mmap;
+	CtrDrvrMemoryMap   *mmap;
 
-int i, j, k, n, msk, pid, hmsk, found, size, start;
+	int cc, i, j, k, n, found, size, start;
+	uint32_t msk, hmsk, *iobuf;
 
-int cnum;                 /* Client number */
-long lav, *lap;           /* Long Value pointed to by Arg */
-unsigned short sav;       /* Short argument and for Jtag IO */
-int rcnt, wcnt;           /* Readable, Writable byte counts at arg address */
+	uint32_t lav, *lap;
+	uint16_t sav;
 
-unsigned int  lval;      /* For general IO stuff */
-unsigned int cntrl;      /* PLX9030 serial EEPROM control register */
+	int iodr, iosz, ionr;
+	void *arb;
 
-   /* Check argument contains a valid address for reading or writing. */
-   /* We can not allow bus errors to occur inside the driver due to   */
-   /* the caller providing a garbage address in "arg". So if arg is   */
-   /* not null set "rcnt" and "wcnt" to contain the byte counts which */
-   /* can be read or written to without error. */
+	iodr = _IOC_DIR(cmd);
+	iosz = _IOC_SIZE(cmd);
+	ionr = _IOC_NR(cmd);
 
-   if (arg != NULL) {
-      rcnt = rbounds((long) arg);       /* Number of readable bytes without error */
-      wcnt = 0;
-      if (rcnt < sizeof(int)) {      /* We at least need to read one int */
-	 pid = getpid();
-	 cprintf("CtrDrvrIoctl:Illegal arg-pntr:0x%lX ReadCnt:%d(%d) Pid:%d Cmd:%d\n",
-		 (long) arg,rcnt,(int) sizeof(int),pid,(int) cm);
-	 pseterr(EINVAL);        /* Invalid argument */
-	 return SYSERR;
-      }
-      lav = *((long *) arg);       /* Long argument value */
-      lap =   (long *) arg ;       /* Long argument pointer */
-   } else {
-      rcnt = 0; wcnt = 0; lav = 0; lap = NULL; /* Null arg = zero read/write counts */
-   }
-   sav = lav;                      /* Short argument value */
+	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
+		return -ENOMEM;
 
-   /* We allow one client per minor device, we use the minor device */
-   /* number as an index into the client contexts array. */
+	/**
+	 * In some legacy code, the arg can be NULL even though all IOCTL calls pass at least a uint32_t !!
+	 * N.B. kmalloc has initialized memory allocated to zero.
+	 */
 
-   cnum = minor(flp->dev) -1;
-   if ((cnum < 0) || (cnum >= CtrDrvrCLIENT_CONTEXTS)) {
-      pseterr(ENODEV);          /* No such device */
-      return SYSERR;
-   }
+	if ((arg) && (iodr & _IOC_WRITE) && copy_from_user(arb, (void *) arg, iosz)) {
+		cc = -EACCES;
+		goto out;
+	}
 
-   /* We can't control a file which is not open. */
+	lav = *((uint32_t *) arb);
+	lap =   (uint32_t *) arb ;
+	sav = lav;
 
-   ccon = &(wa->ClientContexts[cnum]);
-   if (ccon->InUse == 0) {
-      cprintf("CtrDrvrIoctl: DEVICE %2d IS NOT OPEN\n",cnum+1);
-      pseterr(EBADF);           /* Bad file number */
-      return SYSERR;
-   }
+	mcon = &(Wa.ModuleContexts[ccon->ModuleIndex]);
+	mmap = (CtrDrvrMemoryMap *) mcon->Map;
 
-   /* Only the pid that opened the driver is allowed to call an ioctl */
+	if (ccon->DebugOn)
+		DebugIoctl(ionr,arb);
 
-#if 0
-   pid = getpid();
-   if (pid != ccon->Pid) {
-      cprintf("CtrDrvrIoctl: Spurious IOCTL call:%d by PID:%d for PID:%d on FD:%d\n",
-	      (int) cm,
-	      (int) pid,
-	      (int) ccon->Pid,
-	      (int) cnum);
-      pseterr(EBADF);           /* Bad file number */
-      return SYSERR;
-   }
-#endif
 
-   /* Set up some useful module pointers */
+	cc = 0;
+	switch (cmd) {
 
-   mcon = &(wa->ModuleContexts[ccon->ModuleIndex]); /* Default module selected */
-   mmap = (CtrDrvrMemoryMap *) mcon->Map;
+		case CtrIoctlSET_SW_DEBUG:
+			if (lav) ccon->DebugOn = !!lav;
+			else     ccon->DebugOn = 0;
+		break;
 
-   if (mcon->InUse == 0) {
-      cprintf("CtrDrvrIoctl: No hardware installed\n");
-      pseterr(ENODEV);          /* No such device */
-      return SYSERR;
-   }
+		case CtrIoctlGET_SW_DEBUG:
+			*lap = ccon->DebugOn;
+		break;
 
-   if (ccon->DebugOn) DebugIoctl(cm,arg);   /* Print debug message */
+		case CtrIoctlGET_VERSION:
+			ver = (CtrDrvrVersion *) arb;
+			GetVersion(mcon,ver);
+		break;
 
-   /*************************************/
-   /* Decode callers command and do it. */
-   /*************************************/
+		case CtrIoctlSET_TIMEOUT:
+			ccon->Timeout = lav;
+		break;
 
-   switch (cm) {
+		case CtrIoctlGET_TIMEOUT:
+			*lap = ccon->Timeout;
+		break;
 
-      case CtrDrvrSET_SW_DEBUG:           /* Set driver debug mode */
-	 if (lap) {
-	    if (lav) ccon->DebugOn = lav;
-	    else     ccon->DebugOn = 0;
+		case CtrIoctlSET_QUEUE_FLAG:
+			ccon->Queue.QueueOff = !!lav;
+		break;
 
-	    if (lav == CtrDrvrDEBUG_ISR) { debug_isr = 1; ccon->DebugOn = 0; }
-	    else                           debug_isr = 0;
+		case CtrIoctlGET_QUEUE_FLAG:
+			*lap = ccon->Queue.QueueOff;
+		break;
 
-	    return OK;
-	 }
-      break;
+		case CtrIoctlGET_QUEUE_SIZE:
+			*lap = ccon->Queue.Size;
+		break;
 
-      case CtrDrvrGET_SW_DEBUG:
-	 if (lap) {
-	    *lap = ccon->DebugOn;
-	    return OK;
-	 }
-      break;
+		case CtrIoctlGET_QUEUE_OVERFLOW:
+			*lap = ccon->Queue.Missed;
+			ccon->Queue.Missed = 0;
+		break;
 
-      case CtrDrvrGET_VERSION:            /* Get version date */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrVersion)) {
-	    ver = (CtrDrvrVersion *) arg;
-	    return GetVersion(mcon,ver);
-	 }
-      break;
-
-      case CtrDrvrSET_TIMEOUT:            /* Set the read timeout value */
-	 if (lap) {
-	    ccon->Timeout = lav;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_TIMEOUT:            /* Get the read timeout value */
-	 if (lap) {
-	    *lap = ccon->Timeout;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_QUEUE_FLAG:         /* Set queuing capabiulities on off */
-	 if (lap) {
-	    if (lav) ccon->Queue.QueueOff = 1;
-	    else     ccon->Queue.QueueOff = 0;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_QUEUE_FLAG:         /* 1=Q_off 0=Q_on */
-	 if (lap) {
-	    *lap = ccon->Queue.QueueOff;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_QUEUE_SIZE:         /* Number of events on queue */
-	 if (lap) {
-	    *lap = ccon->Queue.Size;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_QUEUE_OVERFLOW:     /* Number of missed events */
-	 if (lap) {
-	    *lap = ccon->Queue.Missed;
-	    ccon->Queue.Missed = 0;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_MODULE_BY_SLOT:     /* Select the module to work with by ID */
-	 if (lap) {
-	    for (i=0; i<Wa->Modules; i++) {
-	       mcon = &(wa->ModuleContexts[i]);
-	       if (mcon->PciSlot == lav) {
-		  ccon->ModuleIndex = i;
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_MODULE_DESCRIPTOR:
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrModuleAddress)) {
-	    moad = (CtrDrvrModuleAddress *) arg;
-
-	    if (mcon->DeviceId == CTRP_DEVICE_ID) {
-	       moad->ModuleType = CtrDrvrModuleTypeCTR;
-	       moad->DeviceId   = CTRP_DEVICE_ID;
-	       moad->VendorId   = CERN_VENDOR_ID;
-	       moad->MemoryMap  = (uintptr_t) mcon->Map;
-	       moad->LocalMap   = (uintptr_t) mcon->Local;
-	    } else {
-	       moad->ModuleType = CtrDrvrModuleTypePLX;
-	       moad->DeviceId   = PLX9030_DEVICE_ID;
-	       moad->VendorId   = PLX9030_VENDOR_ID;
-	       moad->MemoryMap  = 0;
-	       moad->LocalMap   = (uintptr_t) mcon->Local;
-	    }
-	    moad->ModuleNumber  = mcon->ModuleIndex +1;
-	    moad->PciSlot       = mcon->PciSlot;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_MODULE_SLOT:        /* Get the ID of the selected module */
-	 if (lap) {
-	    *lap = mcon->PciSlot;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_MODULE:             /* Select the module to work with */
-	 if (lap) {
-	    if ((lav >= 1)
-	    &&  (lav <= Wa->Modules)) {
-	       ccon->ModuleIndex = lav -1;
-	       mcon = &(wa->ModuleContexts[ccon->ModuleIndex]);
-	       mcon->ModuleIndex = ccon->ModuleIndex;
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_MODULE:             /* Which module am I working with */
-	 if (lap) {
-	    *lap = ccon->ModuleIndex +1;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_MODULE_COUNT:       /* The number of installed modules */
-	 if (lap) {
-	    *lap = Wa->Modules;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrRESET:                  /* Reset the module, re-establish connections */
-	 return Reset(mcon);
-
-      case CtrDrvrGET_STATUS:             /* Read module status */
-	 if (lap) {
-	    *lap = GetStatus(mcon);
-	    if (*lap != SYSERR) return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_CLIENT_LIST:        /* Get the list of driver clients */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrClientList)) {
-	    cls = (CtrDrvrClientList *) arg;
-	    bzero((void *) cls, sizeof(CtrDrvrClientList));
-	    for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
-	       ccon = &(wa->ClientContexts[i]);
-	       if (ccon->InUse)
-		  cls->Pid[cls->Size++] = ccon->Pid;
-	    }
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrCONNECT:                /* Connect to an object interrupt */
-	 conx = (CtrDrvrConnection *) arg;
-	 if (rcnt >= sizeof(CtrDrvrConnection)) return Connect(conx,ccon);
-      break;
-
-      case CtrDrvrDISCONNECT:             /* Disconnect from an object interrupt */
-	 conx = (CtrDrvrConnection *) arg;
-	 if (rcnt >= sizeof(CtrDrvrConnection)) {
-	    if (conx->EqpNum) return DisConnect(conx,ccon);
-	    else              return DisConnectAll(ccon);
-	 }
-      break;
-
-      case CtrDrvrGET_CLIENT_CONNECTIONS: /* Get the list of a client connections on module */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrClientConnections)) {
-	    ccn = (CtrDrvrClientConnections *) arg;
-	    ccn->Size = 0;
-	    for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
-	       ccon = &(wa->ClientContexts[i]);
-	       if ((ccon->InUse) && (ccon->Pid == ccn->Pid)) {
-		  msk = 1 << ccon->ClientIndex;
-		  for (j=0; j<CtrDrvrMODULE_CONTEXTS; j++) {
-		     mcon = &(Wa->ModuleContexts[j]);
-		     for (k=0; k<CtrDrvrRamTableSIZE; k++) {
-			if (msk & mcon->Clients[k]) {
-			   found = 0;
-			   for (n=0; n<ccn->Size; n++) {
-			      conx = &(ccn->Connections[n]);
-			      if ((mcon->EqpNum[k]   == conx->EqpNum)
-			      &&  (mcon->EqpClass[k] == conx->EqpClass)) {
-				 found = 1;
-				 break;
-			      }
-			   }
-			   if (!found) {
-			      ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
-			      ccn->Connections[ccn->Size].EqpNum   = mcon->EqpNum[k];
-			      ccn->Connections[ccn->Size].EqpClass = mcon->EqpClass[k];
-			      if (ccn->Size++ >= CtrDrvrCONNECTIONS) return OK;
-			   }
+		case CtrIoctlSET_MODULE_BY_SLOT:
+			for (i=0; i<Wa->Modules; i++) {
+				mcon = &(Wa.ModuleContexts[i]);
+				if (mcon->PciSlot == lav) {
+					ccon->ModuleIndex = i;
+					break;
+				}
 			}
-		     }
-
-		     hmsk = 0;
-		     for (k=0; k<CtrDrvrInterruptSOURCES; k++)
-			if (msk & mcon->HardClients[k]) hmsk |= (1 << k);
-		     if (hmsk) {
-			ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
-			ccn->Connections[ccn->Size].EqpNum   = hmsk;
-			ccn->Connections[ccn->Size].EqpClass = CtrDrvrConnectionClassHARD;
-			if (ccn->Size++ >= CtrDrvrCONNECTIONS) return OK;
-		     }
-		  }
-	       }
-	    }
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_UTC:                /* Set Universal Coordinated Time for next PPS tick */
-	 if (lap) return SetTime(mcon,(unsigned int) lav);
-      break;
-
-      case CtrDrvrGET_UTC:                /* Latch and read the current UTC time */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrCTime)) {
-	    ctod = (CtrDrvrCTime *) arg;
-	    *ctod = *GetTime(mcon);
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_CABLE_ID:           /* Cables telegram ID */
-	 if (lap) {
-	    if (mcon->CableId) *lap = mcon->CableId;
-	    else               *lap = mmap->CableId;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_CABLE_ID:           /* If not sent by the hardware */
-	 if (lap) {
-	    mcon->CableId = lav;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrJTAG_OPEN:              /* Open JTAG interface */
-
-	 if (mcon->IrqBalance == 1) {
-	    disable_irq(mcon->IVector);
-	    mcon->IrqBalance = 0;
-	 }
-
-	 mmap->InterruptEnable = 0; /* Kill module interupts */
-	 lval = 0;
-	 DrmLocalReadWrite(mcon,PLX9030_INTCSR,&lval,2,1); /* Kill 9030 interrupts */
-	 lval = 0;
-	 DrmLocalReadWrite(mcon,PLX9030_LAS0BA,&lval,4,1); /* Disable address space */
-
-	 lval = CtrDrvrJTAG_PIN_TMS_OUT
-	      | CtrDrvrJTAG_PIN_TCK_OUT
-	      | CtrDrvrJTAG_PIN_TDI_OUT; /* I/O Direction out */
-
-	 DrmLocalReadWrite(mcon,PLX9030_GPIOC,&lval,4,1);
-	 mcon->FlashOpen = 1;
-	 return OK;
-
-      case CtrDrvrJTAG_READ_BYTE:         /* Read back uploaded VHDL bit stream */
-
-	 if (lap) {
-	    if (mcon->FlashOpen) {
-	       DrmLocalReadWrite(mcon,PLX9030_GPIOC,&lval,4,0);
-	       if (lval & CtrDrvrJTAG_PIN_TDO_ONE) *lap = CtrDrvrJTAG_TDO;
-	       else                                *lap = 0;
-	       return OK;
-	    }
-	    pseterr(EBUSY);                  /* Device busy, not opened */
-	    return SYSERR;
-	 }
-      break;
-
-      case CtrDrvrJTAG_WRITE_BYTE:        /* Upload a new compiled VHDL bit stream */
-
-	 if (lap) {
-	    if (mcon->FlashOpen) {
-
-	       lval = CtrDrvrJTAG_PIN_TMS_OUT
-		    | CtrDrvrJTAG_PIN_TCK_OUT
-		    | CtrDrvrJTAG_PIN_TDI_OUT; /* I/O Direction out */
-
-	       if (lav & CtrDrvrJTAG_TMS) lval |= CtrDrvrJTAG_PIN_TMS_ONE;
-	       if (lav & CtrDrvrJTAG_TCK) lval |= CtrDrvrJTAG_PIN_TCK_ONE;
-	       if (lav & CtrDrvrJTAG_TDI) lval |= CtrDrvrJTAG_PIN_TDI_ONE;
-
-	       DrmLocalReadWrite(mcon,PLX9030_GPIOC,&lval,4,1);
-	       return OK;
-	    }
-	    pseterr(EBUSY);                  /* Device busy, not opened */
-	    return SYSERR;
-	 }
-      break;
-
-      case CtrDrvrJTAG_CLOSE:             /* Close JTAG interface */
-
-	 /* Wait 1S for the module to settle */
-
-	 sreset(&(mcon->Semaphore));
-	 mcon->Timer = timeout((void *) ResetTimeout, (char *) mcon, 100);
-	 if (mcon->Timer < 0) mcon->Timer = 0;
-	 if (mcon->Timer) swait(&(mcon->Semaphore), SEM_SIGABORT);
-	 if (mcon->Timer) CancelTimeout(&(mcon->Timer));
-
-	 lval = 1;
-	 DrmLocalReadWrite(mcon,PLX9030_LAS0BA,&lval,4,1); /* Enable address space */
-	 EnableInterrupts(mcon,0);
-	 mcon->FlashOpen = 0;
-	 if (mcon->IrqBalance == 0) {
-	    enable_irq(mcon->IVector);
-	    mcon->IrqBalance = 1;
-	 }
-	 return OK;
-
-      case CtrDrvrHPTDC_OPEN:             /* Open HPTDC JTAG interface */
-	 mcon->HptdcOpen = 1;
-	 return OK;
-
-      case CtrDrvrHPTDC_IO:               /* Do HPTDC IO */
-	 if (rcnt >= sizeof(CtrDrvrHptdcIoBuf)) {
-	    if (mcon->HptdcOpen) {
-	       hpio = (CtrDrvrHptdcIoBuf *) arg;
-	       return HptdcCommand(mcon,hpio->Cmd,hpio->Wreg,hpio->Rreg,hpio->Size,hpio->Pflg,hpio->Rflg);
-	    }
-	 }
-      break;
-
-      case CtrDrvrHPTDC_CLOSE:            /* Close HPTDC JTAG interface */
-	 mcon->HptdcOpen = 0;
-	 return OK;
-
-      case CtrDrvrRAW_READ:               /* Raw read  access to card for debug */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	    riob = (CtrDrvrRawIoBlock *) arg;
-	    if ((riob->UserArray != NULL)
-	    &&  (wcnt > riob->Size * sizeof(unsigned int))) {
-	       return RawIo(mcon,riob,0,ccon->DebugOn);
-	    }
-	 }
-      break;
-
-      case CtrDrvrRAW_WRITE:              /* Raw write access to card for debug */
-	 if (rcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	    riob = (CtrDrvrRawIoBlock *) arg;
-	    if ((riob->UserArray != NULL)
-	    &&  (rcnt > riob->Size * sizeof(unsigned int))) {
-	       return RawIo(mcon,riob,1,ccon->DebugOn);
-	    }
-	 }
-      break;
-
-      case CtrDrvrREMAP:                  /* Remap BAR2 after a config change */
-	 return Remap(mcon);
-
-      case CtrDrvr93LC56B_EEPROM_OPEN:    /* Open the PLX9030 configuration EEPROM 93LC56B for Write */
-	 if (mcon->FlashOpen == 0) {
-
-	    /* Assert the chip select for the EEPROM and the target retry delay clocks */
-	    /* See PLX PCI 9030 Data Book 10-35 */
-
-	    cntrl  = Plx9030CntrlCHIP_UNSELECT; /* Chip un-select/reset 93lc56b EEPROM */
-	    DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-	    cntrl |= Plx9030CntrlCHIP_SELECT;   /* Chip select 93lc56b EEPROM */
-	    DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-	    SendEpromCommand(mcon,EpCmdEWEN,0);
-	    mcon->FlashOpen = 1;
-	 }
-	 return OK;
-
-      case CtrDrvr93LC56B_EEPROM_READ:    /* Read from the EEPROM 93LC56B the PLX9030 configuration */
-	 if (mcon->FlashOpen) {
-            wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	    if (wcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if (riob->UserArray != NULL) {
-		  SendEpromCommand(mcon,EpCmdREAD,(riob->Offset)>>1);
-		  ReadEpromWord(mcon,&(riob->UserArray[0]));
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvr93LC56B_EEPROM_WRITE:   /* Write to the EEPROM 93LC56B a new PLX9030 configuration */
-	 if (mcon->FlashOpen) {
-	    if (rcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if (riob->UserArray != NULL) {
-		  SendEpromCommand(mcon,EpCmdWRITE,(riob->Offset)>>1);
-		  WriteEpromWord(mcon,riob->UserArray[0]);
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvr93LC56B_EEPROM_ERASE:   /* Erase the EEPROM 93LC56B, deletes PLX9030 configuration */
-	 if (mcon->FlashOpen) {
-	    SendEpromCommand(mcon,EpCmdERAL,0);
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvr93LC56B_EEPROM_CLOSE:   /* Close EEPROM 93LC56B and load new PLX9030 configuration */
-	 SendEpromCommand(mcon,EpCmdEWDS,0);
-	 cntrl = Plx9030CntrlCHIP_UNSELECT; /* Chip un-select 93lc56b EEPROM */
-	 DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-	 mcon->FlashOpen = 0;
-	 return OK;
-
-      case CtrDrvrPLX9030_RECONFIGURE:    /* Load EEPROM configuration into the PLX9030 */
-	 if (mcon->FlashOpen == 0) {
-	    cntrl  = Plx9030CntrlRECONFIGURE;   /* Reload PLX9030 from 93lc56b EEPROM */
-	    DrmLocalReadWrite(mcon,PLX9030_CNTRL,&cntrl,4,1);
-	    return OK;
-	 }
-      break;                              /* EEPROM must be closed */
-
-      case CtrDrvrPLX9030_CONFIG_OPEN:    /* Open the PLX9030 configuration for read */
-	 mcon->ConfigOpen = 1;
-	 return OK;
-
-      case CtrDrvrPLX9030_CONFIG_READ:    /* Read the PLX9030 configuration registers */
-	 if (mcon->ConfigOpen) {
-            wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	    if (wcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if ((riob->UserArray != NULL) &&  (wcnt > riob->Size)) {
-		  return DrmConfigReadWrite(mcon,riob->Offset,riob->UserArray,riob->Size,0);
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrPLX9030_CONFIG_WRITE:   /* Write to PLX9030 configuration registers (Experts only) */
-	 if (mcon->ConfigOpen) {
-	    if (rcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if ((riob->UserArray != NULL) &&  (rcnt >= riob->Size)) {
-		  return DrmConfigReadWrite(mcon,riob->Offset,riob->UserArray,riob->Size,1);
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrPLX9030_CONFIG_CLOSE:   /* Close the PLX9030 configuration */
-	 mcon->ConfigOpen = 0;
-	 return OK;
-
-      case CtrDrvrPLX9030_LOCAL_OPEN:     /* Open the PLX9030 local configuration for read */
-	 mcon->LocalOpen = 1;
-	 return OK;
-
-      case CtrDrvrPLX9030_LOCAL_READ:     /* Read the PLX9030 local configuration registers */
-	 if (mcon->LocalOpen) {
-            wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	    if (wcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if ((riob->UserArray != NULL) &&  (wcnt >= riob->Size)) {
-		  return DrmLocalReadWrite(mcon,riob->Offset,riob->UserArray,riob->Size,0);
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrPLX9030_LOCAL_WRITE:    /* Write the PLX9030 local configuration registers (Experts only) */
-	 if (mcon->LocalOpen) {
-	   if (rcnt >= sizeof(CtrDrvrRawIoBlock)) {
-	       riob = (CtrDrvrRawIoBlock *) arg;
-	       if ((riob->UserArray != NULL) &&  (rcnt > riob->Size)) {
-		  return DrmLocalReadWrite(mcon,riob->Offset,riob->UserArray,riob->Size,1);
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrPLX9030_LOCAL_CLOSE:    /* Close the PLX9030 local configuration */
-	 mcon->LocalOpen = 0;
-	 return OK;
-
-      case CtrDrvrGET_ACTION:             /* Low level direct access to CTR RAM tables */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrAction)) {
-	    act = (CtrDrvrAction *) arg;
-	    if ((act->TriggerNumber > 0) && (act->TriggerNumber <= CtrDrvrRamTableSIZE)) {
-	       i = act->TriggerNumber -1;
-	       Int32Copy((unsigned int *) &(act->Trigger),
-			(unsigned int *) HardToTrigger(&(mmap->Trigs[i])),
-			(unsigned int  ) sizeof(CtrDrvrTrigger));
-	       Int32Copy((unsigned int *) &(act->Config ),
-			(unsigned int *) HardToConfig(&(mmap->Configs[i])),
-			(unsigned int  ) sizeof(CtrDrvrCounterConfiguration));
-	       act->Trigger.Ctim = mcon->Trigs[i].Ctim;
-	       act->EqpNum       = mcon->EqpNum[i];
-	       act->EqpClass     = mcon->EqpClass[i];
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrSET_ACTION:             /* Set should not modify the bus interrupt settings */
-	 if (rcnt >= sizeof(CtrDrvrAction)) {
-	    act = (CtrDrvrAction *) arg;
-	    if ((act->TriggerNumber > 0) && (act->TriggerNumber <= CtrDrvrRamTableSIZE)) {
-	       i = act->TriggerNumber -1;
-
-	       if (mcon->EqpClass[i] == CtrDrvrConnectionClassHARD) break;
-
-	       if (mcon->EqpNum[i] !=0) {
-		  if (mcon->EqpNum[i] != act->EqpNum) {
-		     cprintf("CtrDrvr: SetAction: Illegal EqpNum: %d->%d\n",
-			     (int) mcon->EqpNum[i],
-			     (int) act->EqpNum);
-			     break;
-		  }
-		  if (mcon->EqpClass[i] != act->EqpClass) {
-		     cprintf("CtrDrvr: SetAction: Illegal EqpClass: %d->%d\n",
-			     (int) mcon->EqpClass[i],
-			     (int) act->EqpClass);
-			     break;
-		  }
-		  if (mcon->Trigs[i].Counter != act->Trigger.Counter) {
-		     cprintf("CtrDrvr: SetAction: Illegal Counter: %d->%d\n",
-			     (int) mcon->Trigs[i].Counter,
-			     (int) act->Trigger.Counter);
-			     break;
-		  }
-
-	       } else {
-		  mcon->EqpNum[i] = act->EqpNum;
-		  mcon->EqpClass[i] = act->EqpClass;
-		  mcon->Trigs[i].Counter = act->Trigger.Counter;
-	       }
-
-	       Int32Copy((unsigned int *) &(mmap->Trigs[i]),
-			(unsigned int *) TriggerToHard(&act->Trigger),
-			(unsigned int  ) sizeof(CtrDrvrHwTrigger));
-	       mcon->Trigs[i] = act->Trigger;
-
-	       /* Override bus interrupt settings for connected clients */
-
-	       if (mcon->Clients[i])
-		  act->Config.OnZero |= CtrDrvrCounterOnZeroBUS;
-	       else
-		  act->Config.OnZero &= ~CtrDrvrCounterOnZeroBUS;
-
-	       Int32Copy((unsigned int *) &(mmap->Configs[i]),
-			(unsigned int *) ConfigToHard(&(act->Config)),
-			(unsigned int  ) sizeof(CtrDrvrHwCounterConfiguration));
-	       mcon->Configs[i] = act->Config;
-
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrCREATE_CTIM_OBJECT:     /* Create a new CTIM timing object */
-	 if (rcnt >= sizeof(CtrDrvrCtimBinding)) {
-	    ctim = (CtrDrvrCtimBinding *) arg;
-	    for (i=0; i<Wa->Ctim.Size; i++) {
-	       if (ctim->EqpNum == Wa->Ctim.Objects[i].EqpNum) {
-		  pseterr(EBUSY);        /* Already defined */
-		  return SYSERR;
-	       }
-	    }
-	    i = Wa->Ctim.Size;
-	    if (i<CtrDrvrCtimOBJECTS) {
-	       Wa->Ctim.Objects[i] = *ctim;
-	       Wa->Ctim.Size = i +1;
-	       return OK;
-	    }
-	    pseterr(ENOMEM);
-	    return SYSERR;
-	 }
-      break;
-
-      case CtrDrvrDESTROY_CTIM_OBJECT:    /* Destroy a CTIM timing object */
-	 if (rcnt >= sizeof(CtrDrvrCtimBinding)) {
-	    ctim = (CtrDrvrCtimBinding *) arg;
-	    for (i=0; i<Wa->Ctim.Size; i++) {
-	       if (ctim->EqpNum == Wa->Ctim.Objects[i].EqpNum) {
-		  for (j=0; j<CtrDrvrRamTableSIZE; j++) {
-		     strg = &(mcon->Trigs[j]);
-		     if (strg->Ctim == ctim->EqpNum) {
-			pseterr(EBUSY);   /* In use by ptim object */
-			return SYSERR;
-		     }
-		  }
-		  Wa->Ctim.Objects[i] = Wa->Ctim.Objects[Wa->Ctim.Size -1];
-		  Wa->Ctim.Size--;
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrCHANGE_CTIM_FRAME:      /* Change the frame of an existing CTIM object */
-	 if (rcnt >= sizeof(CtrDrvrCtimBinding)) {
-	    ctim = (CtrDrvrCtimBinding *) arg;
-	    for (i=0; i<Wa->Ctim.Size; i++) {
-	       if (ctim->EqpNum == Wa->Ctim.Objects[i].EqpNum) {
-		  for (j=0; j<CtrDrvrRamTableSIZE; j++) {
-		     strg = &(mcon->Trigs[j]);
-		     if (strg->Ctim == ctim->EqpNum) {
-			pseterr(EBUSY);   /* In use by ptim object */
-			return SYSERR;
-		     }
-		  }
-		  Wa->Ctim.Objects[i].Frame.Long = ctim->Frame.Long;
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrLIST_CTIM_OBJECTS:      /* Returns a list of created CTIM objects */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrCtimObjects)) {
-	    ctimo = (CtrDrvrCtimObjects *) arg;
-	    bcopy((void *) &(Wa->Ctim), (void *) ctimo, sizeof(CtrDrvrCtimObjects));
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrCREATE_PTIM_OBJECT:     /* Create a new PTIM timing object */
-	 if (rcnt >= sizeof(CtrDrvrPtimBinding)) {
-	    ptim = (CtrDrvrPtimBinding *) arg;
-	    for (i=0; i<Wa->Ptim.Size; i++) {
-	       if (ptim->EqpNum == Wa->Ptim.Objects[i].EqpNum) {
-		  pseterr(EBUSY);        /* Already defined */
-		  return SYSERR;
-	       }
-	    }
-	    if (Wa->Ptim.Size >= CtrDrvrPtimOBJECTS) {
-	       pseterr(ENOMEM);          /* No more place in memory */
-	       return SYSERR;
-	    }
-
-	    if (ptim->ModuleIndex < Wa->Modules) {
-	       mcon = &(wa->ModuleContexts[ptim->ModuleIndex]);
-
-	       /* Look for available space in trigger table for specified module */
-
-	       found = size = start = 0;
-	       for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-		  if (mcon->EqpNum[i] == 0) {
-		     if (size == 0) start = i;
-		     if (++size >= ptim->Size) {
-			found = 1;
-			break;
-		     }
-		  } else size = 0;
-	       }
-
-	       if (found) {
-		  for (i=start; i<start+ptim->Size; i++) {
-		     mcon->EqpNum[i]   = ptim->EqpNum;
-		     mcon->EqpClass[i] = CtrDrvrConnectionClassPTIM;
-		     mcon->Trigs[i].Counter = ptim->Counter;
-		  }
-
-		  ptim->StartIndex = start;
-		  Wa->Ptim.Objects[Wa->Ptim.Size++] = *ptim;
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_PTIM_BINDING:     /* Search for a PTIM object binding */
-	 if (rcnt >= sizeof(CtrDrvrPtimBinding)) {
-	    ptim = (CtrDrvrPtimBinding *) arg;
-	    for (i=0; i<Wa->Ptim.Size; i++) {
-	       if (ptim->EqpNum == Wa->Ptim.Objects[i].EqpNum) {
-		  *ptim = Wa->Ptim.Objects[i];
-		  return OK;
-	       }
-	    }
-	    bzero((void *) ptim, sizeof(CtrDrvrPtimBinding));
-	 }
-      break;
-
-      case CtrDrvrDESTROY_PTIM_OBJECT:    /* Destroy a PTIM timing object */
-	 if (rcnt >= sizeof(CtrDrvrPtimBinding)) {
-	    ptim = (CtrDrvrPtimBinding *) arg;
-
-	    i = ptim->ModuleIndex;
-	    if ((i < 0) || (i >= wa->Modules)) break;
-	    mcon = &(wa->ModuleContexts[ptim->ModuleIndex]);
-	    mmap = (CtrDrvrMemoryMap *) mcon->Map;
-
-	    found = 0;
-	    for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-	       if ((mcon->EqpNum[i]   == ptim->EqpNum)
-	       &&  (mcon->EqpClass[i] == CtrDrvrConnectionClassPTIM)) {
-		  if (mcon->Clients[i]) {
-		     pseterr(EBUSY);      /* Object is in use by connected client */
-		     return SYSERR;
-		  }
-		  found = 1;
-	       }
-	    }
-
-	    if (found) {
-	       for (i=0; i<CtrDrvrRamTableSIZE; i++) {
-		  if ((mcon->EqpNum[i]   == ptim->EqpNum)
-		  &&  (mcon->EqpClass[i] == CtrDrvrConnectionClassPTIM)) {
-
-		     htrg = &((CtrDrvrHwTrigger) {{0},0});
-		     Int32Copy((unsigned int *) &(mmap->Trigs[i]),
-			      (unsigned int *) htrg,
-			      (unsigned int  ) sizeof(CtrDrvrHwTrigger));
-
-		     mcon->EqpNum[i]   = 0;
-		     mcon->EqpClass[i] = 0;
-		     bzero((void *) &(mcon->Configs[i]),sizeof(CtrDrvrCounterConfiguration));
-		     bzero((void *) &(mcon->Trigs[i]  ),sizeof(CtrDrvrTrigger));
-		     Int32Copy((unsigned int *) &(mmap->Configs[i]),
-			      (unsigned int *) ConfigToHard(&(mcon->Configs[i])),
-			      (unsigned int  ) sizeof(CtrDrvrHwCounterConfiguration));
-		  }
-	       }
-
-	       for (i=0; i<Wa->Ptim.Size; i++) {
-		  if (ptim->EqpNum == Wa->Ptim.Objects[i].EqpNum) {
-		     Wa->Ptim.Objects[i] = Wa->Ptim.Objects[Wa->Ptim.Size -1];
-		     Wa->Ptim.Size--;
-		     break;
-		  }
-	       }
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrLIST_PTIM_OBJECTS:      /* Returns a list of created PTIM objects */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrPtimObjects)) {
-	    ptimo = (CtrDrvrPtimObjects *) arg;
-	    bcopy((void *) &(Wa->Ptim), (void *) ptimo, sizeof(CtrDrvrPtimObjects));
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrENABLE:                               /* Enable CTR module event reception */
-	 if        (lav   == CtrDrvrCommandSET_HPTDC) { /* Enable HPTDC chip */
-	    mcon->Command |=  CtrDrvrCommandSET_HPTDC;
-	    mmap->Command  =  mcon->Command;
-	 } else if (lav   == ~CtrDrvrCommandSET_HPTDC) { /* Disable HPTDC chip */
-	    mcon->Command &= ~CtrDrvrCommandSET_HPTDC;
-	    mmap->Command  =  mcon->Command;
-	 } else if (lav   != 0) {
-	    mcon->Command |=  CtrDrvrCommandENABLE;
-	    mcon->Command &= ~CtrDrvrCommandDISABLE;
-	    mmap->Command  =  mcon->Command;
-	 } else {
-	    mcon->Command &= ~CtrDrvrCommandENABLE;;
-	    mcon->Command |=  CtrDrvrCommandDISABLE;
-	    mmap->Command  =  mcon->Command;
-	 }
-	 return OK;
-
-      case CtrDrvrSET_DEBUG_HISTORY:
-	 if (lav) {
-	    mcon->Command |=  CtrDrvrCommandDebugHisOn;
-	    mcon->Command &= ~CtrDrvrCommandDebugHisOff;
-	 } else {
-	    mcon->Command &= ~CtrDrvrCommandDebugHisOn;
-	    mcon->Command |=  CtrDrvrCommandDebugHisOff;
-	 }
-	 mmap->Command  =  mcon->Command;
-	 return OK;
-
-      case CtrDrvrSET_BRUTAL_PLL:
-	 if (lav) {
-	    mcon->Command |=  CtrDrvrCommandUtcPllOff;
-	    mcon->Command &= ~CtrDrvrCommandUtcPllOn;
-	 } else {
-	    mcon->Command &= ~CtrDrvrCommandUtcPllOff;
-	    mcon->Command |=  CtrDrvrCommandUtcPllOn;
-	 }
-	 mmap->Command  =  mcon->Command;
-	 return OK;
-
-      case CtrDrvrGET_INPUT_DELAY:        /* Get input delay in 25ns ticks */
-	 if (lap) {
-	    *lap = mmap->InputDelay;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_INPUT_DELAY:        /* Set input delay in 25ns ticks */
-	 mmap->InputDelay = lav;
-	 mcon->InputDelay = lav;
-	 return OK;
-
-      case CtrDrvrGET_REMOTE:             /* Counter Remote/Local status */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrdrvrRemoteCommandBuf)) {
-	    remc = (CtrdrvrRemoteCommandBuf *) arg;
-	    if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
-	       remc->Remote = mmap->Counters[remc->Counter].Control.LockConfig;
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrSET_REMOTE:             /* Counter Remote/Local status */
-	 if (rcnt >= sizeof(CtrdrvrRemoteCommandBuf)) {
-	    remc = (CtrdrvrRemoteCommandBuf *) arg;
-	    if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
-	       if (remc->Remote) mmap->Counters[remc->Counter].Control.LockConfig = 1;
-	       else              mmap->Counters[remc->Counter].Control.LockConfig = 0;
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrREMOTE:                 /* Remote control counter */
-	 if (rcnt >= sizeof(CtrdrvrRemoteCommandBuf)) {
-	    remc = (CtrdrvrRemoteCommandBuf *) arg;
-	    if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
-	       if (mmap->Counters[remc->Counter].Control.LockConfig) {
-		  mmap->Counters[remc->Counter].Control.RemOutMask =
-		     CtrDrvrRemoteEXEC | (CtrDrvrCntrCntrlREMOTE_MASK & remc->Remote);
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_MODULE_STATS:
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrModuleStats)) {
-	    mymods = (CtrDrvrModuleStats *) arg;
-	    Int32Copy((unsigned int *) mymods,
-		     (unsigned int *) &(mmap->ModStats),
-		     (unsigned int  ) sizeof(CtrDrvrModuleStats));
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_OUT_MASK:           /* Counter output routing mask */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrCounterMaskBuf)) {
-	    cmsb = (CtrDrvrCounterMaskBuf *) arg;
-	    if ((cmsb->Counter >= CtrDrvrCounter1) && (cmsb->Counter <= CtrDrvrCounter8)) {
-	       i = cmsb->Counter;
-	       msk = mmap->Counters[i].Control.RemOutMask;
-	       if (CtrDrvrCntrCntrlTTL_BAR & msk) cmsb->Polarity = CtrDrvrPolarityTTL_BAR;
-	       else                               cmsb->Polarity = CtrDrvrPolarityTTL;
-	       msk &= ~CtrDrvrCntrCntrlTTL_BAR;
-	       cmsb->Mask = AutoShiftRight(CtrDrvrCntrCntrlOUT_MASK,msk);
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrSET_OUT_MASK:           /* Counter output routing mask */
-	 if (rcnt >= sizeof(CtrDrvrCounterMaskBuf)) {
-	    cmsb = (CtrDrvrCounterMaskBuf *) arg;
-	    if ((cmsb->Counter >= CtrDrvrCounter1) && (cmsb->Counter <= CtrDrvrCounter8)) {
-	       i = cmsb->Counter;
-	       if (cmsb->Mask == 0) cmsb->Mask = 1 << cmsb->Counter;
-	       if (cmsb->Polarity == CtrDrvrPolarityTTL_BAR) msk = CtrDrvrCntrCntrlTTL_BAR;
-	       else                                          msk = 0;
-	       mmap->Counters[i].Control.RemOutMask =
-		  (AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,cmsb->Mask) | msk);
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_CONFIG:             /* Get a counter configuration */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrCounterConfigurationBuf)) {
-	    conf = (CtrDrvrCounterConfigurationBuf *) arg;
-	    if ((conf->Counter >= CtrDrvrCounter0) && (conf->Counter <= CtrDrvrCounter8)) {
-	       Int32Copy((unsigned int *) &(conf->Config),
-			(unsigned int *) HardToConfig(&mmap->Counters[conf->Counter].Config),
-			(unsigned int  ) sizeof(CtrDrvrCounterConfiguration));
-	       if ((conf->Config.OnZero > (CtrDrvrCounterOnZeroBUS | CtrDrvrCounterOnZeroOUT))
-	       ||  (conf->Config.Start  > CtrDrvrCounterSTARTS)
-	       ||  (conf->Config.Mode   > CtrDrvrCounterMODES)
-	       ||  (conf->Config.Clock  > CtrDrvrCounterCLOCKS)) {
-		  pseterr(EFAULT);
-		  return SYSERR;
-	       }
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrSET_CONFIG:             /* Set a counter configuration */
-	 if (rcnt >= sizeof(CtrDrvrCounterConfigurationBuf)) {
-	    conf = (CtrDrvrCounterConfigurationBuf *) arg;
-	    if (mmap->Counters[conf->Counter].Control.LockConfig) {
-	       if ((conf->Counter >= CtrDrvrCounter0) && (conf->Counter <= CtrDrvrCounter8)) {
-		  Int32Copy((unsigned int *) &(mmap->Counters[conf->Counter].Config),
-			   (unsigned int *) ConfigToHard(&conf->Config),
-			   (unsigned int  ) sizeof(CtrDrvrHwCounterConfiguration));
-		  return OK;
-	       }
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_COUNTER_HISTORY:    /* One deep history of counter */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrCounterHistoryBuf)) {
-	    hisb = (CtrDrvrCounterHistoryBuf *) arg;
-	    if ((hisb->Counter >= CtrDrvrCounter1) && (hisb->Counter <= CtrDrvrCounter8)) {
-	       Int32Copy((unsigned int *) &(hisb->History),
-			(unsigned int *) &(mmap->Counters[hisb->Counter].History),
-			(unsigned int  ) sizeof(CtrDrvrCounterHistory));
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrGET_PLL:                /* Get phase locked loop parameters */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrPll)) {
-	    pll = (CtrDrvrPll *) arg;
-	    Int32Copy((unsigned int *) pll,
-		     (unsigned int *) &(mmap->Pll),
-		     (unsigned int  ) sizeof(CtrDrvrPll));
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_PLL:                /* Set phase locked loop parameters */
-	 if (rcnt >= sizeof(CtrDrvrPll)) {
-	    pll = (CtrDrvrPll *) arg;
-	    Int32Copy((unsigned int *) &(mmap->Pll),
-		     (unsigned int *) pll,
-		     (unsigned int  ) sizeof(CtrDrvrPll));
-	    Int32Copy((unsigned int *) &(mcon->Pll),
-		     (unsigned int *) pll,
-		     (unsigned int  ) sizeof(CtrDrvrPll));
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_PLL_ASYNC_PERIOD:   /* Get PLL asynchronous period */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrPllAsyncPeriodNs)) {
-	    asyp = (CtrDrvrPllAsyncPeriodNs *) arg;
-	    if (mcon->PllAsyncPeriodNs != 0.0)
-	       *asyp = mcon->PllAsyncPeriodNs;
-	    else
-	       *asyp = mcon->PllAsyncPeriodNs = 1000.00/44.736;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrSET_PLL_ASYNC_PERIOD:   /* Set PLL asynchronous period */
-	 if (rcnt >= sizeof(CtrDrvrPllAsyncPeriodNs)) {
-	    asyp = (CtrDrvrPllAsyncPeriodNs *) arg;
-	    *asyp = mcon->PllAsyncPeriodNs;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrREAD_TELEGRAM:          /* Read telegrams from CTR */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrTgmBuf)) {
-	    tgmb = (CtrDrvrTgmBuf *) arg;
-	    if ((tgmb->Machine > CtrDrvrMachineNONE) && (tgmb->Machine <= CtrDrvrMachineMACHINES)) {
-	       Int32Copy((unsigned int *) tgmb->Telegram,
-			(unsigned int *) mmap->Telegrams[(int) (tgmb->Machine) -1],
-			(unsigned int  ) sizeof(CtrDrvrTgm));
-	       if (Wa->Endian == CtrDrvrEndianLITTLE) SwapWords((unsigned int *) tgmb->Telegram,
-								(unsigned int  ) sizeof(CtrDrvrTgm));
-	       return OK;
-	    }
-	 }
-      break;
-
-      case CtrDrvrREAD_EVENT_HISTORY:     /* Read incomming event history */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrEventHistory)) {
-	    evhs = (CtrDrvrEventHistory *) arg;
-	    Int32Copy((unsigned int *) evhs,
-		     (unsigned int *) &(mmap->EventHistory),
-		     (unsigned int  ) sizeof(CtrDrvrEventHistory));
-	    return OK;
-	 }
-      break;
-
-
-      case CtrDrvrGET_RECEPTION_ERRORS:   /* Timing frame reception error status */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrReceptionErrors)) {
-	    rcpe = (CtrDrvrReceptionErrors *) arg;
-	    rcpe->LastReset    = mmap->LastReset;
-	    rcpe->PartityErrs  = mmap->PartityErrs;
-	    rcpe->SyncErrs     = mmap->SyncErrs;
-	    rcpe->TotalErrs    = mmap->TotalErrs;
-	    rcpe->CodeViolErrs = mmap->CodeViolErrs;
-	    rcpe->QueueErrs    = mmap->QueueErrs;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_IO_STATUS:          /* Status of module inputs */
-	 if (lap) {
-	    *lap = mmap->IoStat;
-	    return OK;
-	 }
-      break;
-
-      case CtrDrvrGET_IDENTITY:           /* Identity of board from ID chip */
-         wcnt = wbounds((long) arg);       /* Number of writable bytes without error */
-	 if (wcnt >= sizeof(CtrDrvrBoardId)) {
-	    bird = (CtrDrvrBoardId *) arg;
-	    bird->IdLSL = mmap->IdLSL;
-	    bird->IdMSL = mmap->IdMSL;
-	    return OK;
-	 }
-      break;
-
-      default: break;
-   }
-
-   /* EINVAL = "Invalid argument" */
-
-   pseterr(EINVAL);                           /* Caller error */
-   return SYSERR;
+			cc = -EINVAL;
+		break;
+
+		case CtrDrvrGET_MODULE_DESCRIPTOR:
+			moad = (CtrDrvrModuleAddress *) arb;
+
+			moad->ModuleType   = CtrDrvrModuleTypeCTR;
+			moad->DeviceId     = CTRP_DEVICE_ID;
+			moad->VendorId     = CERN_VENDOR_ID;
+			moad->MemoryMap    = (uint32_t *) mcon->Map;
+			moad->LocalMap     = (uint32_t *) mcon->Local;
+			moad->ModuleNumber = mcon->ModuleIndex +1;
+			moad->PciSlot      = mcon->PciSlot;
+		break;
+
+		case CtrDrvrGET_MODULE_SLOT:
+			*lap = mcon->PciSlot;
+		break;
+
+		case CtrIoctlSET_MODULE:
+			if ((lav >= 1)
+			&&  (lav <= Wa.Modules)) {
+				ccon->ModuleIndex = lav -1;
+				mcon = &(Wa.ModuleContexts[ccon->ModuleIndex]);
+				mcon->ModuleIndex = ccon->ModuleIndex;
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlGET_MODULE:
+			*lap = ccon->ModuleIndex +1;
+		break;
+
+		case CtrIoctlGET_MODULE_COUNT:
+			*lap = Wa.Modules;
+		break;
+
+		case CtrIoctlLOCK:
+			mcon->UpLock = 1;     /** Lock driver update commands */
+		break;
+
+		case CtrIoctlUNLOCK:
+			clr_uplock(mcon,lav); /** To unlock you need the password !! */
+		break;                        /** Never returns an error */
+
+		case CtrIoctlRESET:
+			if (mcon->UpLock) { cc=-EACCES; break; } /** Check lock before doing reset */
+			Reset(mcon);
+		break;
+
+		case CtrIoctlGET_STATUS:
+			*lap = GetStatus(mcon);
+		break;
+
+		case CtrIoctlGET_CLIENT_LIST:
+			cls = (CtrDrvrClientList *) arb;
+			memset(cls,0,sizeof(CtrDrvrClientList));
+
+			for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
+				ccon = &(Wa.ClientContexts[i]);
+				if (ccon->InUse)
+					cls->Pid[cls->Size++] = ccon->Pid;
+			}
+		break;
+
+		case CtrIoctlCONNECT:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			conx = (CtrDrvrConnection *) arb;
+			cc = Connect(conx,ccon);
+		break;
+
+		case CtrIoctlDISCONNECT:
+			conx = (CtrDrvrConnection *) arb;
+			if (conx->EqpNum)
+				cc = DisConnect(conx,ccon);
+			else
+				cc = DisConnectAll(ccon);
+		break;
+
+		case CtrIoctlGET_CLIENT_CONNECTIONS:
+			ccn = (CtrDrvrClientConnections *) arb;
+			ccn->Size = 0;
+
+			for (i=0; i<CtrDrvrCLIENT_CONTEXTS; i++) {
+				ccon = &(Wa.ClientContexts[i]);
+				if ((ccon->InUse) && (ccon->Pid == ccn->Pid)) {
+					msk = 1 << ccon->ClientIndex;
+					for (j=0; j<CtrDrvrMODULE_CONTEXTS; j++) {
+						mcon = &(Wa.ModuleContexts[j]);
+						for (k=0; k<CtrDrvrRamTableSIZE; k++) {
+							if (msk & mcon->Clients[k]) {
+								found = 0;
+								for (n=0; n<ccn->Size; n++) {
+									conx = &(ccn->Connections[n]);
+									if ((mcon->EqpNum[k]   == conx->EqpNum)
+									&&  (mcon->EqpClass[k] == conx->EqpClass)) {
+										found = 1;
+										break;
+									}
+								}
+								if (!found) {
+									ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
+									ccn->Connections[ccn->Size].EqpNum   = mcon->EqpNum[k];
+									ccn->Connections[ccn->Size].EqpClass = mcon->EqpClass[k];
+									if (ccn->Size++ >= CtrDrvrCONNECTIONS)
+										goto out;
+								}
+							}
+						}
+
+						hmsk = 0;
+						for (k=0; k<CtrDrvrInterruptSOURCES; k++) {
+							if (msk & mcon->HardClients[k])
+								hmsk |= (1 << k);
+							if (hmsk) {
+								ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
+								ccn->Connections[ccn->Size].EqpNum   = hmsk;
+								ccn->Connections[ccn->Size].EqpClass = CtrDrvrConnectionClassHARD;
+								if (ccn->Size++ >= CtrDrvrCONNECTIONS)
+									goto out;
+							}
+						}
+					}
+				}
+			}
+		break;
+
+		case CtrIoctlSET_UTC:
+			cc = SetTime(mcon,(uint32_t) lav);
+		break;
+
+		case CtrIoctlGET_UTC:
+			ctod = (CtrDrvrCTime *) arb;
+			*ctod = *GetTime(mcon);
+		break;
+
+		case CtrIoctlGET_CABLE_ID:
+			if (mcon->CableId)
+				*lap = mcon->CableId;
+			else
+				*lap = ioread32be(&mmap->CableId);
+		break;
+
+		case CtrIoctlSET_CABLE_ID:
+			mcon->CableId = lav;
+		break;
+
+		case CtrIoctlHPTDC_OPEN:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			mcon->HptdcOpen = 1;
+		break;
+
+		case CtrIoctlHPTDC_IO:
+			hpio = (CtrDrvrHptdcIoBuf *) arb;
+			if (mcon->HptdcOpen) {
+				cc = HptdcCommand(mcon,hpio->Cmd,hpio->Wreg,hpio->Rreg,hpio->Size,hpio->Pflg,hpio->Rflg);
+				break;
+			}
+			cc = -ENOLCK;
+		break;
+
+		case CtrIoctlHPTDC_CLOSE:
+			mcon->HptdcOpen = 0;
+		break;
+
+		case CtrIoctlRAW_READ:
+			riob = (CtrDrvrRawIoBlock *) arb;
+
+			iobuf = kmalloc(riob->Size * sizeof(uint32_t),GFP_KERNEL);
+			if (!iobuf) {
+				cc = -ENOMEM;
+				break;
+			}
+			RawIo(mcon,iobuf,riob->Size,riob->Offset,0);
+
+			if (copy_to_user(riob->UserArray,iobuf,riob->Size * sizeof(uint32_t)))
+				cc = -EACCES;
+
+			kfree(iobuf);
+		break;
+
+		case CtrIoctlRAW_WRITE:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			riob = (CtrDrvrRawIoBlock *) arb;
+
+			iobuf = kmalloc(riob->Size * sizeof(uint32_t),GFP_KERNEL);
+			if (!iobuf) {
+				cc = -ENOMEM;
+				break;
+			}
+
+			if (copy_from_user(iobuf,riob->UserArray,riob->Size * sizeof(uint32_t)))
+				cc = -EACCES;
+			else
+				RawIo(mcon,iobuf,riob->Size,riob->Offset,1);
+
+			kfree(iobuf);
+		break;
+
+		case CtrIoctlGET_ACTION:
+			act = (CtrDrvrAction *) arb;
+			if ((act->TriggerNumber > 0) && (act->TriggerNumber <= CtrDrvrRamTableSIZE)) {
+				i = act->TriggerNumber -1;
+				Int32Copy((uint32_t *) &(act->Trigger),
+					  (uint32_t *) HardToTrigger(&(mmap->Trigs[i])),
+					  (uint32_t  ) sizeof(CtrDrvrTrigger));
+				Int32Copy((uint32_t *) &(act->Config ),
+					  (uint32_t *) HardToConfig(&(mmap->Configs[i])),
+					  (uint32_t  ) sizeof(CtrDrvrCounterConfiguration));
+				act->Trigger.Ctim = mcon->Trigs[i].Ctim;
+				act->EqpNum       = mcon->EqpNum[i];
+				act->EqpClass     = mcon->EqpClass[i];
+
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlSET_ACTION:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			act = (CtrDrvrAction *) arb;
+
+			if ((act->TriggerNumber > 0) && (act->TriggerNumber <= CtrDrvrRamTableSIZE)) {
+				i = act->TriggerNumber -1;
+
+				if (mcon->EqpClass[i] == CtrDrvrConnectionClassHARD)
+					break;
+
+				if (mcon->EqpNum[i] !=0) {
+					if (mcon->EqpNum[i] != act->EqpNum) {
+						printk("CtrDrvr: SetAction: Illegal EqpNum: %d->%d\n",
+						      (int) mcon->EqpNum[i],
+						      (int) act->EqpNum);
+						cc = -EACCES;
+						break;
+					}
+
+					if (mcon->EqpClass[i] != act->EqpClass) {
+						printk("CtrDrvr: SetAction: Illegal EqpClass: %d->%d\n",
+						       (int) mcon->EqpClass[i],
+						       (int) act->EqpClass);
+						cc = -EACCES;
+						break;
+					}
+
+					if (mcon->Trigs[i].Counter != act->Trigger.Counter) {
+						printk("CtrDrvr: SetAction: Illegal Counter: %d->%d\n",
+						       (int) mcon->Trigs[i].Counter,
+						       (int) act->Trigger.Counter);
+						cc = -EACCES;
+						break;
+					}
+
+				} else {
+					mcon->EqpNum[i] = act->EqpNum;
+					mcon->EqpClass[i] = act->EqpClass;
+					mcon->Trigs[i].Counter = act->Trigger.Counter;
+				}
+
+				Io32Write((uint32_t *) &(mmap->Trigs[i]),
+					  (uint32_t *) TriggerToHard(&act->Trigger),
+					  (uint32_t  ) sizeof(CtrDrvrHwTrigger));
+				mcon->Trigs[i] = act->Trigger;
+
+				/* Override bus interrupt settings for connected clients */
+
+				if (mcon->Clients[i])
+					act->Config.OnZero |= CtrDrvrCounterOnZeroBUS;
+				else
+					act->Config.OnZero &= ~CtrDrvrCounterOnZeroBUS;
+
+				Io32Write((uint32_t *) &(mmap->Configs[i]),
+					  (uint32_t *) ConfigToHard(&(act->Config)),
+					  (uint32_t  ) sizeof(CtrDrvrHwCounterConfiguration));
+				mcon->Configs[i] = act->Config;
+
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlCREATE_CTIM_OBJECT:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			ctim = (CtrDrvrCtimBinding *) arb;
+
+			for (i=0; i<Wa.Ctim.Size; i++) {
+				if (ctim->EqpNum == Wa.Ctim.Objects[i].EqpNum) {
+					cc = -EBUSY;
+					goto out;
+				}
+			}
+
+			i = Wa.Ctim.Size;
+			if (i<CtrDrvrCtimOBJECTS) {
+				Wa.Ctim.Objects[i] = *ctim;
+				Wa.Ctim.Size = i +1;
+				break;;
+			}
+			cc = -ENOMEM;
+		break;
+
+		case CtrIoctlDESTROY_CTIM_OBJECT:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			ctim = (CtrDrvrCtimBinding *) arb;
+
+			for (i=0; i<Wa.Ctim.Size; i++) {
+				if (ctim->EqpNum == Wa.Ctim.Objects[i].EqpNum) {
+					for (j=0; j<CtrDrvrRamTableSIZE; j++) {
+						strg = &(mcon->Trigs[j]);
+						if (strg->Ctim == ctim->EqpNum) {
+							cc = -EBUSY;
+							goto out;
+						}
+					}
+					Wa.Ctim.Objects[i] = Wa.Ctim.Objects[Wa.Ctim.Size -1];
+					Wa.Ctim.Size--;
+					goto out;
+				}
+			}
+		break;
+
+		case CtrIoctlCHANGE_CTIM_FRAME:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			ctim = (CtrDrvrCtimBinding *) arb;
+
+			for (i=0; i<Wa.Ctim.Size; i++) {
+				if (ctim->EqpNum == Wa.Ctim.Objects[i].EqpNum) {
+					for (j=0; j<CtrDrvrRamTableSIZE; j++) {
+						strg = &(mcon->Trigs[j]);
+						if (strg->Ctim == ctim->EqpNum) {
+							cc = -EBUSY;
+							goto out;
+						}
+					}
+					Wa.Ctim.Objects[i].Frame.Long = ctim->Frame.Long;
+					goto out;
+				}
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlLIST_CTIM_OBJECTS:
+			ctimo = (CtrDrvrCtimObjects *) arb;
+			memcpy(ctimo,&(Wa.Ctim),sizeof(CtrDrvrCtimObjects));
+		break;
+
+		case CtrIoctlCREATE_PTIM_OBJECT:     /* Create a new PTIM timing object */
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			ptim = (CtrDrvrPtimBinding *) arb;
+
+			for (i=0; i<Wa.Ptim.Size; i++) {
+				if (ptim->EqpNum == Wa.Ptim.Objects[i].EqpNum) {
+					cc = -EBUSY;
+					goto out;
+				}
+			}
+			if (Wa.Ptim.Size >= CtrDrvrPtimOBJECTS) {
+				cc = -ENOMEM;
+				break;
+			}
+
+			if (ptim->ModuleIndex < Wa.Modules) {
+				mcon = &(Wa.ModuleContexts[ptim->ModuleIndex]);
+
+				/* Look for available space in trigger table for specified module */
+
+				found = size = start = 0;
+				for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+					if (mcon->EqpNum[i] == 0) {
+						if (size == 0)
+							start = i;
+						if (++size >= ptim->Size) {
+							found = 1;
+							break;
+						}
+					} else
+						size = 0;
+				}
+
+				if (found) {
+					for (i=start; i<start+ptim->Size; i++) {
+						mcon->EqpNum[i]   = ptim->EqpNum;
+						mcon->EqpClass[i] = CtrDrvrConnectionClassPTIM;
+						mcon->Trigs[i].Counter = ptim->Counter;
+					}
+
+					ptim->StartIndex = start;
+					Wa.Ptim.Objects[Wa.Ptim.Size++] = *ptim;
+					break;
+				}
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlGET_PTIM_BINDING:     /* Search for a PTIM object binding */
+			ptim = (CtrDrvrPtimBinding *) arb;
+			for (i=0; i<Wa.Ptim.Size; i++) {
+				if (ptim->EqpNum == Wa.Ptim.Objects[i].EqpNum) {
+					*ptim = Wa.Ptim.Objects[i];
+					goto out;
+				}
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlDESTROY_PTIM_OBJECT:    /* Destroy a PTIM timing object */
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			ptim = (CtrDrvrPtimBinding *) arb;
+
+			i = ptim->ModuleIndex;
+			if ((i < 0) || (i >= Wa.Modules)) {
+			       cc = -EINVAL;
+			       break;
+			}
+			mcon = &(Wa.ModuleContexts[ptim->ModuleIndex]);
+			mmap = (CtrDrvrMemoryMap *) mcon->Map;
+
+			found = 0;
+			for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+				if ((mcon->EqpNum[i]   == ptim->EqpNum)
+				&&  (mcon->EqpClass[i] == CtrDrvrConnectionClassPTIM)) {
+					if (mcon->Clients[i]) {
+						cc = -EBUSY;
+						goto out;
+					}
+					found = 1;
+				}
+			}
+
+			if (found) {
+				for (i=0; i<CtrDrvrRamTableSIZE; i++) {
+					if ((mcon->EqpNum[i]   == ptim->EqpNum)
+					&&  (mcon->EqpClass[i] == CtrDrvrConnectionClassPTIM)) {
+
+						htrg = &((CtrDrvrHwTrigger) {{0},0});
+						Io32Write((uint32_t *) &(mmap->Trigs[i]),
+							  (uint32_t *) htrg,
+							  (uint32_t  ) sizeof(CtrDrvrHwTrigger));
+
+						mcon->EqpNum[i]   = 0;
+						mcon->EqpClass[i] = 0;
+						memset(&(mcon->Configs[i]),0,sizeof(CtrDrvrCounterConfiguration));
+						memset(&(mcon->Trigs[i]),0,sizeof(CtrDrvrTrigger));
+						Io32Write((uint32_t *) &(mmap->Configs[i]),
+							  (uint32_t *) ConfigToHard(&(mcon->Configs[i])),
+							  (uint32_t  ) sizeof(CtrDrvrHwCounterConfiguration));
+					}
+				}
+
+				for (i=0; i<Wa.Ptim.Size; i++) {
+					if (ptim->EqpNum == Wa.Ptim.Objects[i].EqpNum) {
+						Wa.Ptim.Objects[i] = Wa.Ptim.Objects[Wa.Ptim.Size -1];
+						Wa.Ptim.Size--;
+						break;
+					}
+				}
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlLIST_PTIM_OBJECTS:
+			ptimo = (CtrDrvrPtimObjects *) arb;
+			memcpy(ptimo,&(Wa.Ptim),sizeof(CtrDrvrPtimObjects));
+		break;
+
+		case CtrIoctlENABLE:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+
+			if        (lav   == CtrDrvrCommandSET_HPTDC) {
+				mcon->Command |=  CtrDrvrCommandSET_HPTDC;
+				iowrite32be(mcon->Command,&mmap->Command);
+			} else if (lav   == ~CtrDrvrCommandSET_HPTDC) {
+				mcon->Command &= ~CtrDrvrCommandSET_HPTDC;
+				iowrite32be(mcon->Command,&mmap->Command);
+			} else if (lav   != 0) {
+				mcon->Command |=  CtrDrvrCommandENABLE;
+				mcon->Command &= ~CtrDrvrCommandDISABLE;
+				iowrite32be(mcon->Command,&mmap->Command);
+			} else {
+				mcon->Command &= ~CtrDrvrCommandENABLE;;
+				mcon->Command |=  CtrDrvrCommandDISABLE;
+				iowrite32be(mcon->Command,&mmap->Command);
+			}
+		break;
+
+		case CtrIoctlSET_DEBUG_HISTORY:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+
+			if (lav) {
+				mcon->Command |=  CtrDrvrCommandDebugHisOn;
+				mcon->Command &= ~CtrDrvrCommandDebugHisOff;
+			} else {
+				mcon->Command &= ~CtrDrvrCommandDebugHisOn;
+				mcon->Command |=  CtrDrvrCommandDebugHisOff;
+			}
+			iowrite32be(mcon->Command,&mmap->Command);
+		break;
+
+		case CtrIoctlSET_BRUTAL_PLL:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+
+			if (lav) {
+				mcon->Command |=  CtrDrvrCommandUtcPllOff;
+				mcon->Command &= ~CtrDrvrCommandUtcPllOn;
+			} else {
+				mcon->Command &= ~CtrDrvrCommandUtcPllOff;
+				mcon->Command |=  CtrDrvrCommandUtcPllOn;
+			}
+			iowrite32be(mcon->Command,&mmap->Command);
+		break;
+
+		case CtrIoctlGET_INPUT_DELAY:
+			*lap = ioread32be(&mmap->InputDelay);
+		break;
+
+		case CtrIoctlSET_INPUT_DELAY:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+
+			mcon->InputDelay = lav;
+			iowrite32be(lav,&mmap->InputDelay);
+		break;
+
+		case CtrIoctlGET_REMOTE:
+			remc = (CtrdrvrRemoteCommandBuf *) arb;
+			if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
+				remc->Remote = ioread32be(&mmap->Counters[remc->Counter].Control.LockConfig);
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlSET_REMOTE:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			remc = (CtrdrvrRemoteCommandBuf *) arb;
+
+			if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
+				if (remc->Remote)
+					iowrite32be(1,&mmap->Counters[remc->Counter].Control.LockConfig);
+				else
+					iowrite32be(0,&mmap->Counters[remc->Counter].Control.LockConfig);
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlREMOTE:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			remc = (CtrdrvrRemoteCommandBuf *) arb;
+
+			if ((remc->Counter >= CtrDrvrCounter1) && (remc->Counter <= CtrDrvrCounter8)) {
+				if (ioread32be(&mmap->Counters[remc->Counter].Control.LockConfig)) {
+					iowrite32be(CtrDrvrRemoteEXEC | (CtrDrvrCntrCntrlREMOTE_MASK & remc->Remote),
+						    &mmap->Counters[remc->Counter].Control.RemOutMask);
+					break;
+				}
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlGET_MODULE_STATS:
+			mods = (CtrDrvrModuleStats *) arb;
+			Io32Read((uint32_t *) mods,
+				 (uint32_t *) &(mmap->ModStats),
+				 (uint32_t  ) sizeof(CtrDrvrModuleStats));
+		break;
+
+		case CtrIoctlGET_OUT_MASK:
+			cmsb = (CtrDrvrCounterMaskBuf *) arb;
+			if ((cmsb->Counter >= CtrDrvrCounter1) && (cmsb->Counter <= CtrDrvrCounter8)) {
+				i = cmsb->Counter;
+				msk = ioread32be(&mmap->Counters[i].Control.RemOutMask);
+				if (CtrDrvrCntrCntrlTTL_BAR & msk)
+					cmsb->Polarity = CtrDrvrPolarityTTL_BAR;
+				else
+					cmsb->Polarity = CtrDrvrPolarityTTL;
+				msk &= ~CtrDrvrCntrCntrlTTL_BAR;
+				cmsb->Mask = AutoShiftRight(CtrDrvrCntrCntrlOUT_MASK,msk);
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlSET_OUT_MASK:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			cmsb = (CtrDrvrCounterMaskBuf *) arb;
+
+			if ((cmsb->Counter >= CtrDrvrCounter1) && (cmsb->Counter <= CtrDrvrCounter8)) {
+				i = cmsb->Counter;
+				if (cmsb->Mask == 0)
+					cmsb->Mask = 1 << cmsb->Counter;
+				if (cmsb->Polarity == CtrDrvrPolarityTTL_BAR)
+					msk = CtrDrvrCntrCntrlTTL_BAR;
+				else
+					msk = 0;
+				iowrite32be(AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,cmsb->Mask) | msk,
+					    &mmap->Counters[i].Control.RemOutMask);
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlGET_CONFIG:
+			conf = (CtrDrvrCounterConfigurationBuf *) arb;
+			if ((conf->Counter >= CtrDrvrCounter0) && (conf->Counter <= CtrDrvrCounter8)) {
+				Int32Copy((uint32_t *) &(conf->Config),
+					  (uint32_t *) HardToConfig(&mmap->Counters[conf->Counter].Config),
+					  (uint32_t  ) sizeof(CtrDrvrCounterConfiguration));
+
+				if ((conf->Config.OnZero > (CtrDrvrCounterOnZeroBUS | CtrDrvrCounterOnZeroOUT))
+				||  (conf->Config.Start  > CtrDrvrCounterSTARTS)
+				||  (conf->Config.Mode   > CtrDrvrCounterMODES)
+				||  (conf->Config.Clock  > CtrDrvrCounterCLOCKS)) {
+					cc = -EFAULT;
+					break;
+				}
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlSET_CONFIG:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			conf = (CtrDrvrCounterConfigurationBuf *) arb;
+
+			if (mmap->Counters[conf->Counter].Control.LockConfig) {
+				if ((conf->Counter >= CtrDrvrCounter0) && (conf->Counter <= CtrDrvrCounter8)) {
+					Io32Write((uint32_t *) &(mmap->Counters[conf->Counter].Config),
+						  (uint32_t *) ConfigToHard(&conf->Config),
+						  (uint32_t  ) sizeof(CtrDrvrHwCounterConfiguration));
+					break;
+				}
+			}
+		break;
+
+		case CtrIoctlGET_COUNTER_HISTORY:
+			hisb = (CtrDrvrCounterHistoryBuf *) arb;
+			if ((hisb->Counter >= CtrDrvrCounter1) && (hisb->Counter <= CtrDrvrCounter8)) {
+				Io32Read((uint32_t *) &(hisb->History),
+					 (uint32_t *) &(mmap->Counters[hisb->Counter].History),
+					 (uint32_t  ) sizeof(CtrDrvrCounterHistory));
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlGET_PLL:
+			pll = (CtrDrvrPll *) arb;
+			Io32Read((uint32_t *) pll,
+				 (uint32_t *) &(mmap->Pll),
+				 (uint32_t  ) sizeof(CtrDrvrPll));
+		break;
+
+		case CtrIoctlSET_PLL:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+
+			pll = (CtrDrvrPll *) arb;
+			Io32Write((uint32_t *) &(mmap->Pll),
+				  (uint32_t *) pll,
+				  (uint32_t  ) sizeof(CtrDrvrPll));
+			Int32Copy((uint32_t *) &(mcon->Pll),
+				  (uint32_t *) pll,
+				  (uint32_t  ) sizeof(CtrDrvrPll));
+		break;
+
+		case CtrIoctlGET_PLL_ASYNC_PERIOD:   /* Get PLL asynchronous period */
+			asyp = (CtrDrvrPllAsyncPeriodNs *) arb;
+			if (mcon->PllAsyncPeriodNs != 0.0)
+				*asyp = mcon->PllAsyncPeriodNs;
+			else
+				*asyp = mcon->PllAsyncPeriodNs = 1000.00/40.000;
+		break;
+
+		case CtrIoctlSET_PLL_ASYNC_PERIOD:
+			if (mcon->UpLock) { cc=-EACCES; break; }
+			asyp = (CtrDrvrPllAsyncPeriodNs *) arb;
+
+			*asyp = mcon->PllAsyncPeriodNs;
+		break;
+
+		case CtrIoctlREAD_TELEGRAM:
+			tgmb = (CtrDrvrTgmBuf *) arb;
+			if ((tgmb->Machine > CtrDrvrMachineNONE) && (tgmb->Machine <= CtrDrvrMachineMACHINES)) {
+				Io32Read((uint32_t *) tgmb->Telegram,
+					 (uint32_t *) mmap->Telegrams[(int) (tgmb->Machine) -1],
+					 (uint32_t  ) sizeof(CtrDrvrTgm));
+				SwapWords((uint32_t *) tgmb->Telegram, (uint32_t  ) sizeof(CtrDrvrTgm));
+				break;
+			}
+			cc = -EINVAL;
+		break;
+
+		case CtrIoctlREAD_EVENT_HISTORY:
+			evhs = (CtrDrvrEventHistoryBuf *) arb;
+			Io32Read((uint32_t *) evhs,
+				 (uint32_t *) &(mmap->EventHistory),
+				 (uint32_t  ) sizeof(CtrDrvrEventHistoryBuf));
+		break;
+
+		case CtrIoctlGET_RECEPTION_ERRORS:
+			rcpe = (CtrDrvrReceptionErrors *) arb;
+			rcpe->LastReset    = ioread32be(&mmap->LastReset);
+			rcpe->PartityErrs  = ioread32be(&mmap->PartityErrs);
+			rcpe->SyncErrs     = ioread32be(&mmap->SyncErrs);
+			rcpe->TotalErrs    = ioread32be(&mmap->TotalErrs);
+			rcpe->CodeViolErrs = ioread32be(&mmap->CodeViolErrs);
+			rcpe->QueueErrs    = ioread32be(&mmap->QueueErrs);
+		break;
+
+		case CtrIoctlGET_IO_STATUS:
+			*lap = ioread32be(&mmap->IoStat);
+		break;
+
+		case CtrIoctlGET_IDENTITY:
+			bird = (CtrDrvrBoardId *) arb;
+			bird->IdLSL = ioread32be(&mmap->IdLSL);
+			bird->IdMSL = ioread32be(&mmap->IdMSL);
+		break;
+
+		default:
+			cc = -ENOENT;
+	}
+
+out:
+	if ((arg) && (iodr & _IOC_READ) && copy_to_user((void *) arg, arb, iosz))
+		cc = -EACCES;
+	kfree(arb);
+	return cc;
 }
 
-/*************************************************************/
-/* Dynamic loading information for driver install routine.   */
-/*************************************************************/
+long ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
+{
+	int cc;
+	mutex_lock(&ctr_drvr_mutex);
+	cc = __ctr_ioctl(filp,cmd,arg);
+	mutex_unlock(&ctr_drvr_mutex);
+	return cc;
+}
 
-struct dldd entry_points = {
-   CtrDrvrOpen, CtrDrvrClose,
-   CtrDrvrRead, CtrDrvrWrite,
-   CtrDrvrSelect,
-   CtrDrvrIoctl,
-   CtrDrvrInstall, CtrDrvrUninstall
+struct file_operations ctr_fops = {
+   .read           = ctr_read,
+   .write          = ctr_write,
+   .unlocked_ioctl = ctr_ioctl,
+   .open           = ctr_open,
+   .release        = ctr_close,
 };
+
+module_init(ctr_install);
+module_exit(ctr_uninstall);
+
 
