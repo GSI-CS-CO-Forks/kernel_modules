@@ -162,48 +162,137 @@ static void clr_uplock(CtrDrvrModuleContext *mcon, uint32_t pw)
 /* Print Debug message                                                                         */
 /* =========================================================================================== */
 
-static char *ioctl_names[CtrDrvrLAST_IOCTL] = {
-
-	"SET_SW_DEBUG", "GET_SW_DEBUG", "GET_VERSION", "SET_TIMEOUT", "GET_TIMEOUT",
-	"SET_QUEUE_FLAG", "GET_QUEUE_FLAG", "GET_QUEUE_SIZE", "GET_QUEUE_OVERFLOW",
-	"GET_MODULE_DESCRIPTOR", "SET_MODULE",
-	"GET_MODULE", "GET_MODULE_COUNT", "RESET", "ENABLE", "GET_STATUS", "GET_INPUT_DELAY",
-	"SET_INPUT_DELAY", "GET_CLIENT_LIST", "CONNECT", "DISCONNECT", "GET_CLIENT_CONNECTIONS",
-	"SET_UTC", "GET_UTC", "GET_CABLE_ID", "GET_ACTION", "SET_ACTION", "CREATE_CTIM_OBJECT",
-	"DESTROY_CTIM_OBJECT", "LIST_CTIM_OBJECTS", "CHANGE_CTIM_FRAME", "CREATE_PTIM_OBJECT",
-	"DESTROY_PTIM_OBJECT", "LIST_PTIM_OBJECTS", "GET_PTIM_BINDING",
-	"GET_OUT_MASK", "SET_OUT_MASK", "GET_COUNTER_HISTORY", "GET_REMOTE",
-	"SET_REMOTE", "REMOTE", "GET_CONFIG", "SET_CONFIG", "GET_PLL", "SET_PLL", "SET_PLL_ASYNC_PERIOD",
-	"GET_PLL_ASYNC_PERIOD", "READ_TELEGRAM", "READ_EVENT_HISTORY", "JTAG_OPEN", "JTAG_READ_BYTE",
-	"JTAG_WRITE_BYTE", "JTAG_CLOSE", "HPTDC_OPEN", "HPTDC_IO", "HPTDC_CLOSE", "RAW_READ", "RAW_WRITE",
-	"GET_RECEPTION_ERRORS", "GET_IO_STATUS", "GET_IDENTITY",
-	"SET_DEBUG_HISTORY","SET_BRUTAL_PLL","GET_MODULE_STATS","SET_CABLE_ID",
-	"LOCK","UNLOCK","IOCTL66","IOCTL67","IOCTL68","IOCTL69",
-
-	"GET_OUTPUT_BYTE",
-	"SET_OUTPUT_BYTE",
+struct ioctl_names_s {
+	uint32_t number;        /* Ioctl number 0..N */
+	char     *name;         /* Ioctl name */
 };
 
-/* =========================================================================================== */
+static struct ioctl_names_s ioctl_names[CtrDrvrLAST_IOCTL] = {
 
-static void DebugIoctl(uint32_t cm, void *arg)
+{ CtrDrvrSET_SW_DEBUG,           "SET_SW_DEBUG" },           /* Set driver debug mode */
+{ CtrDrvrGET_SW_DEBUG,           "GET_SW_DEBUG" },           /* Get driver debug mode */
+{ CtrDrvrGET_VERSION,            "GET_VERSION" },            /* Get version date */
+{ CtrDrvrSET_TIMEOUT,            "SET_TIMEOUT" },            /* Set the read timeout value */
+{ CtrDrvrGET_TIMEOUT,            "GET_TIMEOUT" },            /* Get the read timeout value */
+{ CtrDrvrSET_QUEUE_FLAG,         "SET_QUEUE_FLAG" },         /* Set queuing capabiulities on off */
+{ CtrDrvrGET_QUEUE_FLAG,         "GET_QUEUE_FLAG" },         /* 1=Q_off 0=Q_on */
+{ CtrDrvrGET_QUEUE_SIZE,         "GET_QUEUE_SIZE" },         /* Number of events on queue */
+{ CtrDrvrGET_QUEUE_OVERFLOW,     "GET_QUEUE_OVERFLOW" },     /* Number of missed events */
+{ CtrDrvrGET_MODULE_DESCRIPTOR,  "GET_MODULE_DESCRIPTOR" },  /* Get the current Module descriptor */
+{ CtrDrvrSET_MODULE,             "SET_MODULE" },             /* Select the module to work with */
+{ CtrDrvrGET_MODULE,             "GET_MODULE" },             /* Which module am I working with */
+{ CtrDrvrGET_MODULE_COUNT,       "GET_MODULE_COUNT" },       /* The number of installed modules */
+{ CtrDrvrRESET,                  "RESET" },                  /* Reset the module, re-establish connections */
+{ CtrDrvrENABLE,                 "ENABLE" },                 /* Enable CTR module event reception */
+{ CtrDrvrGET_STATUS,             "GET_STATUS" },             /* Read module status */
+{ CtrDrvrGET_INPUT_DELAY,        "GET_INPUT_DELAY" },        /* Get input delay in 25ns ticks */
+{ CtrDrvrSET_INPUT_DELAY,        "SET_INPUT_DELAY" },        /* Set input delay in 25ns ticks */
+{ CtrDrvrGET_CLIENT_LIST,        "GET_CLIENT_LIST" },        /* Get the list of driver clients */
+{ CtrDrvrCONNECT,                "CONNECT" },                /* Connect to an object interrupt */
+{ CtrDrvrDISCONNECT,             "DISCONNECT" },             /* Disconnect from an object interrupt */
+{ CtrDrvrGET_CLIENT_CONNECTIONS, "GET_CLIENT_CONNECTIONS" }, /* Get the list of a client connections on module */
+{ CtrDrvrSET_UTC,                "SET_UTC" },                /* Set Universal Coordinated Time for next PPS tick */
+{ CtrDrvrGET_UTC,                "GET_UTC" },                /* Latch and read the current UTC time */
+{ CtrDrvrGET_CABLE_ID,           "GET_CABLE_ID" },           /* Cables telegram ID */
+{ CtrDrvrGET_ACTION,             "GET_ACTION" },             /* Low level direct access to CTR RAM tables */
+{ CtrDrvrSET_ACTION,             "SET_ACTION" },             /* Set may not modify the bus interrupt settings */
+{ CtrDrvrCREATE_CTIM_OBJECT,     "CREATE_CTIM_OBJECT" },     /* Create a new CTIM timing object */
+{ CtrDrvrDESTROY_CTIM_OBJECT,    "DESTROY_CTIM_OBJECT" },    /* Destroy a CTIM timing object */
+{ CtrDrvrLIST_CTIM_OBJECTS,      "LIST_CTIM_OBJECTS" },      /* Returns a list of created CTIM objects */
+{ CtrDrvrCHANGE_CTIM_FRAME,      "CHANGE_CTIM_FRAME" },      /* Change the frame of an existing CTIM object */
+{ CtrDrvrCREATE_PTIM_OBJECT,     "CREATE_PTIM_OBJECT" },     /* Create a new PTIM timing object */
+{ CtrDrvrDESTROY_PTIM_OBJECT,    "DESTROY_PTIM_OBJECT" },    /* Destroy a PTIM timing object */
+{ CtrDrvrLIST_PTIM_OBJECTS,      "LIST_PTIM_OBJECTS" },      /* List PTIM timing objects */
+{ CtrDrvrGET_PTIM_BINDING,       "GET_PTIM_BINDING" },       /* Search for a PTIM object binding */
+{ CtrDrvrGET_OUT_MASK,           "GET_OUT_MASK" },           /* Counter output routing mask */
+{ CtrDrvrSET_OUT_MASK,           "SET_OUT_MASK" },           /* Counter output routing mask */
+{ CtrDrvrGET_COUNTER_HISTORY,    "GET_COUNTER_HISTORY" },    /* One deep history of counter */
+{ CtrDrvrGET_REMOTE,             "GET_REMOTE" },             /* Counter Remote/Local status */
+{ CtrDrvrSET_REMOTE,             "SET_REMOTE" },             /* Counter Remote/Local status */
+{ CtrDrvrREMOTE,                 "REMOTE" },                 /* Remote control counter */
+{ CtrDrvrGET_CONFIG,             "GET_CONFIG" },             /* Get a counter configuration */
+{ CtrDrvrSET_CONFIG,             "SET_CONFIG" },             /* Set a counter configuration */
+{ CtrDrvrGET_PLL,                "GET_PLL" },                /* Get phase locked loop parameters */
+{ CtrDrvrSET_PLL,                "SET_PLL" },                /* Set phase locked loop parameters */
+{ CtrDrvrSET_PLL_ASYNC_PERIOD,   "SET_PLL_ASYNC_PERIOD" },   /* Set PLL asynchronous period */
+{ CtrDrvrGET_PLL_ASYNC_PERIOD,   "GET_PLL_ASYNC_PERIOD" },   /* Get PLL asynchronous period */
+{ CtrDrvrREAD_TELEGRAM,          "READ_TELEGRAM" },          /* Read telegrams from CTR */
+{ CtrDrvrREAD_EVENT_HISTORY,     "READ_EVENT_HISTORY" },     /* Read incomming event history */
+{ CtrDrvrHPTDC_OPEN,             "HPTDC_OPEN" },             /* Open HPTDC JTAG interface */
+{ CtrDrvrHPTDC_IO,               "HPTDC_IO" },               /* Perform HPTDC IO operation */
+{ CtrDrvrHPTDC_CLOSE,            "HPTDC_CLOSE" },            /* Close HPTDC JTAG interface */
+{ CtrDrvrRAW_READ,               "RAW_READ" },               /* Raw read  access to mapped card for debug */
+{ CtrDrvrRAW_WRITE,              "RAW_WRITE" },              /* Raw write access to mapped card for debug */
+{ CtrDrvrGET_RECEPTION_ERRORS,   "GET_RECEPTION_ERRORS" },   /* Timing fram reception error status */
+{ CtrDrvrGET_IO_STATUS,          "GET_IO_STATUS" },          /* Status of module inputs */
+{ CtrDrvrGET_IDENTITY,           "GET_IDENTITY" },           /* Identity of board from ID chip */
+{ CtrDrvrSET_DEBUG_HISTORY,      "SET_DEBUG_HISTORY" },      /* All events get logged in event history */
+{ CtrDrvrSET_BRUTAL_PLL,         "SET_BRUTAL_PLL" },         /* Control how UTC PLL relocks */
+{ CtrDrvrGET_MODULE_STATS,       "GET_MODULE_STATS" },       /* Get module statistics */
+{ CtrDrvrSET_CABLE_ID,           "SET_CABLE_ID" },           /* Needed when no ID events sent */
+{ CtrDrvrLOCK,                   "LOCK" },                   /* Lock all write access to the current CTR module configuration */
+{ CtrDrvrUNLOCK,                 "UNLOCK" },                 /* Unlock all write access to the current CTR module configuration */
+{ CtrDrvrGET_OUTPUT_BYTE,        "GET_OUTPUT_BYTE" },        /* VME P2 output byte number */
+{ CtrDrvrSET_OUTPUT_BYTE,        "SET_OUTPUT_BYTE" },        /* VME P2 output byte number */
+};
+
+/* ==================== */
+
+#define DEBUG_ARG_PRINT 4
+
+void pbuf(char *cp, int iosz, uint32_t *uip)
 {
-	int *ip;
-	char *iocname;
+	int i, isz;
 
-	if (cm < CtrDrvrLAST_IOCTL) {
-		iocname = ioctl_names[(int) cm];
-		if (arg) {
-			ip = arg;
-			printk("CtrDrvr: Debug: Called with IOCTL: %s Arg: %d\n",iocname, *ip);
+	isz = iosz/sizeof(uint32_t);
+	if (isz > DEBUG_ARG_PRINT)
+		isz = DEBUG_ARG_PRINT;
 
-		} else {
-
-			printk("CtrDrvr: Debug: Called with IOCTL: %s Arg: NULL\n",iocname);
+	if (isz) {
+		printk("%s:%s:Args:\n",ctr_major_name,cp);
+		for (i=0; i<isz; i++) {
+			if ((i % 4) == 0)
+				printk("\n%02d:",i);
+			printk("0x%08X-%d\t",uip[i],uip[i]);
 		}
-		return;
+		printk("\n");
 	}
-	printk("CtrDrvr: Debug: ERROR: Illegal IOCTL number: %d\n",(int) cm);
+}
+
+/* ==================== */
+
+struct ioctl_names_s *get_name(int ionr)
+{
+	int i;
+	struct ioctl_names_s *entry;
+	for (i=0; i<CtrDrvrLAST_IOCTL; i++) {
+		entry = &ioctl_names[i];
+		if (ionr == entry->number)
+			return entry;
+	}
+	return NULL;
+}
+
+void debug_ioctl(int debl, int iodr, int iosz, unsigned int ionr, void *arb, int flg)
+{
+	struct ioctl_names_s *entry;
+
+	if (!debl)
+		return;
+
+	if (flg) {
+		printk("%s:", ctr_major_name);
+		entry = get_name(ionr);
+		if (entry) {
+			printk("ioctl:%s:%d\n",entry->name,entry->number);
+			if ((iodr & _IOC_WRITE) && (debl > 1))
+				pbuf("from_user",iosz,arb);
+		} else
+			printk("ioctl:illegal:%d\n",ionr);
+
+	} else
+		if (iodr & _IOC_READ)
+			pbuf("from_drvr",iosz,arb);
 }
 
 /*========================================================================*/
@@ -1468,15 +1557,10 @@ struct file_operations ctr_fops;
 
 int ctr_install(void)
 {
-	CtrDrvrWorkingArea   *wa;
 	CtrDrvrModuleContext *mcon;
 	CtrDrvrModuleAddress *moad;
 	int                   cc, i, j;
 	CtrDrvrMemoryMap     *mmap;
-
-	wa = &Wa;
-
-	memset(wa,0,sizeof(CtrDrvrWorkingArea));
 
 	if (check_args(ctr_major_name) == 0) {
 
@@ -1524,7 +1608,7 @@ int ctr_install(void)
 		cc = AddModule(mcon,i);
 		if (!cc) {
 			mcon->InUse = 1;
-			wa->Modules++;
+			Wa.Modules++;
 
 			printk("CtrDrvr: Module %d. VME Addr: 0x%X Vect: %x Level: %x Installed OK\n",
 			       i+1,
@@ -1553,7 +1637,7 @@ int ctr_install(void)
 	if (ctr_major == 0)
 		ctr_major = cc;       /* dynamic */
 
-	printk("CtrDrvr: Installed: %d GMT Modules in Total\n",(int) wa->Modules);
+	printk("CtrDrvr: Installed: %d GMT Modules in Total\n",(int) Wa.Modules);
 	return 0;
 }
 
@@ -1648,9 +1732,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	mcon = &(Wa.ModuleContexts[ccon->ModuleIndex]);
 	mmap = (CtrDrvrMemoryMap *) mcon->Map;
 
-	if (ccon->DebugOn)
-		DebugIoctl(ionr,arb);
-
+	debug_ioctl(ccon->DebugOn, iodr, iosz, ionr, arb, 1);
 
 	cc = 0;
 	switch (cmd) {
@@ -2430,6 +2512,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	}
 
 out:
+	debug_ioctl(ccon->DebugOn, iodr, iosz, ionr, arb, 0);
 	if ((arg) && (iodr & _IOC_READ) && copy_to_user((void *) arg, arb, iosz))
 		cc = -EACCES;
 	kfree(arb);
