@@ -75,6 +75,9 @@ static mod_par_t mods[MAX_DEVS]; /* An array of MAX_DEVS module parameter blocks
 
 static int iluns = 0;            /* Installed luns so far */
 
+static CtrDrvrWorkingArea Wa;
+static DEFINE_MUTEX(ctr_drvr_mutex); /* Driver exclusive mutex */
+
 /**
  * =========================================================
  * @brief Debug routine to print mod par arguments
@@ -192,7 +195,7 @@ static int get_unused_lun(void)
  */
 
 static struct pci_dev *add_next_dev(struct pci_dev *pcur,
-			     mod_par_t *mpar)
+				    mod_par_t *mpar)
 {
 	struct pci_dev *pprev = pcur;
 	int cc, lun, bar, len;
@@ -308,9 +311,6 @@ static int init_mod_pars(char *name, int vid, int did, int bars)
 	return iluns;
 }
 
-static CtrDrvrWorkingArea Wa;
-static DEFINE_MUTEX(ctr_drvr_mutex); /* Driver exclusive mutex */
-
 /*========================================================================*/
 /* 32 Bit int access copy                                                 */
 /*========================================================================*/
@@ -385,11 +385,6 @@ static char *ioctl_names[CtrDrvrLAST_IOCTL] = {
 	"LOCK","UNLOCK","IOCTL66","IOCTL67","IOCTL68","IOCTL69",
 
 	"SET_MODULE_BY_SLOT", "GET_MODULE_SLOT",
-	"REMAP", "93LC56B_EEPROM_OPEN", "93LC56B_EEPROM_READ", "93LC56B_EEPROM_WRITE",
-	"93LC56B_EEPROM_ERASE", "93LC56B_EEPROM_CLOSE", "PLX9030_RECONFIGURE", "PLX9030_CONFIG_OPEN",
-	"PLX9030_CONFIG_READ", "PLX9030_CONFIG_WRITE", "PLX9030_CONFIG_CLOSE", "PLX9030_LOCAL_OPEN",
-	"PLX9030_LOCAL_READ", "PLX9030_LOCAL_WRITE", "PLX9030_LOCAL_CLOSE",
-
 };
 
 /* =========================================================================================== */
@@ -551,7 +546,6 @@ static uint32_t AutoShiftLeft(uint32_t mask, uint32_t value);
 static void Reset(CtrDrvrModuleContext *mcon)
 {
 
-	CtrDrvrModuleAddress *moad;
 	CtrDrvrMemoryMap     *mmap;
 	uint32_t             *jtg;
 	int i;
@@ -572,14 +566,6 @@ static void Reset(CtrDrvrModuleContext *mcon)
 				    &mmap->Counters[i].Control.RemOutMask);
 		}
 	}
-
-	if (mcon->OutputByte)
-		iowrite32be(0x100 | (1 << (mcon->OutputByte -1)),&mmap->OutputByte);
-	else
-		iowrite32be(0x100,&mmap->OutputByte);
-
-	moad = &(mcon->Address);
-	iowrite32be((uint32_t) ((moad->InterruptLevel << 8) | (moad->InterruptVector & 0xFF)),&mmap->Setup);
 
 	if (mcon->Pll.KP == 0) {
 		mcon->Pll.KP = 337326;
