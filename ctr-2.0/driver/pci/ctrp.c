@@ -1,6 +1,22 @@
 /**
  * Linux only kosher driver for CTRV module
  * Julian Lewis Mon 9 Dec 2013 BE/CO/HT
+ *
+ * This driver has been seriously modified to remove a lot of legacy code
+ * that was inherited from the LynxOs version.
+ *
+ * Whats changed
+ *    All LynxOs stuff is now suppressed.
+ *    The device model now uses a single node in /dev
+ *    The interrupt mechanism is based on wait_queues
+ *    Standard modpars are used
+ *    The PLX9030 programming no longer swaps big-little endian on BAR2
+ *    All hardware access is via the io read/write macros
+ *    No more handling of JTAG FPGA programming  (use my jtag prog instead)
+ *    No more flash eprom handling (use my plxprog instaed)
+ *    No more local BAR0 raw io
+ *    No more access to PCI configuration space
+ *    Many bug corrections
  */
 
 #include <asm/io.h>
@@ -175,6 +191,8 @@ static int get_unused_lun(void)
 
 	int i, lun, bit;
 
+	/* Fill in declared luns if first time */
+
 	if ((iluns) && (!used_luns)) {
 		for (i=0; i<luns_num; i++) {
 			lun = luns[i];
@@ -182,6 +200,9 @@ static int get_unused_lun(void)
 			used_luns |= bit;
 		}
 	}
+
+	/* Find an unused = undeclared lun */
+
 	for (i=MIN_DEV; i<=LAST_DEV; i++) {
 		bit = 1 << i;
 		if (!(used_luns & bit)) {
@@ -210,6 +231,9 @@ static int get_unused_lun(void)
  * a PC platform. So when only one ctrp/i is being installed
  * (the usual case) then simply omit the modpars in the
  * installation script. This default mechanism is widley used!!
+ *
+ * pci_get_device replaces the depricated find_device call
+ *
  */
 
 static struct pci_dev *add_next_dev(struct pci_dev *pcur,
@@ -747,39 +771,42 @@ static uint32_t GetStatus(CtrDrvrModuleContext *mcon)
 
 static uint32_t HptdcBitTransfer(uint32_t *jtg,
 				 uint32_t  tdi,
-				 uint32_t  tms) {
-uint32_t jwd, tdo;
+				 uint32_t  tms)
+{
+	uint32_t jwd, tdo;
 
-   jwd = HptdcJTAG_TRST | tdi | tms;
-   iowrite32be(jwd,jtg);
-   jwd = HptdcJTAG_TRST | HptdcJTAG_TCK | tdi | tms;
-   iowrite32be(jwd,jtg);
-   tdo = ioread32be(jtg);
-   jwd = HptdcJTAG_TRST | tdi | tms;
-   iowrite32be(jwd,jtg);
-   if (tdo & HptdcJTAG_TDO) return 1;
-   else                     return 0;
+	jwd = HptdcJTAG_TRST | tdi | tms;
+	iowrite32be(jwd,jtg);
+	jwd = HptdcJTAG_TRST | HptdcJTAG_TCK | tdi | tms;
+	iowrite32be(jwd,jtg);
+	tdo = ioread32be(jtg);
+	jwd = HptdcJTAG_TRST | tdi | tms;
+	iowrite32be(jwd,jtg);
+	if (tdo & HptdcJTAG_TDO)
+		return 1;
+	return 0;
 }
 
 /* ========================================================== */
 /* HPTDC JTAG State machine reset                             */
 /* ========================================================== */
 
-static void HptdcStateReset(uint32_t *jtg) {
-uint32_t jwd;
+static void HptdcStateReset(uint32_t *jtg)
+{
+	uint32_t jwd;
 
-   jwd = HptdcJTAG_TRST; /* TRST is active on zero */
-   iowrite32be(jwd,jtg);
-   jwd = 0;              /* TCK and TRST are down */
-   iowrite32be(jwd,jtg);
-   jwd = HptdcJTAG_TCK;  /* Clock in reset on rising edge */
-   iowrite32be(jwd,jtg);
-   jwd = HptdcJTAG_TRST | HptdcJTAG_TCK;
-   iowrite32be(jwd,jtg);
-   jwd = HptdcJTAG_TRST; /* Remove TRST */
-   iowrite32be(jwd,jtg);
-   HptdcBitTransfer(jtg,0,0); /* GOTO: Run test/idle */
-   return;
+	jwd = HptdcJTAG_TRST; /* TRST is active on zero */
+	iowrite32be(jwd,jtg);
+	jwd = 0;              /* TCK and TRST are down */
+	iowrite32be(jwd,jtg);
+	jwd = HptdcJTAG_TCK;  /* Clock in reset on rising edge */
+	iowrite32be(jwd,jtg);
+	jwd = HptdcJTAG_TRST | HptdcJTAG_TCK;
+	iowrite32be(jwd,jtg);
+	jwd = HptdcJTAG_TRST; /* Remove TRST */
+	iowrite32be(jwd,jtg);
+	HptdcBitTransfer(jtg,0,0); /* GOTO: Run test/idle */
+	return;
 }
 
 /* ========================================================== */
