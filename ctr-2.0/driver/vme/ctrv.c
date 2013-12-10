@@ -1,6 +1,19 @@
 /**
  * Linux only kosher driver for CTRV module
- * Julian Lewis Fri 29 Nov 2013 BE/CO/HT
+ * Julian Lewis Mon 9 Dec 2013 BE/CO/HT
+ *
+ * This driver has been seriously modified to remove a lot of legacy code
+ * that was inherited from the LynxOs version.
+ *
+ * Whats changed
+ *    All LynxOs stuff is now suppressed.
+ *    The device model now uses a single node in /dev
+ *    The interrupt mechanism is based on wait_queues
+ *    Standard modpars are used
+ *    All hardware access is via the io read/write macros
+ *    No more handling of JTAG FPGA programming  (use my jtag prog instead)
+ *    No more flash eprom handling (use my plxprog instaed)
+ *    Many bug corrections
  */
 
 #include <asm/io.h>
