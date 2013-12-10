@@ -34,7 +34,7 @@
 #define SYSERR (-1)
 
 static int ctr_major = 0;
-static char *ctr_major_name = "ctrv";
+static char *ctr_major_name = "ctrp";
 
 MODULE_AUTHOR("Julian Lewis BE/CO/HT CERN");
 MODULE_LICENSE("GPL");
@@ -198,6 +198,18 @@ static int get_unused_lun(void)
  * @param  pcur     Previous added device or NULL
  * @param  mpar     Module parameters
  * @return          Pointer to pci_device structure or NULL
+ *
+ * This routine gets the next ctrp and looks up its bus/slot
+ * using hunt_lun to see if its in the supplied modpars.
+ * If declared, then an entry for the given lun is made in the
+ * modules table. Otherwise and unused lun guaranteed not to
+ * conflict with the supplied parameters is made.
+ * This means that the modpars can just be ommitted in the
+ * case of a single ctrp. This functinality is very important
+ * because in general no one knows how bus/slot get mapped on
+ * a PC platform. So when only one ctrp/i is being installed
+ * (the usual case) then simply omit the modpars in the
+ * installation script. This default mechanism is widley used!!
  */
 
 static struct pci_dev *add_next_dev(struct pci_dev *pcur,
@@ -593,8 +605,12 @@ static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk) {
 
 	CtrDrvrMemoryMap *mmap; /* Module Memory map */
 	uint16_t intcsr;        /* Plx control word  */
+	struct pci_dev *dev;
 	uint16_t *sp;
 	mmap = mcon->Map;
+
+	dev = mcon->dev;
+	pci_write_config_byte(dev, PCI_INTERRUPT_LINE, dev->irq);
 
 	/* We want level triggered interrupts for Plx INT1  */
 	/* for an active high. Level type interrupts do not */
@@ -605,10 +621,10 @@ static int EnableInterrupts(CtrDrvrModuleContext *mcon, int msk) {
 	       | Plx9030IntcsrPCI_INT_ENABLE;
 
 	sp = (uint16_t *) mcon->Local;
-	iowrite16be(intcsr, &(sp[PLX9030_INTCSR>>1]));
+	iowrite16(intcsr, &(sp[PLX9030_INTCSR>>1])); /* Little Endian !! */
 
 	mcon->InterruptEnable |= msk;
-	mmap->InterruptEnable = mcon->InterruptEnable;
+	iowrite32be(mcon->InterruptEnable,&mmap->InterruptEnable);
 
 	return OK;
 }
@@ -1688,6 +1704,7 @@ int ctr_install(void)
 	cc = register_chrdev(ctr_major, ctr_major_name, &ctr_fops);
 	if (cc < 0)
 		return cc;
+	ctr_major = cc;
 
 	for (modix=0; modix<CtrDrvrMODULE_CONTEXTS; modix++) {
 		mpar = &mods[modix];
@@ -1717,8 +1734,8 @@ int ctr_install(void)
 
 		mmap = mcon->Map;
 		for (j=0; j<CtrDrvrRamTableSIZE; j++) {
-			mmap->Trigs[j].Frame.Long = 0;
-			mmap->Trigs[j].Trigger    = 0;
+			iowrite32be(0,&mmap->Trigs[j].Frame.Long);
+			iowrite32be(0,&mmap->Trigs[j].Trigger);
 		}
 	}
 
@@ -1752,7 +1769,7 @@ void ctr_uninstall(void)
 
 			mmap = mcon->Map;
 			src = mmap->InterruptSource;
-			mmap->InterruptEnable = 0;
+			iowrite32be(0,&mmap->InterruptEnable);
 			free_irq(mcon->dev->irq, mcon);
 
 			release_device(mcon->dev, mcon->Local, 0);
@@ -2638,5 +2655,3 @@ struct file_operations ctr_fops = {
 
 module_init(ctr_install);
 module_exit(ctr_uninstall);
-
-
