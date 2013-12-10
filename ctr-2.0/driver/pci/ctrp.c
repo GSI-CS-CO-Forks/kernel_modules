@@ -114,7 +114,7 @@ static void print_args(char *name)
 		printk("%s:%02d - [Lun:%02d Bus:0x%X Slot:0x%X]\n",
 		       name,i,luns[i],pci_buses[i],pci_slots[i]);
 	}
-	printk("%s:%02d Luns declared\n",name,luns_num);
+	printk("%s:Declared:%d Luns\n",name,luns_num);
 }
 
 /**
@@ -131,7 +131,7 @@ static int check_args(char *name)
 
 	if ((luns_num < 1)
 	||  (luns_num > MAX_DEVS)) {
-		printk("%s:bad LUN count:%d, out of [1..%d] not installing\n",
+		printk("%s:Lun count:%d, not in:[1..%d]\n",
 		       name,
 		       luns_num,
 		       MAX_DEVS);
@@ -139,7 +139,7 @@ static int check_args(char *name)
 	}
 	if ((luns_num != pci_slot_num)
 	||  (luns_num != pci_bus_num)) {
-		printk("%s:bad PCI parameter count:(Slots:%d,Busses:%d) should be:%d\n",
+		printk("%s:Bad PCI parameter count:(Slots:%d,Busses:%d) should be:%d\n",
 		       name,
 		       pci_slot_num,
 		       pci_bus_num,
@@ -149,7 +149,7 @@ static int check_args(char *name)
 	for (i=0; i<luns_num; i++) {
 		lun = luns[i];
 		if ((lun < MIN_DEV) || (lun > LAST_DEV)) {
-			printk("%s:LUN:%d out of [%d..%d]\n",
+			printk("%s:Lun:%d out of [%d..%d]\n",
 			       name,
 			       lun,
 			       MIN_DEV,
@@ -254,7 +254,7 @@ static struct pci_dev *add_next_dev(struct pci_dev *pcur,
 
 	lun = hunt_lun(mpar->pci_bus_num,mpar->pci_slot_num);
 	if (lun < 0) {
-		printk("%s:Found undeclared module at BUS:%d SLOT:%d\n",
+		printk("%s:Found undeclared module at Bus:%d Slot:%d\n",
 		       mpar->name,
 		       mpar->pci_bus_num,
 		       mpar->pci_slot_num);
@@ -263,7 +263,7 @@ static struct pci_dev *add_next_dev(struct pci_dev *pcur,
 		if (!lun)
 			return NULL;
 
-		printk("%s:Auto assigned BUS:%d SLOT:%d to LUN:%d\n",
+		printk("%s:Auto assigned Bus:%d Slot:%d to Lun:%d\n",
 		       mpar->name,
 		       mpar->pci_bus_num,
 		       mpar->pci_slot_num,
@@ -272,7 +272,7 @@ static struct pci_dev *add_next_dev(struct pci_dev *pcur,
 	mpar->lun = lun;
 
 	cc = pci_enable_device(pcur);
-	printk("%s:VID:0x%X DID:0x%X BUS:%d SLOT:%d LUN:%d",
+	printk("%s:Vid:0x%X Did:0x%X Bus:%d Slot:%d Lun:%d",
 	       mpar->name,
 	       mpar->vid,
 	       mpar->did,
@@ -348,7 +348,7 @@ static int init_mod_pars(char *name, int vid, int did, int bars)
 	printk("%s:Initialized:%d modules\n",name,iluns);
 
 	if (iluns != luns_num)
-		printk("%s:ModPars declared luns:%d - Mismatch\n",name,luns_num);
+		printk("%s:init_mod_pars:declared:%d installed:%d Luns\n",name,luns_num,iluns);
 
 	return iluns;
 }
@@ -1548,7 +1548,7 @@ ssize_t ctr_read(struct file *filp, char __user *buf, size_t count, loff_t *f_po
 	int             cc;
 
 	if (ccon->DebugOn)
-		printk("CtrDrvrRead: PID:%d\n",ccon->Pid);
+		printk("ctr_read: PID:%d\n",ccon->Pid);
 
 	queue = &ccon->Queue;
 	if (queue->QueueOff) {
@@ -1589,7 +1589,7 @@ ssize_t ctr_read(struct file *filp, char __user *buf, size_t count, loff_t *f_po
 		return -EACCES;
 
 	if (ccon->DebugOn)
-		printk("CtrDrvrRead:PID:%d OK\n",ccon->Pid);
+		printk("ctr_read:PID:%d OK\n",ccon->Pid);
 
 	return wcnt;
 }
@@ -1721,10 +1721,10 @@ int ctr_install(void)
 	struct pci_dev *pcur;
 
 	if (check_args(ctr_major_name) == 0)
-		printk("CtrDrvrInstall: No/Bad hardware installation parameters\n");
+		printk("ctr_install: check_args failed, defaulting installation\n");
 
 	if (!init_mod_pars(ctr_major_name,CERN_VENDOR_ID,CTRP_DEVICE_ID,CTRP_BARS)) {
-		printk("CtrDrvrInstall: No hardware installed\n");
+		printk("ctr_install: No hardware installed\n");
 		return -ENODEV;
 	}
 
@@ -1753,7 +1753,7 @@ int ctr_install(void)
 		cc = request_irq(pcur->irq, ctr_irq, IRQF_SHARED, ctr_major_name, mcon);
 		if (cc < 0) {
 		       pci_disable_device(mcon->dev);
-		       printk("mil1553:request_irq:ERROR%d\n",cc);
+		       printk("ctr_install:request_irq:ERROR%d\n",cc);
 		       return cc;
 		}
 
@@ -2161,7 +2161,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 
 				if (mcon->EqpNum[i] !=0) {
 					if (mcon->EqpNum[i] != act->EqpNum) {
-						printk("CtrDrvr: SetAction: Illegal EqpNum: %d->%d\n",
+						printk("ctr_ioctl: SetAction: Illegal EqpNum: %d->%d\n",
 						      (int) mcon->EqpNum[i],
 						      (int) act->EqpNum);
 						cc = -EACCES;
@@ -2169,7 +2169,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 					}
 
 					if (mcon->EqpClass[i] != act->EqpClass) {
-						printk("CtrDrvr: SetAction: Illegal EqpClass: %d->%d\n",
+						printk("ctr_ioctl: SetAction: Illegal EqpClass: %d->%d\n",
 						       (int) mcon->EqpClass[i],
 						       (int) act->EqpClass);
 						cc = -EACCES;
@@ -2177,7 +2177,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 					}
 
 					if (mcon->Trigs[i].Counter != act->Trigger.Counter) {
-						printk("CtrDrvr: SetAction: Illegal Counter: %d->%d\n",
+						printk("ctr_ioctl: SetAction: Illegal Counter: %d->%d\n",
 						       (int) mcon->Trigs[i].Counter,
 						       (int) act->Trigger.Counter);
 						cc = -EACCES;
