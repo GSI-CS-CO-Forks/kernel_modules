@@ -164,8 +164,8 @@ typedef struct {
    uint32_t          ModuleNumber;
    uint32_t          DeviceId;
    uint32_t          VendorId;
-   uintptr_t         MemoryMap;
-   uintptr_t         LocalMap;
+   uint32_t         *MemoryMap;
+   uint32_t         *LocalMap;
  } CtrDrvrModuleAddress;
 #endif
 

@@ -9,7 +9,9 @@ KVER=3.2.43-rt63
 
 echo 8 > /proc/sys/kernel/printk
 
-/sbin/insmod ctrp.ko luns=1 pci_buses=2 pci_slots=7
+# /sbin/insmod ctrp.ko luns=1 pci_buses=2 pci_slots=7
+
+/sbin/insmod ctrp.ko
 
 MAJOR=`cat /proc/devices | awk '{if ($2 == "ctrp") printf $1}'`
 rm -f /dev/ctr.*

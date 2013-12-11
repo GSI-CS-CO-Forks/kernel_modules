@@ -1933,7 +1933,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 			cc = -EINVAL;
 		break;
 
-		case CtrDrvrGET_MODULE_DESCRIPTOR:
+		case CtrIoctlGET_MODULE_DESCRIPTOR:
 			moad = (CtrDrvrModuleAddress *) arb;
 
 			moad->ModuleType   = CtrDrvrModuleTypeCTR;
@@ -1945,7 +1945,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 			moad->PciSlot      = mcon->PciSlot;
 		break;
 
-		case CtrDrvrGET_MODULE_SLOT:
+		case CtrIoctlGET_MODULE_SLOT:
 			*lap = mcon->PciSlot;
 		break;
 
