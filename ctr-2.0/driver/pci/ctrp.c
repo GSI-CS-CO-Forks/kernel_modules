@@ -945,22 +945,22 @@ static void ReadEventHistory(CtrDrvrModuleContext *mcon, CtrDrvrEventHistoryBuf 
 	uint32_t indx;
 	int i, j;
 
-		indx = ioread32be(&mmap->EventHistory.Index);
-		if (indx >= CtrDrvrHISTORY_TABLE_SIZE)
-			indx = 0;
+	indx = ioread32be(&mmap->EventHistory.Index);
+	if (indx >= CtrDrvrHISTORY_TABLE_SIZE)
+		indx = 0;
 
-		for (i=0,j=indx; i<CtrDrvrHISTORY_BUF_SIZE; i++,j--) {
-			dst = &(evhs->Entries[i]);
+	for (i=0,j=indx; i<CtrDrvrHISTORY_BUF_SIZE; i++,j--) {
+		dst = &(evhs->Entries[i]);
 
-			if (j<0)
-				j = CtrDrvrHISTORY_TABLE_SIZE -1;
-			src = &(mmap->EventHistory.Entries[j]);
+		if (j<0)
+			j = CtrDrvrHISTORY_TABLE_SIZE -1;
+		src = &(mmap->EventHistory.Entries[j]);
 
-			Io32Read((uint32_t *) dst,
-				 (uint32_t *) src,
-				 (uint32_t  ) sizeof(CtrDrvrEventHistoryEntry));
-		}
-		evhs->Index = 0;
+		Io32Read((uint32_t *) dst,
+			 (uint32_t *) src,
+			 (uint32_t  ) sizeof(CtrDrvrEventHistoryEntry));
+	}
+	evhs->Index = 0;
 }
 
 /*=========================================================== */
