@@ -517,7 +517,7 @@ static void Reset(CtrDrvrModuleContext *mcon)
 	mmap = mcon->Map;
 
 	iowrite32be(CtrDrvrCommandRESET,&mmap->Command);
-	mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS;
+	mcon->Status = CtrDrvrStatusNO_LOST_INTERRUPTS | CtrDrvrStatusNO_BUS_ERROR; /** Legacy remove this some time */
 
 	msleep(10);
 
@@ -526,7 +526,7 @@ static void Reset(CtrDrvrModuleContext *mcon)
 
 	for (i=CtrDrvrCounter1; i<=CtrDrvrCounter8; i++) {
 		if (ioread32be(&mmap->Counters[i].Control.RemOutMask) == 0) {
-			iowrite32be(AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i)),
+			iowrite32be(AutoShiftLeft(CtrDrvrCntrCntrlOUT_MASK,(1 << i)) | CtrDrvrCntrCntrlTTL_BAR,
 				    &mmap->Counters[i].Control.RemOutMask);
 		}
 	}
@@ -1637,6 +1637,7 @@ int ctr_install(void)
 				iowrite32be(0,&(mmap->Trigs[j].Trigger));
 			}
 
+			Reset(mcon);
 		} else
 			printk("CtrDrvr: Module: %d ERROR: Not Installed\n",i+1);
 	}
