@@ -737,6 +737,35 @@ CtrDrvrMemoryMap *mmap;    /* Module Memory map */
 }
 
 /*=========================================================== */
+/* Read event history                                         */
+/*=========================================================== */
+
+static void ReadEventHistory(CtrDrvrModuleContext *mcon, CtrDrvrEventHistoryBuf *evhs)
+{
+	CtrDrvrMemoryMap *mmap = mcon->Map;
+	CtrDrvrEventHistoryEntry *dst, *src;
+	uint32_t indx;
+	int i, j;
+
+		indx = ioread32be(&mmap->EventHistory.Index);
+		if (indx >= CtrDrvrHISTORY_TABLE_SIZE)
+			indx = 0;
+
+		for (i=0,j=indx; i<CtrDrvrHISTORY_BUF_SIZE; i++,j--) {
+			dst = &(evhs->Entries[i]);
+
+			if (j<0)
+				j = CtrDrvrHISTORY_TABLE_SIZE -1;
+			src = &(mmap->EventHistory.Entries[j]);
+
+			Io32Read((uint32_t *) dst,
+				 (uint32_t *) src,
+				 (uint32_t  ) sizeof(CtrDrvrEventHistoryEntry));
+		}
+		evhs->Index = 0;
+}
+
+/*=========================================================== */
 /* Raw IO                                                     */
 /* The correct PLX9030 endian settings must have been made    */
 /*=========================================================== */
@@ -2496,9 +2525,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 
 		case CtrIoctlREAD_EVENT_HISTORY:
 			evhs = (CtrDrvrEventHistoryBuf *) arb;
-			Io32Read((uint32_t *) evhs,
-				 (uint32_t *) &(mmap->EventHistory),
-				 (uint32_t  ) sizeof(CtrDrvrEventHistoryBuf));
+			ReadEventHistory(mcon, evhs);
 		break;
 
 		case CtrIoctlGET_RECEPTION_ERRORS:

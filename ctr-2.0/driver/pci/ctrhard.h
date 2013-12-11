@@ -577,7 +577,7 @@ typedef CtrDrvrHwTrigger CtrDrvrRamTriggerTable[CtrDrvrRamTableSIZE];
 typedef struct {
    CtrDrvrEventFrame Frame;
    CtrDrvrCTime      CTime;
- } CtrDrgvrEventHistoryEntry;
+ } CtrDrvrEventHistoryEntry;
 
 /* The Index field points to the next write address, it  */
 /* behaves like a ring buffer after entry 1023, the next */
@@ -585,7 +585,7 @@ typedef struct {
 
 typedef struct {
    uint32_t     Index;
-   CtrDrgvrEventHistoryEntry Entries[CtrDrvrHISTORY_TABLE_SIZE];
+   CtrDrvrEventHistoryEntry Entries[CtrDrvrHISTORY_TABLE_SIZE];
  } CtrDrvrEventHistory;
 
 /* ==================================================== */

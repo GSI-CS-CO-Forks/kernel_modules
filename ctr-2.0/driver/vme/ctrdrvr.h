@@ -145,8 +145,8 @@ typedef struct {
 #define CtrDrvrHISTORY_BUF_SIZE 512
 
 typedef struct {
-   uint32_t                  Index;
-   CtrDrgvrEventHistoryEntry Entries[CtrDrvrHISTORY_BUF_SIZE];
+   uint32_t                 Index;
+   CtrDrvrEventHistoryEntry Entries[CtrDrvrHISTORY_BUF_SIZE];
  } CtrDrvrEventHistoryBuf;
 
 /* ***************************************************** */
