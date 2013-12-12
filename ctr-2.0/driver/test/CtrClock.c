@@ -89,7 +89,7 @@ CtrDrvrConnection cnx;
    cnx.Module = module;
    cnx.EqpClass = CtrDrvrConnectionClassHARD;
    cnx.EqpNum = CtrDrvrInterruptMaskPPS;
-   if (ioctl(ctr,CtrDrvrCONNECT,&cnx) < 0) {
+   if (ioctl(ctr,CtrIoctlCONNECT,&cnx) < 0) {
       return 0;
    }
    return 1;
@@ -353,8 +353,8 @@ CtrDrvrTime t;
    }
 
    ctr = CtrOpen();
-   if (module) ioctl(ctr,CtrDrvrSET_MODULE,&module);
-   ioctl(ctr,CtrDrvrGET_MODULE,&module);
+   if (module) ioctl(ctr,CtrIoctlSET_MODULE,&module);
+   ioctl(ctr,CtrIoctlGET_MODULE,&module);
    ConnectPPS(module);
 
    /* Give window title */
