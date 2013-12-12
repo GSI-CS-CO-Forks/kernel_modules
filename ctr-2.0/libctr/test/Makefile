@@ -6,7 +6,7 @@ CPU=L866
 
 include /acc/dsc/src/co/Make.auto
 
-DRVR = ../../driver/vme/
+DRVR = ../../driver/include
 
 CFLAGS = -g -Wall -I. -I.. -I$(DRVR) -rdynamic
 LDLIBS = ../libctr.$(CPU).a -ldl

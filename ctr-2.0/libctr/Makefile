@@ -49,7 +49,7 @@ AH_TARGET=/acc/local/$(CPU)/tim
 
 include /acc/dsc/src/co/Make.auto
 
-DRVR = ../driver/vme
+DRVR = ../driver/include
 
 CFLAGS= -g -Wall -I. -I$(DRVR) -fPIC -DLDVER=$(LDVER) -DSOVER=$(SOVER) -DSUBVER=$(SUBVER)
 
