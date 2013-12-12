@@ -44,8 +44,6 @@
 #include <ctrhard.h>   /* Hardware layout */
 #include <hptdc.h>     /* High prescision time to digital convertor */
 
-#include <plx9030.h>   /* PLX9030 Registers and definition   */
-
 #define OK 0
 #define SYSERR (-1)
 
