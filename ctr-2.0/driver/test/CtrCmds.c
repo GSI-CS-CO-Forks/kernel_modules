@@ -467,12 +467,7 @@ int wrc;
       printf("Mod:%d ",(int) mod);
 
 #ifdef CTR_PCI
-      if (moad.ModuleType == CtrDrvrModuleTypeCTR)
-	 printf("Typ:CTR PCI ");
-      else
-	 printf("Typ:PLX9030 ");
-
-      printf("Vendor:0x%04x Device:0x%04x PciSlot:%d Fpga:Bar2:%p Plx:Bar0:%p ",
+      printf("Typ:CTR PCI Vendor:0x%04x Device:0x%04x PciSlot:%d Fpga:Bar2:%p Plx:Bar0:%p ",
 	     (int) moad.VendorId,
 	     (int) moad.DeviceId,
 	     (int) moad.PciSlot,
