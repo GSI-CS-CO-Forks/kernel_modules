@@ -6,7 +6,7 @@ CPU=L866
 
 include /acc/dsc/src/co/Make.auto
 
-CFLAGS= -g -Wall -I../vme -I../pci -I.
+CFLAGS= -g -Wall -I../include -I.
 LDLIBS= -lm
 
 ALL  =  ctrvtest.$(CPU) \

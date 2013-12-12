@@ -1,6 +1,7 @@
 EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%s) -g -Wall \
 		-I/acc/src/dsc/drivers/vmebridge/driver \
 		-I/acc/src/dsc/drivers/cohtdrep/lewis/ctr_linux/driver/vme \
+		-I/acc/src/dsc/drivers/cohtdrep/lewis/ctr_linux/driver/include \
 		-DCTR_VME -DHARD_FLOAT -mhard-float
 
 obj-m:=ctrv.o
