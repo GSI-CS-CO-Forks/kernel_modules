@@ -33,10 +33,9 @@
 #include <linux/delay.h>
 #include <linux/sched.h>
 
-#include <ctrhard.h>   /* Hardware description */
 #include <ctrdrvr.h>   /* Public driver interface */
+#include <ctrhard.h>   /* Hardware description */
 #include <ctrdrvrP.h>  /* Private driver structures */
-#include <ctrhard.h>   /* Hardware layout */
 #include <hptdc.h>     /* High prescision time to digital convertor */
 
 #include <vmebus.h>
@@ -379,7 +378,6 @@ static int AddModule(CtrDrvrModuleContext *mcon, int index)
 		return -EFAULT;
 	}
 
-	mcon->IVector = moad->InterruptVector;
 	Reset(mcon);
 	return 0;
 }
