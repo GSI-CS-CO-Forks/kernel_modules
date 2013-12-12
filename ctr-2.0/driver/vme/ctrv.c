@@ -1753,6 +1753,9 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	iosz = _IOC_SIZE(cmd);
 	ionr = _IOC_NR(cmd);
 
+	if (iosz < sizeof(uint32_t))
+		return -ENOENT;
+
 	if ((arb = kmalloc(iosz, GFP_KERNEL)) == NULL)
 		return -ENOMEM;
 
