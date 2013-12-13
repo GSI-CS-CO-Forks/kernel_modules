@@ -15,8 +15,6 @@
 #include <a.out.h>
 #include <ctype.h>
 
-#define CTR_VME
-
 #include <ctrdrvr.h>
 
 #if PS_VER
@@ -47,6 +45,8 @@ static int  ctr;
 #endif
 
 static char MachineNames[TgmMACHINES][TgmNAME_SIZE];
+
+static uint32_t channels = 8;
 
 #include "Cmds.h"
 #include "GetAtoms.c"
@@ -103,26 +103,18 @@ int i, j;
    version.HardwareType = CtrDrvrHardwareTypeNONE;
 
    if (ioctl(ctr,CtrIoctlGET_VERSION,&version) >= 0) {
-      if (version.HardwareType == CtrDrvrHardwareTypeCTRP) printf("Hardware Type: CTRP PMC (3 Channel)\n");
-      if (version.HardwareType == CtrDrvrHardwareTypeCTRI) printf("Hardware Type: CTRI PCI (4 Channel)\n");
-      if (version.HardwareType == CtrDrvrHardwareTypeCTRV) printf("Hardware Type: CTRV VME (8 Channel)\n");
-
-#ifdef CTR_VME
-      if ((version.HardwareType == CtrDrvrHardwareTypeCTRP)
-      ||  (version.HardwareType == CtrDrvrHardwareTypeCTRI)) {
-	 close(ctr);
-	 printf("ctrvtest is for the VME hardware type: Use ctrtest\n");
-	 exit(1);
+      if (version.HardwareType == CtrDrvrHardwareTypeCTRP) {
+	 printf("Hardware Type: CTRP PMC (3 Channel)\n");
+	 channels = 8;
       }
-#endif
-
-#ifndef CTR_VME
+      if (version.HardwareType == CtrDrvrHardwareTypeCTRI) {
+	 printf("Hardware Type: CTRI PCI (4 Channel)\n");
+	 channels = 4;
+      }
       if (version.HardwareType == CtrDrvrHardwareTypeCTRV) {
-	 close(ctr);
-	 printf("ctrptest is for PCI and PMC hardware types: Use ctrvtest\n");
-	 exit(1);
+	 printf("Hardware Type: CTRV VME (8 Channel)\n");
+	 channels = 4;
       }
-#endif
    }
 
 #if PS_VER

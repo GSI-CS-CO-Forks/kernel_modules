@@ -87,9 +87,7 @@ int i, j, tm, rows, en, rcnt, ch;
 int32_t cnt, modnum;
 char *p = "%";
 
-#ifdef CTR_VME
 uint32_t oby = 0;
-#endif
 
 #ifdef PS_VER
    printf("%s: Compiled %s %s\n",pname,__DATE__,__TIME__);
@@ -232,7 +230,6 @@ uint32_t oby = 0;
 	 }
 	 fprintf(assFile,"}\n\n");
 
-#ifdef CTR_VME
 	 if (ioctl(ctr,CtrIoctlGET_OUTPUT_BYTE,&oby) >= 0) {
 	    if (oby) {
 	       fprintf(assFile,"{\n");
@@ -240,7 +237,6 @@ uint32_t oby = 0;
 	       fprintf(assFile,"}\n\n");
 	    }
 	 }
-#endif
 
 	 fprintf(assFile,"{\n");
 	 for (ch=CtrDrvrCounter1; ch<=CtrDrvrCounter8; ch++) {

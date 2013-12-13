@@ -13,10 +13,7 @@ int Sleep();                /* Sleep seconds      */
 int Pause();                /* Pause keyboard     */
 int Atoms();                /* Atom list commands */
 
-#ifdef CTR_VME
 int GetSetOByte();
-#endif
-
 int GetVersion();
 int ChangeEditor();
 int ChangeDirectory();
@@ -106,9 +103,7 @@ typedef enum {
 
    CmdMEMIO,   /* Raw memory IO          */
 
-#ifdef CTR_VME
    CmdOBYTE,   /* Get/Set Output VME byte on the P2 connector */
-#endif
 
    CmdHPSED,   /* Edit CERN HPTDC Setup registers */
    CmdHPSIO,   /* Write/Read HPTDC setup */
@@ -207,9 +202,7 @@ static Cmd cmds[CmdCMDS] = {
 
    { CmdMEMIO,   "rio",   "Raw memory IO"            ,"Address"            ,MemIo},
 
-#ifdef CTR_VME
    { CmdOBYTE,   "oby",   "Get/Set Output P2 VME byte"   ,"0..8"           ,GetSetOByte},
-#endif
 
    { CmdHPSED,   "hpsed", "HPTDC: Edit Setup registers"  ,"RegNum"         ,HptdcSetupEdit},
    { CmdHPSIO,   "hpsio", "HPTDC: Write/Read Setup"      ,""               ,HptdcSetupIo},

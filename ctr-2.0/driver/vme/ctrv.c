@@ -324,7 +324,7 @@ static void RemoveModule(CtrDrvrModuleContext *mcon)
 	cc = ioread32be(&(mmap->InterruptSource));
 	vme_intclr(moad->InterruptVector,NULL);
 
-	return_controller((uintptr_t) moad->VMEAddress,0x10000);
+	return_controller((uintptr_t) moad->HardwareAddress,0x10000);
 }
 
 /*========================================================================*/
@@ -344,7 +344,7 @@ static int AddModule(CtrDrvrModuleContext *mcon, int index)
 
 	moad = &(mcon->Address);
 
-	addr = (uintptr_t) moad->VMEAddress;
+	addr = (uintptr_t) moad->HardwareAddress;
 	addr &= 0x00ffffff;
 
 	param.iack   = 1;
@@ -364,7 +364,7 @@ static int AddModule(CtrDrvrModuleContext *mcon, int index)
 	if (vmeaddr == (void *)(-1)) {
 		printk("CtrDrvr: find_controller: ERROR: Module:%d. VME Addr:0x%x\n",
 		       index+1,
-		       moad->VMEAddress);
+		       moad->HardwareAddress);
 		return -ENXIO;
 	}
 	mcon->Map = vmeaddr;
@@ -535,7 +535,7 @@ static void Reset(CtrDrvrModuleContext *mcon)
 		iowrite32be(0x100,&mmap->OutputByte);
 
 	moad = &(mcon->Address);
-	iowrite32be((uint32_t) ((moad->InterruptLevel << 8) | (moad->InterruptVector & 0xFF)),&mmap->Setup);
+	iowrite32be((uint32_t) ((ilvl << 8) | (moad->InterruptVector & 0xFF)),&mmap->Setup);
 
 	if (mcon->Pll.KP == 0) {
 		mcon->Pll.KP = 337326;
@@ -1611,15 +1611,13 @@ int ctr_install(void)
 			mcon = &Wa.ModuleContexts[i];
 			moad = &mcon->Address;
 
-			moad->VMEAddress      = 0xC00000 + (0x10000 * i);
+			moad->HardwareAddress = 0xC00000 + (0x10000 * i);
 			moad->InterruptVector = 0xB8     + (0x1     * i);
-			moad->InterruptLevel  = 2;
 
-			printk("CTRV:AUTO:Module:%d VME:0x%x VEC:0x%X LVL:%d\n",
+			printk("CTRV:AUTO:Module:%d VME:0x%x VEC:0x%X\n",
 				i+1,
-				moad->VMEAddress,
-				moad->InterruptVector,
-				moad->InterruptLevel);
+				moad->HardwareAddress,
+				moad->InterruptVector);
 		}
 
 	} else {
@@ -1628,15 +1626,13 @@ int ctr_install(void)
 			mcon = &Wa.ModuleContexts[i];
 			moad = &mcon->Address;
 
-			moad->VMEAddress      = vmeb[i];
+			moad->HardwareAddress = vmeb[i];
 			moad->InterruptVector = vecs[i];
-			moad->InterruptLevel  = ilvl;
 
-			printk("CTRV:Module:%d VME:0x%X VEC:0x%X LVL:%d\n",
+			printk("CTRV:Module:%d VME:0x%X VEC:0x%X\n",
 				i+1,
-				moad->VMEAddress,
-				moad->InterruptVector,
-				moad->InterruptLevel);
+				moad->HardwareAddress,
+				moad->InterruptVector);
 		}
 	}
 
@@ -1650,11 +1646,10 @@ int ctr_install(void)
 			mcon->InUse = 1;
 			Wa.Modules++;
 
-			printk("CtrDrvr: Module %d. VME Addr: 0x%X Vect: %x Level: %x Installed OK\n",
+			printk("CtrDrvr: Module %d. VME Addr: 0x%X Vect: %x Installed OK\n",
 			       i+1,
-			       moad->VMEAddress,
-			       moad->InterruptVector,
-			       moad->InterruptLevel);
+			       moad->HardwareAddress,
+			       moad->InterruptVector);
 
 			/* Wipe out any old triggers left in Ram after a warm reboot */
 
@@ -1822,9 +1817,9 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 
 		case CtrIoctlGET_MODULE_DESCRIPTOR:
 			moad = (CtrDrvrModuleAddress *) arb;
-			moad->VMEAddress      = mcon->Address.VMEAddress;
+			moad->BusType = 2;
+			moad->HardwareAddress = mcon->Address.HardwareAddress;
 			moad->InterruptVector = mcon->Address.InterruptVector;
-			moad->InterruptLevel  = mcon->Address.InterruptLevel;
 		break;
 
 		case CtrIoctlSET_MODULE:

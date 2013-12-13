@@ -827,11 +827,7 @@ uint32_t oby;
       Error(RUN_TIME,atom,"Can't select module in OUTBYTE spec");
    }
 
-#ifdef CTR_VME
-   if (ioctl(ctr,CtrIoctlSET_OUTPUT_BYTE,&oby) < 0) {
-      Error(RUN_TIME,atom,"Can't set output byte in OUTBYTE spec");
-   }
-#endif
+   ioctl(ctr,CtrIoctlSET_OUTPUT_BYTE,&oby);
 
    return atom;
 }

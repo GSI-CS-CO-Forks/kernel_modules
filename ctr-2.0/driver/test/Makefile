@@ -9,8 +9,7 @@ include /acc/dsc/src/co/Make.auto
 CFLAGS= -g -Wall -I../include -I.
 LDLIBS= -lm
 
-ALL  =  ctrvtest.$(CPU) \
-	ctrptest.$(CPU) \
+ALL  =  ctrtest.$(CPU) \
 	CtrReadInfo.$(CPU) \
 	CtrWriteInfo.$(CPU) \
 	CtrLookat.$(CPU) \
@@ -18,8 +17,7 @@ ALL  =  ctrvtest.$(CPU) \
 
 NOPSALL = CtrReadInfo.$(CPU) \
 	CtrWriteInfo.$(CPU) \
-	ctrvtest.$(CPU) \
-	ctrptest.$(CPU)
+	ctrtest.$(CPU) \
 
 HDRS = Cmds.h
 
@@ -36,8 +34,7 @@ nops: $(NOPSALL)
 
 # Run on Workstation only
 
-ctrptest.$(CPU).o: ctrptest.c $(TEST) $(HDRS)
-ctrvtest.$(CPU).o: ctrvtest.c $(TEST) $(HDRS)
+ctrtest.$(CPU).o: ctrtest.c $(TEST) $(HDRS)
 CtrReadInfo.$(CPU).o: $(READ) $(HDRS)
 CtrWriteInfo.$(CPU).o: $(WRIT) $(HDRS)
 CtrClock.$(CPU).o: $(CLOK) $(HDRS)
@@ -49,12 +46,12 @@ clean:
 install:
 	echo "Please use install-lab/oper/lhc"
 
-install-lab: ctrptest.$(CPU) ctrvtest.$(CPU)
+install-lab: ctrptest.$(CPU) ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/lab/$(CPU)/ctr
 
-install-oper: ctrptest.$(CPU) ctrvtest.$(CPU)
+install-oper: ctrptest.$(CPU) ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/oper/$(CPU)/ctr
 
 
-install-lhc: ctrptest.$(CPU) ctrvtest.$(CPU)
+install-lhc: ctrptest.$(CPU) ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/oplhc/$(CPU)/ctr

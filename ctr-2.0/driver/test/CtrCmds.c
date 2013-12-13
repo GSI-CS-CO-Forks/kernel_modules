@@ -17,22 +17,6 @@
 
 #include <hptdc.c>
 
-#ifdef CTR_PCI
-#define CHANNELS 4
-#endif
-
-#ifdef CTR_PMC
-#define CHANNELS 4
-#endif
-
-#ifdef CTR_VME
-#define CHANNELS 8
-#endif
-
-#ifndef CHANNELS
-#define CHANNELS 8
-#endif
-
 static uint32_t module = 1;
 static uint32_t channel = CtrDrvrCounter1;
 
@@ -466,21 +450,15 @@ int wrc;
       }
       printf("Mod:%d ",(int) mod);
 
-#ifdef CTR_PCI
-      printf("Typ:CTR PCI Vendor:0x%04x Device:0x%04x PciSlot:%d Fpga:Bar2:%p Plx:Bar0:%p ",
-	     (int) moad.VendorId,
-	     (int) moad.DeviceId,
-	     (int) moad.PciSlot,
-	     moad.MemoryMap,
-	     moad.LocalMap);
-#endif
-
-#ifdef CTR_VME
-      printf("VME:0x%x Vec:0x%02x Lvl:%1d ",
-	     moad.VMEAddress,
-	     moad.InterruptVector,
-	     moad.InterruptLevel);
-#endif
+      if (moad.BusType == 1)
+	 printf("Typ:CTR PCI Bus:0x%02x Slot:0x%02x Vec:0x%02x ",
+	     moad.HardwareAddress >> 16,
+	     moad.HardwareAddress &  0xFFFF,
+	     moad.InterruptVector);
+      else
+	 printf("VME:0x%x Vec:0x%02x ",
+	     moad.HardwareAddress,
+	     moad.InterruptVector);
 
 #ifdef PS_VER
       wrc = 0;
@@ -531,8 +509,7 @@ int NextChannel(int arg) {
    arg++;
 
    channel++;
-   if (channel > CHANNELS) channel = CtrDrvrCounter1;
-
+   if (channel > channels) channel = CtrDrvrCounter1;
    return arg;
 }
 
@@ -562,7 +539,7 @@ int PrevChannel(int arg) {
    arg++;
 
    channel--;
-   if (channel < CtrDrvrCounter1) channel = CHANNELS;
+   if (channel < CtrDrvrCounter1) channel = channels;
 
    return arg;
 }
@@ -580,7 +557,7 @@ uint32_t ch;
    if (at == Numeric) {
       arg++;
       ch = v->Number;
-      if ((ch >= CtrDrvrCounter1) && (ch <= CHANNELS)) {
+      if ((ch >= CtrDrvrCounter1) && (ch <= channels)) {
 	 channel = ch;
       } else {
 	 printf("Error: Illegal counter number: %d\n",(int) ch);
@@ -624,7 +601,6 @@ uint32_t debug;
 
 /*****************************************************************/
 
-#ifdef CTR_VME
 int GetSetOByte(int arg) { /* Output Byte on P2 0..8 */
 ArgVal   *v;
 AtomType  at;
@@ -653,7 +629,6 @@ uint32_t obyte;
 
    return arg;
 }
-#endif
 
 /*****************************************************************/
 
@@ -2268,11 +2243,11 @@ uint32_t n, i, j, ix, nadr;
 	       ob.Counter = strtoul(cp,&ep,0);
 	       if (cp == ep) break;
 	       if ((ob.Counter < CtrDrvrCounter1)
-	       ||  (ob.Counter > CHANNELS)) {
+	       ||  (ob.Counter > channels)) {
 		  printf("Illegal Counter:%d Range is[%d..%d]\n",
 			 (int) ob.Counter,
 			 (int) CtrDrvrCounter1,
-			 (int) CHANNELS);
+			 (int) channels);
 		  return;
 	       }
 	       cp = ep;
@@ -3379,7 +3354,7 @@ uint32_t plw, dly, str, clk, mde, enb, bus;
 		     }
 		  } else if (n==1) {
 		     cntr++;
-		     if (cntr > CHANNELS) {
+		     if (cntr > channels) {
 			cntr = CtrDrvrCounter1;
 			printf("\n");
 		     }
@@ -3389,7 +3364,7 @@ uint32_t plw, dly, str, clk, mde, enb, bus;
 	       case '/':
 		  cntr = strtoul(cp,&ep,0);
 		  if (cp != ep) cp = ep;
-		  if ((cntr<CtrDrvrCounter1) || (cntr>CHANNELS)) cntr = CtrDrvrCounter1;
+		  if ((cntr<CtrDrvrCounter1) || (cntr>channels)) cntr = CtrDrvrCounter1;
 	       break;
 
 	       case '?':
@@ -3461,7 +3436,7 @@ uint32_t plw, dly, str, clk, mde, enb, bus;
       } else {
 	 printf("Counter: %d Not in Remote\n",(int) cntr);
 	 cntr++;
-	 if (cntr > CHANNELS) return;
+	 if (cntr > channels) return;
       }
    }
 }

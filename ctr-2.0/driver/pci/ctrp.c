@@ -1870,7 +1870,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	CtrDrvrEventHistoryBuf         *evhs;
 	CtrDrvrReceptionErrors         *rcpe;
 	CtrDrvrBoardId                 *bird;
-	CtrDrvrModuleStats             *mods;
+	CtrDrvrModuleStats             *msts;
 
 	CtrDrvrMemoryMap   *mmap;
 
@@ -1968,13 +1968,10 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		case CtrIoctlGET_MODULE_DESCRIPTOR:
 			moad = (CtrDrvrModuleAddress *) arb;
 
-			moad->ModuleType   = CtrDrvrModuleTypeCTR;
-			moad->DeviceId     = CTRP_DEVICE_ID;
-			moad->VendorId     = CERN_VENDOR_ID;
-			moad->MemoryMap    = (uint32_t *) mcon->Map;
-			moad->LocalMap     = (uint32_t *) mcon->Local;
-			moad->ModuleNumber = mcon->ModuleIndex +1;
-			moad->PciSlot      = mcon->PciSlot;
+			moad->BusType   = 1;
+			moad->HardwareAddress = mods[ccon->ModuleIndex].pci_bus_num << 16
+					      | mods[ccon->ModuleIndex].pci_slot_num;
+			moad->InterruptVector = mcon->dev->irq;
 		break;
 
 		case CtrIoctlGET_MODULE_SLOT:
@@ -2524,8 +2521,8 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		break;
 
 		case CtrIoctlGET_MODULE_STATS:
-			mods = (CtrDrvrModuleStats *) arb;
-			Io32Read((uint32_t *) mods,
+			msts = (CtrDrvrModuleStats *) arb;
+			Io32Read((uint32_t *) msts,
 				 (uint32_t *) &(mmap->ModStats),
 				 (uint32_t  ) sizeof(CtrDrvrModuleStats));
 		break;
