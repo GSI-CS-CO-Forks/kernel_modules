@@ -1390,18 +1390,18 @@ ssize_t ctr_read(struct file *filp, char __user *buf, size_t count, loff_t *f_po
 	}
 
 	if (!queue->Size) {
-		if (ccon->Timeout)
+		if (ccon->Timeout) {
 			cc = wait_event_interruptible_timeout(ccon->Wq,
 							      queue->Size > 0,
 							      ccon->Timeout);
-		else
-			cc = wait_event_interruptible(ccon->Wq,
-						      queue->Size > 0);
-		if (cc <= 0) {
 			if (cc == 0)
 				cc = -ETIMEDOUT;
+		} else
+			cc = wait_event_interruptible(ccon->Wq,
+						      queue->Size > 0);
+		if (cc < 0)
 			return cc;
-		}
+
 	}
 
 	wcnt = count;
