@@ -20,6 +20,7 @@
  * @param Pointer to where the module address will be stored
  * @return Zero means success else -1 is returned on error, see errno
  */
+
 int ctr_get_module_address(void *handle, struct ctr_module_address_s *module_address)
 {
 	struct ctr_handle_s *h = handle;
@@ -27,11 +28,13 @@ int ctr_get_module_address(void *handle, struct ctr_module_address_s *module_add
 
 	if (ioctl(h->fd,CtrIoctlGET_MODULE_DESCRIPTOR,&moad) < 0)
 		return -1;
+	if (moad.BusType == 1)
+		module_address->device_type  = CtrDrvrDeviceCTRP;
+	else
+		module_address->device_type  = CtrDrvrDeviceCTRV;
 
-	module_address->device_type  = CtrDrvrDeviceCTRV;
-	module_address->memory_map   = moad.VMEAddress;
-	module_address->specific[0]  = moad.InterruptVector;
-	module_address->specific[1]  = moad.InterruptLevel;
+	module_address->HardwareAddress = moad.HardwareAddress;
+	module_address->InterruptVector = moad.InterruptVector;
 
 	return 0;
 }

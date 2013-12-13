@@ -802,11 +802,14 @@ int cnt;
 
 /*****************************************************************/
 
+static char *dev_names[CtrDrvrDEVICES] = { "ANY", "CTRI", "CTRP", "CTRV", "CTRE" };
+
 int GetSetModule(int arg) {
 ArgVal   *v;
 AtomType  at;
 
-int cbid, mcnt, mod, i;
+int cbid, mcnt, mod;
+uint32_t dt;
 struct ctr_module_address_s module_address;
 
    arg++;
@@ -835,10 +838,12 @@ struct ctr_module_address_s module_address;
       return arg;
    }
 
-   printf("Mmap:0x%x\n",module_address.memory_map);
-
-   for (i=0; i<4; i++)
-      printf("Spec:%d 0x%X\n",i,module_address.specific[i]);
+   dt = module_address.device_type;
+   if (dt > CtrDrvrDEVICES) dt = 0;
+   printf("Type:%s Address:0x%X Vector:0x%X\n",
+	  dev_names[dt],
+	  module_address.HardwareAddress,
+	  module_address.InterruptVector);
 
    return arg;
 }

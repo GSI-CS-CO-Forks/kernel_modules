@@ -60,9 +60,9 @@ struct ctr_interrupt_s {
 };
 
 struct ctr_module_address_s {
-	CtrDrvrDevice device_type;        /** Which kind of device PCI/VME */
-	uint32_t memory_map;              /** Main FPGA address (VME A24/BAR2) */
-	uint32_t specific[4];             /** If VME vec-level. If PCI pci_slot-module-vid-did */
+	CtrDrvrDevice device_type;  /** Which kind of device PCI/VME */
+	uint32_t HardwareAddress;   /** PCI(Bus/Slot) or VME(BaseAddress) */
+	uint32_t InterruptVector;
 };
 
 /**
