@@ -609,6 +609,12 @@ uint32_t obyte;
    arg++;
    v = &(vals[arg]);
    at = v->Type;
+
+   if (channels != 8) {
+      printf("Not implemented on non VME device\n");
+      return arg;
+   }
+
    if (at == Numeric) {
       arg++;
       obyte = v->Number;
