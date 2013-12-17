@@ -2074,13 +2074,14 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 						for (k=0; k<CtrDrvrInterruptSOURCES; k++) {
 							if (msk & mcon->HardClients[k])
 								hmsk |= (1 << k);
-							if (hmsk) {
-								ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
-								ccn->Connections[ccn->Size].EqpNum   = hmsk;
-								ccn->Connections[ccn->Size].EqpClass = CtrDrvrConnectionClassHARD;
-								if (ccn->Size++ >= CtrDrvrCONNECTIONS)
-									goto out;
-							}
+						}
+
+						if (hmsk) {
+							ccn->Connections[ccn->Size].Module   = mcon->ModuleIndex +1;
+							ccn->Connections[ccn->Size].EqpNum   = hmsk;
+							ccn->Connections[ccn->Size].EqpClass = CtrDrvrConnectionClassHARD;
+							if (ccn->Size++ >= CtrDrvrCONNECTIONS)
+								goto out;
 						}
 					}
 				}
