@@ -606,4 +606,14 @@ int ctr_set_p2_output_byte(void *handle, int p2byte);
  */
 int ctr_get_p2_output_byte(void *handle);
 
+/**
+ * @brief generate ctim list from info file
+ * @param path  - to info file or NULL is the default
+ * @param count - the maximum number of ctims that can be stored in the callers array
+ * @param ctims - points to the array where ctime will be stored
+ * @return the number of ctims found or -1 on error
+ */
+
+int ctr_gcrap(char *path, uint32_t count, uint32_t *ctims);
+
 #endif

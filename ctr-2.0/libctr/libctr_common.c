@@ -1273,4 +1273,54 @@ int ctr_simulate_interrupt(void *handle, CtrDrvrConnectionClass ctr_class, int e
 	return -1;
 }
 
+/**
+ * @brief generate ctim list from info file
+ * @param path  - to info file or NULL is the default
+ * @param count - the maximum number of ctims that can be stored in the callers array
+ * @param ctims - points to the array where ctime will be stored
+ * @return the number of ctims found or -1 on error
+ */
+
+int ctr_gcrap(char *path, uint32_t count, uint32_t *ctims)
+{
+	char cmd[128], tgt[128], *cp;
+	FILE *cf;
+	uint32_t ctim, res = 0;
+	int i, cc;
+
+	if (path == NULL)
+		cp = "/dsc/local/data/Ctr.info";
+	else
+		cp = path;
+
+	if (strlen(path) > 128) {
+		errno = E2BIG;
+		return -1;
+	}
+
+	sprintf(tgt,"/tmp/%s.ctims\n",path);
+	sprintf(cmd,"rm -f %s\n",tgt);
+	system(cmd);
+
+	sprintf(cmd,"cat %s.info | /usr/local/ctr/gcrap.awk > %s\n",path,tgt);
+	system(cmd);
+
+	cf = fopen(tgt,"r");
+	if (cf == NULL)
+		return -1;
+
+	for (i=0; i<count; i++) {
+		cc = fscanf(cf,"%d\n",&ctim);
+		if (cc == EOF)
+			break;
+		if (cc == 1) {
+			ctims[res] = ctim;
+			res++;
+		}
+	}
+
+	fclose(cf);
+	return res;
+}
+
 #endif
