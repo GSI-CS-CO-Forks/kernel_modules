@@ -29,31 +29,13 @@ static int lun[MAX_CARRIER];
 static int num_lun;
 module_param_array(lun, int, &num_lun, S_IRUGO);
 
-static int mod_address_ioid[MAX_CARRIER];
-static int num_address_ioid;
-module_param_array(mod_address_ioid, int, &num_address_ioid, S_IRUGO);
 static int base_address_ioid[MAX_CARRIER];
 static int num_base_address_ioid;
 module_param_array(base_address_ioid, int, &num_base_address_ioid, S_IRUGO);
-static int data_width_ioid[MAX_CARRIER];
-static int num_data_width_ioid;
-module_param_array(data_width_ioid, int, &num_data_width_ioid, S_IRUGO);
-static int wind_size_ioid[MAX_CARRIER];
-static int num_wind_size_ioid;
-module_param_array(wind_size_ioid, int, &num_wind_size_ioid, S_IRUGO);
 
-static int mod_address_mem[MAX_CARRIER];
-static int num_address_mem;
-module_param_array(mod_address_mem, int, &num_address_mem, S_IRUGO);
 static int base_address_mem[MAX_CARRIER];
 static int num_base_address_mem;
 module_param_array(base_address_mem, int, &num_base_address_mem, S_IRUGO);
-static int data_width_mem[MAX_CARRIER];
-static int num_data_width_mem;
-module_param_array(data_width_mem, int, &num_data_width_mem, S_IRUGO);
-static int wind_size_mem[MAX_CARRIER];
-static int num_wind_size_mem;
-module_param_array(wind_size_mem, int, &num_wind_size_mem, S_IRUGO);
 
 static int irq[MAX_CARRIER * 4];
 static unsigned int num_irq;
@@ -223,15 +205,15 @@ static int tvme200_init_mem(struct tvme200_board *tvme200)
 	phys_addr_t ioidint_base;
 
 	memset(&params, 0, sizeof(struct params_vme));
-	params.ioid_space.address_modifier = mod_address_ioid[ndev];
+	params.ioid_space.address_modifier = 0x29;
 	params.ioid_space.base_address = base_address_ioid[ndev];
-	params.ioid_space.data_width = data_width_ioid[ndev];
-	params.ioid_space.window_size = wind_size_ioid[ndev];
+	params.ioid_space.data_width = 16;
+	params.ioid_space.window_size = 0x400;
 
-	params.mem_space.address_modifier = mod_address_mem[ndev];
+	params.mem_space.address_modifier = 0x39;
 	params.mem_space.base_address = base_address_mem[ndev];
-	params.mem_space.data_width = data_width_mem[ndev];
-	params.mem_space.window_size = wind_size_mem[ndev];
+	params.mem_space.data_width = 16;
+	params.mem_space.window_size = 0x20000;
 
 
 	res = set_ioid_params(tvme200, &params.ioid_space);
@@ -602,13 +584,7 @@ static int tvme200_check_params(void)
 {
 	int res = 0;
 
-	if (	(num_lun != num_address_ioid) ||
-		(num_lun != num_data_width_ioid) ||
-		(num_lun != num_wind_size_mem) ||
-		(num_lun != num_base_address_ioid) ||
-		(num_lun != num_address_mem) ||
-		(num_lun != num_data_width_mem) ||
-		(num_lun != num_wind_size_mem) ||
+	if (	(num_lun != num_base_address_ioid) ||
 		(num_lun != num_base_address_mem) ) {
 
 			pr_err("%s: The number of parameters doesn't match\n",
