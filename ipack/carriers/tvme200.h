@@ -164,7 +164,7 @@ struct tvme200_slot {
 };
 
 /**
- * struct tpci200_infos - informations specific of the TPCI200 tpci200.
+ * struct tvme200_infos - informations specific of the TVME200.
  * @ioid_mapping        inteface with the vmebridge driver for the IoIdInt space
  * @mem_mapping         inteface with the vmebridge driver for the Mem space
  */
