@@ -1,7 +1,6 @@
 /**
- * carrier_common.h
  *
- * driver for the carrier TEWS TPCI-200 
+ * driver for the carrier TEWS TVME-200 
  * Copyright (c) 2009 Nicolas Serafini, EIC2 SA
  * Copyright (c) 2010,2011 Samuel Iglesias Gonsalvez <siglesia@cern.ch>
  * Copyright (c) 2013 Luis Fernando Ruiz Gago <lfruiz@cern.ch>
