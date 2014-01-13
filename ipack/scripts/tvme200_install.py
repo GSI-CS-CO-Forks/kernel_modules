@@ -1,8 +1,10 @@
 #!	/usr/bin/env python
 
+import sys
 import re
 import glob
 import os
+import argparse
 
 transfer = "/etc/transfer.ref"
 fieldnames = ( '# ln mln bus mtno module-type '
@@ -45,6 +47,8 @@ def generate_params(transfer):
         this_ipoctals = [ board for board in ipoctals
                                 if board['sl'] == d['sl']]
         # Building symlinks and int vectors for ipoctals in current carrier
+        # TODO: double-check against /sys/bus/ipack and report
+        # inconsistencies
         for ip in this_ipoctals:
             for ch in xrange(8):
                 symlinks.append(('/dev/ipoctal.%d.%s.%d' % ( index, ip['ss'], ch, ), 
@@ -65,11 +69,24 @@ def generate_params(transfer):
 
 
 if __name__ == '__main__':
-    insmod_params, symlinks  = generate_params(transfer)
 
-    insmod = 'insmod tvme200.ko %s' % insmod_params
-    print 'Installing TVME200 driver...\n%s' % insmod
-    os.system(insmod)
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-t', '--transfer', type=str,
+                        help='transfer.ref file path', default=transfer)
+    parser.add_argument('-n', '-v', '--dry-run', dest='dry_run',
+                        action='store_true',
+                        help='do nothing, just print actions')
+    args = parser.parse_args()
+
+    if args.dry_run:
+        execute = lambda x : sys.stdout.write(x + '\n')
+    else:
+        execute = os.system
+
+    insmod_params, symlinks  = generate_params(args.transfer)
+
+    insmod = '/sbin/insmod tvme200.ko %s' % insmod_params
+    execute(insmod)
 
     for src, dst in symlinks:
-        os.system('ln -s %s %s' % (src, dst))
+        execute('ln -s %s %s' % (src, dst))
