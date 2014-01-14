@@ -4,7 +4,7 @@ import sys
 import re
 import glob
 import os
-import argparse
+import optparse
 
 transfer = "/etc/transfer.ref"
 fieldnames = ( '# ln mln bus mtno module-type '
@@ -70,20 +70,20 @@ def generate_params(transfer):
 
 if __name__ == '__main__':
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-t', '--transfer', type=str,
+    parser = optparse.OptionParser()
+    parser.add_option('-t', '--transfer', type=str,
                         help='transfer.ref file path', default=transfer)
-    parser.add_argument('-n', '-v', '--dry-run', dest='dry_run',
+    parser.add_option('-n', '-v', '--dry-run', dest='dry_run',
                         action='store_true',
                         help='do nothing, just print actions')
-    args = parser.parse_args()
+    (options, args) = parser.parse_args()
 
-    if args.dry_run:
+    if options.dry_run:
         execute = lambda x : sys.stdout.write(x + '\n')
     else:
         execute = os.system
 
-    insmod_params, symlinks  = generate_params(args.transfer)
+    insmod_params, symlinks  = generate_params(options.transfer)
 
     insmod = '/sbin/insmod tvme200.ko %s' % insmod_params
     execute(insmod)
