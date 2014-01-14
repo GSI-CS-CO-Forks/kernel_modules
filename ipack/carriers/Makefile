@@ -29,5 +29,5 @@ modules help install modules_install:
 
 # be able to run the "clean" rule even if $(LINUX) is not valid
 clean:
-	rm -rf *.o *~  .*.cmd *.ko *.mod.c .tmp_versions obj-$(CONFIG_BOARD_TPCI200) += tpci200.o \
+	rm -rf *.o *~  .*.cmd *.ko *.mod.c .tmp_versions \
                          Module.markers modules.order
