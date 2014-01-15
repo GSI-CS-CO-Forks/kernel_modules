@@ -5,8 +5,11 @@
 /* For Email the Subject line should contain the string "nospam" */
 /* ============================================================= */
 
-#include <stdarg.h>
+#define _GNU_SOURCE
 #include <sys/types.h>
+#include <sys/socket.h>
+
+#include <stdarg.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -16,7 +19,6 @@
 #include <strings.h>
 #include <string.h>
 #include <time.h>
-#include <sys/socket.h>
 #include <sys/un.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -195,7 +197,7 @@ char *yr, *ti, *md, *mn, *dy;
       yr = &(tmp[20]);
       sprintf (tbuf, "%s-%s/%s/%s %s"  , dy, md, mn, yr, ti);
       if (t->Nano) {
-      	  sprintf(&tbuf[strlen(tbuf)],".%09lu",t->Nano);
+	  sprintf(&tbuf[strlen(tbuf)],".%09d",t->Nano);
       }
 
    } else sprintf (tbuf, "--- Zero ---");

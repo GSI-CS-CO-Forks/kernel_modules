@@ -4,21 +4,26 @@
 /* For Email the Subject line should contain the string "nospam" */
 /* ============================================================= */
 
+#define _GNU_SOURCE
+#include <sys/types.h>
+#include <sys/socket.h>
+
+#include <stdio.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+
 #include <stdarg.h>
 #include <unistd.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include <netdb.h>
 #include <sys/time.h>
 #include <errno.h>
 #include <strings.h>
 #include <string.h>
 #include <time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
+
+#include <sys/uio.h>
 #include <sys/un.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netdb.h>
 
 #include <err/err.h>      /* Error handling */
 #include <tgv/tgv.h>
