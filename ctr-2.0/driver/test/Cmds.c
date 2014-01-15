@@ -73,6 +73,30 @@ AtomType  at;
    return(arg);
 }
 
+/* ========================================================== */
+
+int ms_sleep(int arg)
+{
+	ArgVal *v;
+	AtomType at;
+
+	unsigned int usec;
+
+	arg++;
+
+	usec = 1000;
+
+	v = &(vals[arg]);
+	at = v->Type;
+	if (at == Numeric) {
+		arg++;
+		usec = v->Number * 1000;
+	}
+
+	usleep(usec);
+	return arg;
+}
+
 /*****************************************************************/
 /* History                                                       */
 /*****************************************************************/

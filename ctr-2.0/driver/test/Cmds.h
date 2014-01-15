@@ -10,6 +10,7 @@ int News();                 /* Show GMT test news */
 int History();              /* History            */
 int Shell();                /* Shell command      */
 int Sleep();                /* Sleep seconds      */
+int ms_sleep();             /* Sleep millisecs    */
 int Pause();                /* Pause keyboard     */
 int Atoms();                /* Atom list commands */
 
@@ -93,6 +94,7 @@ typedef enum {
    CmdHIST,    /* History            */
    CmdSHELL,   /* Shell command      */
    CmdSLEEP,   /* Sleep seconds      */
+   CmdMSLEEP,  /* Sleep millisecs    */
    CmdPAUSE,   /* Pause keyboard     */
    CmdATOMS,   /* Atom list commands */
 
@@ -192,6 +194,7 @@ static Cmd cmds[CmdCMDS] = {
    { CmdHIST,    "his",   "History"                  ,""                   ,History},
    { CmdSHELL,   "sh",    "Shell command"            ,"UnixCmd"            ,Shell },
    { CmdSLEEP,   "s" ,    "Sleep seconds"            ,"Seconds"            ,Sleep },
+   { CmdSLEEP,   "ms",    "Sleep milliseconds"       ,"MilliSecs"          ,ms_sleep },
    { CmdPAUSE,   "z" ,    "Pause keyboard"           ,""                   ,Pause },
    { CmdATOMS,   "a" ,    "Atom list commands"       ,""                   ,Atoms },
 
