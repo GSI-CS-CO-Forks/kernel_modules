@@ -1,0 +1,12 @@
+Here are some test utilities that access the hardware accross TimLib.
+In theory the TimLib library is to be depricated, however I suspect this library will out live libctr that is supposed to replace it.
+TimLib is not a hardware test library, so timtest is a simple tool to help users to debug their code.
+If you need to debug the hardware then use ctrtest.
+
+In this directory is a sub directory TcpStuff. This contains the TimClient and TimServer programs that are used to send event
+streams accross UDP sockets to Java clients running in work stations, these programs are vital.
+
+A subdirectory of TcpStuff is CNGS. In this directory the SendCNGS and RecvCNGS programs are used to synchronize pre-triggers
+in the equipment located in the Grans Sasso cave in Italy. When a CNGS cycle is about to be executed the UDP packet arriving on
+multiple computers in Grand Sasso arm their detectors. This is needed to suppress false neutrino events and to protect equipment
+by removing the need to apply very high voltages when no neutrinos are being produced by the SPS.
