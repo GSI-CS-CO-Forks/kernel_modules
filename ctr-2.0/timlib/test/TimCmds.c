@@ -17,7 +17,7 @@ static TgmMachine tmch = TgmCPS;
 
 static int counter = 1;
 static int module = 1;
-static char *editor = "e";
+static char *editor = "vi";
 
 typedef struct {
    unsigned int  Eqp;

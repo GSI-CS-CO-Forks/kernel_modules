@@ -12,7 +12,7 @@
 
 static CtrDrvrCounter counter = CtrDrvrCounter1;
 static int module = 1;
-static char *editor = "e";
+static char *editor = "vi";
 
 /**************************************************************************/
 

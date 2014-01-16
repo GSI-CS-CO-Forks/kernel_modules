@@ -20,7 +20,7 @@
 static uint32_t module = 1;
 static uint32_t channel = CtrDrvrCounter1;
 
-static char *editor = "e";
+static char *editor = "vi";
 
 static char *TriggerConditionNames[CtrDrvrTriggerCONDITIONS] = {"*", "=", "&" };
 static char *CounterStart         [CtrDrvrCounterSTARTS]     = {"Nor", "Ext1", "Ext2", "Chnd", "Self", "Remt", "Pps", "Chnd+Stop"};
