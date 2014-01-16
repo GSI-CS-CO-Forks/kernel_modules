@@ -1,0 +1,9 @@
+TimLib is a highlevel API that makes full use of other libraries such as Tgm and Tgv.
+In principal this library will be depricated (I have my doubts). In any case we must still maintaine it for years to come.
+
+The test sud-directory contains tools that help users of timlib debug their code.
+
+WARNING: !!!!
+
+There is a sub-directory in test TcpStuff that contaians vital operational programs such as TimServer TimClient SendCNGS RecvCNGS
+See the readme in test.
