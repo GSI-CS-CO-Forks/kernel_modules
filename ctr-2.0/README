@@ -1,3 +1,8 @@
 This is a kosher linux version of the CTR without all the LynxOs emulation crap
-It is currently under developement and NOT ready for distribution
+
+In each directory driver and libctr there is a test directory with the test program
+
+I have fully tested this driver and I trust it more than what is currently installed.
+There are a few minor API changes so a relink is needed if TimLib is being used.
+
 Julian
