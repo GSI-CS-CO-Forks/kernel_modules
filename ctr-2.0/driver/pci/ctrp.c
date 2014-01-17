@@ -559,16 +559,13 @@ struct ioctl_names_s *get_name(int ionr)
 	return NULL;
 }
 
-void debug_ioctl(int debl, int iodr, int iosz, unsigned int ionr, void *arb, int flg)
+void debug_ioctl(struct ioctl_names_s *entry, int debl, int iodr, int iosz, unsigned int ionr, void *arb, int flg)
 {
-	struct ioctl_names_s *entry;
-
 	if (!debl)
 		return;
 
 	if (flg) {
 		printk("%s:", ctr_major_name);
-		entry = get_name(ionr);
 		if (entry) {
 			printk("ioctl:%s:%d\n",entry->name,entry->number);
 			if ((iodr & _IOC_WRITE) && (debl > 1))
@@ -1932,7 +1929,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 
 	mmap = (CtrDrvrMemoryMap *) mcon->Map;
 
-	debug_ioctl(ccon->DebugOn, iodr, iosz, ionr, arb, 1);
+	debug_ioctl(entry, ccon->DebugOn, iodr, iosz, ionr, arb, 1);
 
 	cc = 0;
 	switch (cmd) {
@@ -2680,7 +2677,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	}
 
 out:
-	debug_ioctl(ccon->DebugOn, iodr, iosz, ionr, arb, 0);
+	debug_ioctl(entry, ccon->DebugOn, iodr, iosz, ionr, arb, 0);
 
 	if ((arg) && (iodr & _IOC_READ) && copy_to_user((void *) arg, arb, iosz))
 		cc = -EACCES;
