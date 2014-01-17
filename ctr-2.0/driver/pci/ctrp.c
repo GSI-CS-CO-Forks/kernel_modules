@@ -1979,7 +1979,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		case CtrIoctlGET_MODULE_DESCRIPTOR:
 			moad = (CtrDrvrModuleAddress *) arb;
 
-			moad->BusType   = 1;
+			moad->BusType = PCI_BUS;
 			moad->HardwareAddress = mods[ccon->ModuleIndex].pci_bus_num << 16
 					      | mods[ccon->ModuleIndex].pci_slot_num;
 			moad->InterruptVector = mcon->dev->irq;

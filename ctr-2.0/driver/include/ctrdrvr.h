@@ -148,8 +148,11 @@ typedef struct {
 /* ***************************************************** */
 /* Module descriptor                                     */
 
+#define PCI_BUS 1
+#define VME_BUS 2
+
 typedef struct {
-   uint32_t BusType;         /* 1=PCI 2=VME else invalid */
+   uint32_t BusType;         /* PCI_BUS/VME_BUS else invalid */
    uint32_t HardwareAddress; /* PCI(Bus/Slot) or VME(BaseAddress) */
    uint32_t InterruptVector;
  } CtrDrvrModuleAddress;

@@ -1828,7 +1828,7 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 
 		case CtrIoctlGET_MODULE_DESCRIPTOR:
 			moad = (CtrDrvrModuleAddress *) arb;
-			moad->BusType = 2;
+			moad->BusType = VME_BUS;
 			moad->HardwareAddress = mcon->Address.HardwareAddress;
 			moad->InterruptVector = mcon->Address.InterruptVector;
 		break;
