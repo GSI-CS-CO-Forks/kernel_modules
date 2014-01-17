@@ -15,7 +15,6 @@
 
 /* #define CTR_PMC    Must also define CTR_PCI PMC is a special case of PCI */
 /* #define CTR_PCI    PCI module, could be PCI only or PMC, see above */
-/* #define CTR_G64 */
 /* #define CTR_VME */
 
 /* Under the gcc we use on LynxOs either __LITTLE / BIG_ENDIAN__ is defined. */
