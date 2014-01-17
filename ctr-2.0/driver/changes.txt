@@ -1,0 +1,66 @@
+Julian Lewis Fri 17th/Jan/2014 BE/CO/HT
+
+These are the changes to the API of the ctr drivers
+
+For the PCI version these ioctl calls have been suppressed
+
+   CtrIoctlREMAP
+   CtrIoctl93LC56B_EEPROM_OPEN
+   CtrIoctl93LC56B_EEPROM_READ
+   CtrIoctl93LC56B_EEPROM_WRITE
+   CtrIoctl93LC56B_EEPROM_ERASE
+   CtrIoctl93LC56B_EEPROM_CLOSE
+   CtrIoctlPLX9030_RECONFIGURE
+   CtrIoctlPLX9030_CONFIG_OPEN
+   CtrIoctlPLX9030_CONFIG_READ
+   CtrIoctlPLX9030_CONFIG_WRITE
+   CtrIoctlPLX9030_CONFIG_CLOSE
+   CtrIoctlPLX9030_LOCAL_OPEN
+   CtrIoctlPLX9030_LOCAL_READ
+   CtrIoctlPLX9030_LOCAL_WRITE
+   CtrIoctlPLX9030_LOCAL_CLOSE
+
+For both versions of the driver these ioctl calls have been suppressed
+
+   CtrIoctlJTAG_OPEN
+   CtrIoctlJTAG_READ_BYTE
+   CtrIoctlJTAG_WRITE_BYTE
+   CtrIoctlJTAG_CLOSE
+
+In both versions the ioctl to return the module description has changed
+
+   CtrIoctlGET_MODULE_DESCRIPTOR
+
+   #define PCI_BUS 1
+   #define VME_BUS 2
+
+   typedef struct {
+      uint32_t BusType;         /* PCI_BUS/VME_BUS else invalid */
+      uint32_t HardwareAddress; /* PCI(Bus/Slot) or VME(BaseAddress) */
+      uint32_t InterruptVector;
+    } CtrDrvrModuleAddress;
+
+In both the CTIM and PTIM list ioctls have changed
+
+   CtrIoctlLIST_CTIM_OBJECTS
+   CtrIoctlLIST_PTIM_OBJECTS
+
+   #define CtrDrvrCtimOBJECTS 1024 /* It was 2048 */
+   #define CtrDrvrPtimOBJECTS 1024 /* It was 2048 */
+
+   This changes the sizeof structures CtrDrvrCtimObjects and CtrDrvrPtimObjects
+
+In both drivers the event history mechanism has changed
+
+   CtrIoctlREAD_EVENT_HISTORY
+
+   #define CtrDrvrHISTORY_BUF_SIZE 512 /* It was CtrDrvrHISTORY_TABLE_SIZE and had value 1024 */
+
+   typedef struct {
+      uint32_t                 Index;
+      CtrDrvrEventHistoryEntry Entries[CtrDrvrHISTORY_BUF_SIZE];
+    } CtrDrvrEventHistoryBuf;
+
+    In the new ioctl the read is always from the current history entry hardware register backwards.
+    In the old driver we just copied the entire history hardware buffer and index registers to the user.
+    This means logic changes in the way event histories are handled.
