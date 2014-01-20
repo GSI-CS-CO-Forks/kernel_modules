@@ -1907,6 +1907,28 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	if ((mcon->UpLock) && (entry->lkflag))
 		return -EACCES;
 
+	/**
+	 * There are not enough bits in the IOC_SIZE field to hold a complete list
+	 * of PTIMs or CTIMs. Hence these ioctl calls must be handled specially ...
+	 *
+	 * CtrIoctlLIST_CTIM_OBJECTS
+	 * CtrIoctlLIST_PTIM_OBJECTS
+	 */
+
+	if (ionr == CtrDrvrLIST_CTIM_OBJECTS) {
+		iosz = sizeof(CtrDrvrCtimObjects);
+		iodr = _IOC_READ;
+	}
+
+	if (ionr == CtrDrvrLIST_PTIM_OBJECTS) {
+		iosz = sizeof(CtrDrvrPtimObjects);
+		iodr = _IOC_READ;
+	}
+
+	/**
+	 * Minimum is passing one uint32_t, calling kmalloc with 0 size will oops
+	 */
+
 	if (iosz < sizeof(uint32_t))
 		return -ENOENT;
 

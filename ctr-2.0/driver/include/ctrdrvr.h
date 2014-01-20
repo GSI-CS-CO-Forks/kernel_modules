@@ -105,7 +105,7 @@ typedef struct {
 /* ******************************************************* */
 /* CTIM object bindings                                    */
 
-#define CtrDrvrCtimOBJECTS 1024
+#define CtrDrvrCtimOBJECTS 2048
 
 typedef struct {
    uint32_t          EqpNum;
@@ -120,7 +120,7 @@ typedef struct {
 /* ******************************************************* */
 /* PTIM object bindings                                    */
 
-#define CtrDrvrPtimOBJECTS 1024
+#define CtrDrvrPtimOBJECTS 2048
 
 typedef struct {
    uint32_t       EqpNum;
@@ -429,11 +429,11 @@ typedef enum {
 #define CtrIoctlSET_ACTION                     CIOWR(CtrDrvrSET_ACTION             ,CtrDrvrAction)
 #define CtrIoctlCREATE_CTIM_OBJECT             CIOWR(CtrDrvrCREATE_CTIM_OBJECT     ,CtrDrvrCtimBinding)
 #define CtrIoctlDESTROY_CTIM_OBJECT            CIOWR(CtrDrvrDESTROY_CTIM_OBJECT    ,CtrDrvrCtimBinding)
-#define CtrIoctlLIST_CTIM_OBJECTS              CIOWR(CtrDrvrLIST_CTIM_OBJECTS      ,CtrDrvrCtimObjects) // too big
+#define CtrIoctlLIST_CTIM_OBJECTS              CIO  (CtrDrvrLIST_CTIM_OBJECTS)   // CtrDrvrCtimObjects too big
 #define CtrIoctlCHANGE_CTIM_FRAME              CIOWR(CtrDrvrCHANGE_CTIM_FRAME      ,CtrDrvrCtimBinding)
 #define CtrIoctlCREATE_PTIM_OBJECT             CIOWR(CtrDrvrCREATE_PTIM_OBJECT     ,CtrDrvrPtimBinding)
 #define CtrIoctlDESTROY_PTIM_OBJECT            CIOWR(CtrDrvrDESTROY_PTIM_OBJECT    ,CtrDrvrPtimBinding)
-#define CtrIoctlLIST_PTIM_OBJECTS              CIOWR(CtrDrvrLIST_PTIM_OBJECTS      ,CtrDrvrPtimObjects) // too big
+#define CtrIoctlLIST_PTIM_OBJECTS              CIO  (CtrDrvrLIST_PTIM_OBJECTS)   // CtrDrvrPtimObjects too big
 #define CtrIoctlGET_PTIM_BINDING               CIOWR(CtrDrvrGET_PTIM_BINDING       ,CtrDrvrPtimBinding)
 #define CtrIoctlGET_OUT_MASK                   CIOWR(CtrDrvrGET_OUT_MASK           ,CtrDrvrCounterMaskBuf)
 #define CtrIoctlSET_OUT_MASK                   CIOWR(CtrDrvrSET_OUT_MASK           ,CtrDrvrCounterMaskBuf)
