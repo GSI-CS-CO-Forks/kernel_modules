@@ -253,7 +253,7 @@ static Cmd cmds[CmdCMDS] = {
    { CmdCBID,    "cbid",  "Get/Set module cable ID"  ,"[id]"               ,GetSetCableId },
 
    { CmdPLL,     "pll",   "Edit Phase Locked Loop"   ,"0/Ki|Kp|Nav|Phas"      ,GetSetPll },
-   { CmdUPLL,    "upll",  "Set UTC PLL On Off"       ,"1/0"                   ,SetBrutalPll },
+   { CmdUPLL,    "upll",  "Set UTC PLL lock method"  ,"1=Brutal 0=Slow"       ,SetBrutalPll },
    { CmdKPLL,    "kpll",  "Set Pll constants"        ,"ErrT,DacK,MonK"        ,SetPllParams },
 
    { CmdDAC,     "dac",   "Get/Set PLL DAC value"    ,"[-]<value>"            ,GetSetDac },
