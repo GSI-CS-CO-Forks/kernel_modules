@@ -1778,10 +1778,12 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 	if (ionr == CtrDrvrLIST_CTIM_OBJECTS) {
 		iosz = sizeof(CtrDrvrCtimObjects);
 		iodr = _IOC_READ;
+		cmd  = CtrIoctlLIST_CTIM_OBJECTS;
 	}
 	if (ionr == CtrDrvrLIST_PTIM_OBJECTS) {
 		iosz = sizeof(CtrDrvrPtimObjects);
 		iodr = _IOC_READ;
+		cmd  = CtrIoctlLIST_PTIM_OBJECTS;
 	}
 
 	/**
