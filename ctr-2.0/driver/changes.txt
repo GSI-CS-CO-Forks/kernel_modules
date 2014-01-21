@@ -40,17 +40,7 @@ In both versions the ioctl to return the module description has changed
       uint32_t InterruptVector;
     } CtrDrvrModuleAddress;
 
-In both the CTIM and PTIM list ioctls have changed
-
-   CtrIoctlLIST_CTIM_OBJECTS
-   CtrIoctlLIST_PTIM_OBJECTS
-
-   #define CtrDrvrCtimOBJECTS 1024 /* It was 2048 */
-   #define CtrDrvrPtimOBJECTS 1024 /* It was 2048 */
-
-   This changes the sizeof structures CtrDrvrCtimObjects and CtrDrvrPtimObjects
-
-In both drivers the event history mechanism has changed
+In both drivers the event history mechanism has changed, used only in the test program
 
    CtrIoctlREAD_EVENT_HISTORY
 
