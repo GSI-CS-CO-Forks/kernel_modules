@@ -148,10 +148,35 @@ void *ctr_open(char *version);
 int ctr_close(void *handle);
 
 /**
+ * @brief Lock all updates at the module at the driver level
+ * @param handle, the handle that was allocated in open
+ * @return Zero means success else -1 is returned on error, see errno
+ *
+ * After calling this function the ctr driver is locked !!
+ * All calls to the driver that modify the current module are blocked !!
+ */
+
+int ctr_lock_module(void *handle);
+
+/**
+ * @brief Unlock all updates to the module at the driver level
+ * @param handle, the handle that was allocated in open
+ * @param pw is the driver unlock password
+ * @return Zero means success else -1 is returned on error, see errno
+ *
+ * The pw its built into the driver unlock algorithum,
+ * if you don't know it you can't unlock.
+ * Unless you reverse engineer the algorithum, not too difficult !!
+ */
+
+int ctr_unlock_module(void *handle, uint32_t pw);
+
+/**
  * @brief Get the number of installed CTR modules
  * @param A handle that was allocated in open
  * @return The installed module count or -1 on error
  */
+
 int ctr_get_module_count(void *handle);
 
 /**

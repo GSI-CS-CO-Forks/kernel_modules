@@ -16,8 +16,8 @@
 
 /**
  * @brief Get the addresses of a module
- * @param A handle that was allocated in open
- * @param Pointer to where the module address will be stored
+ * @param handle, the handle that was allocated in open
+ * @param module_address, Pointer to where the module address will be stored
  * @return Zero means success else -1 is returned on error, see errno
  */
 
@@ -41,8 +41,8 @@ int ctr_get_module_address(void *handle, struct ctr_module_address_s *module_add
 
 /**
  * @brief Select the P2 output byte number for current module
- * @param A handle that was allocated in open
- * @param The output byte number or zero
+ * @param handle, the handle that was allocated in open
+ * @param p2byte, the output byte number or zero
  * @return Zero means success else -1 is returned on error, see errno
  *
  * OutputByte: In the VME version of the CTR, the eight counter outputs
@@ -63,7 +63,7 @@ int ctr_set_p2_output_byte(void *handle, int p2byte)
 
 /**
  * @brief Get the P2 output byte number
- * @param A handle that was allocated in open
+ * @param handle, the handle that was allocated in open
  * @return The output byte number or -1 on error
  *
  * If a value of 0 is returned, no output byte is set

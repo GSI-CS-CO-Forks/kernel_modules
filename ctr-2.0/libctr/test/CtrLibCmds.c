@@ -2125,105 +2125,45 @@ int OpenClose(int arg) {
    return arg;
 }
 
-/*****************************************************************/
-
-#define LOCK_TEST_KEY 134579983
-
-int lock_test()
-{
-	key_t key;
-	int semid;
-
-	struct sembuf sops[2];
-	int nsops, cc;
-
-	key = LOCK_TEST_KEY;
-
-	semid = semget(key, 1, 0666);
-	if (semid < 0) {
-
-		semid = semget(key, 1, 0666 | IPC_CREAT);
-		if (semid < 0)
-			return -1;
-
-		sops[0].sem_num = 0;
-		sops[0].sem_op = 0;
-		sops[0].sem_flg = SEM_UNDO;
-
-		cc = semop(semid, sops, 1);
-		if (cc < 0)
-			return -1;
-	}
-
-	nsops = 2;
-
-	sops[0].sem_num = 0;
-	sops[0].sem_op = 0;
-	sops[0].sem_flg = SEM_UNDO;
-
-	sops[1].sem_num = 0;
-	sops[1].sem_op = 1;
-	sops[1].sem_flg = SEM_UNDO | IPC_NOWAIT;
-
-	cc = semop(semid, sops, nsops);
-	if (cc < 0)
-		return cc;
-
-	return 0;
-}
-
-int unlock_test()
-{
-	key_t key;
-	int semid;
-
-	struct sembuf sops[2];
-	int nsops, cc;
-
-	key = LOCK_TEST_KEY;
-
-	semid = semget(key, 1, 0666);
-	if (semid <= 0)
-		return -1;
-
-	nsops = 1;
-
-	sops[0].sem_num = 0;
-	sops[0].sem_op = -1;
-	sops[0].sem_flg = SEM_UNDO | IPC_NOWAIT;
-
-	cc = semop(semid, sops, nsops);
-	if (cc < 0)
-		return cc;
-
-	return 0;
-}
-
-int LockLib(int arg) {
+int LockModule(int arg) {
 
    int cc;
 
    arg++;
 
-   cc = lock_test();
+   cc = ctr_lock_module(h);
    if (cc < 0) {
-      perror("lock_test");
+      perror("ctr_lock_module");
       return arg;
    }
+   printf("Module is locked !\n");
    return arg;
 }
 
-int UnlockLib(int arg) {
+int UnlockModule(int arg) {
+ArgVal   *v;
+AtomType  at;
 
    int cc;
+   uint32_t pw;
 
    arg++;
+   v = &(vals[arg]);
+   at = v->Type;
 
-   cc = unlock_test();
-   if (cc < 0) {
-      perror("unlock_test");
+   pw = 0;
+   if (at == Numeric) {
+      arg++;
+      pw = v->Number;
+
+      cc = ctr_unlock_module(h,pw);
+      if (cc < 0)
+	 perror("ctr_unlock_module");
+
+      printf("Called unlock with: %d it may or may not be OK !\n",pw);
       return arg;
    }
+   printf("No password supplied\n");
    return arg;
 }
 

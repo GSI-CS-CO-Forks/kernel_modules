@@ -44,6 +44,8 @@ int GetSetP2Byte();
 int MemTest();
 int ListClients();
 int OpenClose();
+int LockModule();
+int UnlockModule();
 
 /* Commands */
 
@@ -90,6 +92,8 @@ typedef enum {
    CmdCTM,   /* Edit CTIM objects */
    CmdDEB,   /* Get set debug level */
    CmdCRO,   /* Close and reopen lib */
+   CmdLOCK,  /* Lock module */
+   CmdULOCK, /* Try to unlock module */
 
    CmdCMDS } CmdId;
 
@@ -144,6 +148,8 @@ static Cmd cmds[CmdCMDS] = {
    { CmdCTM,     "ctm",   "Edit CTIM objects"        ,"?|CtimId"           ,GetSetCtim        },
    { CmdDEB,     "deb",   "Get set debug level"      ,"Level"              ,SwDeb             },
    { CmdCRO,     "cro",   "Close and reopen lib"     ,""                   ,OpenClose         },
+   { CmdLOCK,    "lock",  "Lock module"              ,""                   ,LockModule        },
+   { CmdULOCK,   "ulock", "Try to unlock module"     ,"password"           ,UnlockModule      },
 
 };
 
