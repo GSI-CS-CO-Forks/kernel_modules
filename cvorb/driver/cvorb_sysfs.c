@@ -279,7 +279,7 @@ static ssize_t cvorb_store_fcn(struct kobject *channels_dir,
 			    &fcn_nr);
 	if (ret)
 		return ret;
-	ret = cvorb_sysfs_set_fcn(channel, fcn_nr, (void *) buffer);
+	ret = cvorb_sysfs_set_fcn(channel, fcn_nr, (void *) buffer, count);
 	return (ret) ? ret : count;
 }
 
