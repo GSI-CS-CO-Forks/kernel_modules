@@ -44,6 +44,7 @@ struct ipoctal_channel {
 	u8				isr_rx_rdy_mask;
 	u8				isr_tx_rdy_mask;
 	unsigned int			rx_enable;
+	struct ipoctal			*ipoctal;
 };
 
 struct ipoctal {
@@ -53,6 +54,7 @@ struct ipoctal {
 	struct tty_driver		*tty_drv;
 	u8 __iomem			*mem8_space;
 	u8 __iomem			*int_space;
+	u8				test_mode;
 };
 
 static int ipoctal_port_activate(struct tty_port *port, struct tty_struct *tty)
@@ -311,6 +313,7 @@ static int ipoctal_inst_slot(struct ipoctal *ipoctal, unsigned int bus_nr,
 	/* Disable RX and TX before touching anything */
 	for (i = 0; i < NR_CHANNELS ; i++) {
 		struct ipoctal_channel *channel = &ipoctal->channel[i];
+		channel->ipoctal = ipoctal;
 		channel->regs = chan_regs + i;
 		channel->block_regs = block_regs + (i >> 1);
 		channel->board_id = ipoctal->board_id;
@@ -471,6 +474,23 @@ static int ipoctal_chars_in_buffer(struct tty_struct *tty)
 	return channel->nb_bytes;
 }
 
+static void ipoctal_set_test_mode(struct ipoctal_channel *channel, int value)
+{
+	int rval;
+	struct ipoctal *ipoctal = channel->ipoctal;
+
+	/* No need to change state */
+	if (value == ipoctal->test_mode)
+		return;
+
+	/* Test mode is changed by reading this register */
+	rval = ioread8(&ipoctal->channel[0].block_regs->r.r1);
+	
+	ipoctal->test_mode = value;
+	dev_dbg(&ipoctal->dev->dev, "Test mode is %s\n", ipoctal->test_mode ? "ON" : "OFF");
+	
+}
+
 static void ipoctal_set_termios(struct tty_struct *tty,
 				struct ktermios *old_termios)
 {
@@ -489,6 +509,7 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	iowrite8(CR_CMD_RESET_TX, &channel->regs->w.cr);
 	iowrite8(CR_CMD_RESET_ERR_STATUS, &channel->regs->w.cr);
 	iowrite8(CR_CMD_RESET_MR, &channel->regs->w.cr);
+	ipoctal_set_test_mode(channel, BRG_OFF);
 
 	/* Set Bits per chars */
 	switch (cflag & CSIZE) {
@@ -589,6 +610,12 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	case 19200:
 		csr |= TX_CLK_19200 | RX_CLK_19200;
 		break;
+	case 115200:
+		/* Test mode on */
+		ipoctal_set_test_mode(channel, BRG_ON);
+		/* In test mode, this mask is for 115.2k */
+		csr |= TX_CLK_1200 | RX_CLK_1200;
+		break;
 	case 38400:
 	default:
 		csr |= TX_CLK_38400 | RX_CLK_38400;
@@ -663,6 +690,7 @@ static int ipoctal_probe(struct ipack_device *dev)
 	if (res)
 		goto out_uninst;
 
+	ipoctal->test_mode = 0;
 	dev_set_drvdata(&dev->dev, ipoctal);
 	return 0;
 
