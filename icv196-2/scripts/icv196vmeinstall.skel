@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "======================================================="
+echo "Installing ICV196 driver icv196vme.ko                  "
+echo "======================================================="
+
+echo 8 > /proc/sys/kernel/printk
+lun--.pl --devices=ICV196 | ./instprog  - ICV196VME
