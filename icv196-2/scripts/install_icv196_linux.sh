@@ -6,8 +6,9 @@ DRIVER_NAME=icv196
 
 # Install the icv196 driver specific script
 
-FIRSTARG=$(echo $1 | sed 's!\(..\).*!\1!')
-if [ x"$FIRSTARG" = x"-O" -o x"$FIRSTARG" = x"-A" ] ; then
+# if first argument starts with -[A-Z], skip them all
+# (old-style A.G. arguments)
+if echo x"$1" | grep -q "^x-[A-Z]" ; then
    while [ x"$*" != x"" ] ; do
    	shift
    done
@@ -15,14 +16,13 @@ fi
 
 OUTPUT=":"
 RUN=""
-while getopts hvnAD:d:t: o
+while getopts hvnD:d:t: o
 do	case $o in
 	v)	OUTPUT="echo" ;;		# verbose
 	n)	RUN=":" ;;			# dry run
 	D)	DEVICE_NAME="$OPTARG" ;;
 	d)	DRIVER_NAME="$OPTARG" ;;
 	t)	TRANSFER="$OPTARG" ;;
-	A)	;;		# ignore old-style installation params
 	[h?])	echo >&2 "usage: $0 [-?hvnb] [-D device] [-d driver] [-t transfer]"
 		exit ;;
 	esac
