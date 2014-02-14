@@ -19,10 +19,6 @@
  *    The structure CtrDrvrModuleAddress has changed to a generic form shared by PCI/VME drivers
  *       Hence the ioctl number CtrIoctlGET_MODULE_DESCRIPTOR has changed
  *       Logic dealing with module addresses in libraries and test programs has changed accordingly
- *    The structure CtrDrvrCtimObjects now has 1024 entries down from
- *       Hence the ioctl number CtrIoctlLIST_CTIM_OBJECTS has changed
- *    The structure CtrDrvrPtimObjects now has 1024 entries
- *       Hence the ioctl CtrIoctlLIST_PTIM_OBJECTS has changed
  *    The structure CtrDrvrEventHistoryBuf now has 512 entries
  *       Hence the ioctl CtrIoctlREAD_EVENT_HISTORY has changed
  *       Logic dealing with event history in libraries and test programs is changed accordingly
