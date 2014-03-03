@@ -3,6 +3,8 @@ This is a kosher linux version of the CTR without all the LynxOs emulation crap
 In each directory driver and libctr there is a test directory with the test program
 
 I have fully tested this driver and I trust it more than what is currently installed.
-There are a few minor API changes so a relink is needed if TimLib is being used.
+There are a few minor API changes to some more exotic routines, but they do not break existing code.
+None the less I recomend to deliver from here the driver, libraries and test program.
+Some changes do affect some ioctls used by the test programs such as read event history.
 
 Julian
