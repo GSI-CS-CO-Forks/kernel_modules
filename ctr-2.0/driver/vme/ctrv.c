@@ -2364,6 +2364,8 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		break;
 
 		case CtrIoctlSET_INPUT_DELAY:
+			if (lav > 400)		/* Clamp input delay at 100us (100us/25ns = 400) */
+				lav = 400;	/* To avoid loosing events !! */
 			mcon->InputDelay = lav;
 			iowrite32be(lav,&mmap->InputDelay);
 		break;
