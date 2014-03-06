@@ -571,9 +571,11 @@ static void show_mode(uint32_t status, uint32_t config)
 int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	uint32_t status;
-	uint32_t status_reg;
+/*
+	int32_t status_reg;
 	uint32_t config_reg;
-	uint32_t temperature;
+*/
+	int32_t temperature;
 	int ret;
 
 
@@ -586,7 +588,7 @@ int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 		mperr("get_chanstat");
 		return -TST_ERR_IOCTL;
 	}
-
+/*
 	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "status", &status_reg);
 	if (ret < 0) {
 		__cvorg_libc_error(__func__);
@@ -604,7 +606,7 @@ int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 		return -1;
 	}
 	show_mode(status_reg, config_reg);
-
+*/
 	if (status & CVORG_CHANSTAT_BUSY)
 		printf("\tBusy\n");
 	if (status & CVORG_CHANSTAT_SRAM_BUSY)
