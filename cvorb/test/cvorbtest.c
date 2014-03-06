@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <math.h>
+#include <stdint.h>
 
 #include <extest/general_usr.h>  /* for handy definitions (mperr etc..) and macros coming from general_both.h */
 #include <extest/extest.h>
@@ -27,6 +28,7 @@
 #if __CVORB_DEBUG__
 #include "time_stamp_counter.h"
 #endif
+
 /* mandatory external global variables */
 int use_builtin_cmds = 0;
 char xmlfile[128] = "cvorb.xml";
@@ -280,12 +282,13 @@ int h_hw_version(struct cmd_desc *cmdd, struct atom *atoms)
 
 int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 {
+	uint64_t pcb_id;
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - Print the PCB Serial Number of the current device\n", cmdd->name);
 		return 1;
 	}
-
-	printf ("0x%016llx\n", (unsigned long long)current_dev->pcb_id);
+	cvorb_get_pcb_id(current_dev, &pcb_id);
+	printf ("0x%016llx\n", pcb_id);
 	return 1;
 }
 

@@ -78,6 +78,7 @@ static int __devinit cvorb_probe(struct device *pdev, unsigned int ndev)
 	/* Set VME 32bits address and Lun */
 	cvorb->vme_base = base_address[ndev];
 	cvorb->lun = lun[ndev];
+	cvorb->dbglevel = 0;
 	printk(KERN_INFO PFX "Installing board with lun %d"
 		"and vme address 0x%08x. Board %d/%d\n",
 		cvorb->lun, cvorb->vme_base, ndev, num_lun);

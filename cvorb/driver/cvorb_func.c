@@ -482,6 +482,12 @@ static int __cvorb_set_fcn(struct cvorb_dev *cvorb,
 	ramaddr = ((fcn->channr) << CVORB_SUBMODULE_SRAM_CHAN_SHIFT) |
 	    (fcn->fcnnr << CVORB_SUBMODULE_SRAM_FUNC_SHIFT);
 
+	if (cvorb->dbglevel) 
+		printk("%s using %s. fcn_size32: %d n_vector: %d ramaddr: 0x%x"
+			" lun: %d submodule: %d ch: %d fcn: %d \n", 
+			__func__, ((is_ioctl) ? "ioctl" : "sysfs"),
+			fcn->hw_fcn_size32, fcn->n_vector, ramaddr,
+			cvorb->lun, fcn->submodulenr, fcn->channr, fcn->fcnnr);
 	/* Enter Critical section */
 	/**************************/
 	mutex_lock(&(cvorb->lock));
@@ -640,6 +646,13 @@ out_free_lock:
 		kfree(hw_fcn);
 	} else
 		*count = hw_fcn_sz32 * sizeof(uint32_t);
+	
+	if (cvorb->dbglevel) 
+		printk("%s using %s. fcn_size32: %d n_vector: %d ramaddr: 0x%x"
+			" lun: %d submodule: %d ch: %d fcn: %d \n", 
+			__func__, ((is_ioctl) ? "ioctl" : "sysfs"),
+			hw_fcn_sz32, hw_n_vector, ramaddr,
+			cvorb->lun, fcn->submodulenr, fcn->channr, fcn->fcnnr);
 	return ret;
 }
 
