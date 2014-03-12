@@ -57,7 +57,7 @@ typedef enum {
  } CtrDrvrConnectionClass;
 
 typedef struct {
-   uint32_t                Module;       /* The module 1..n */
+   uint32_t                Module;       /* The module 0 or 1..n */
    CtrDrvrConnectionClass  EqpClass;     /* Incomming CTIM or local PTIM timing */
    uint32_t                EqpNum;       /* Either a MASK or PTIM or CTIM object  */
  } CtrDrvrConnection;
