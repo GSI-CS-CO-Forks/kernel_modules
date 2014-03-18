@@ -1904,24 +1904,10 @@ long __ctr_ioctl(struct file *filp, uint32_t cmd, unsigned long arg)
 		return -EACCES;
 
 	/**
-	 * There are not enough bits in the IOC_SIZE field to hold a complete list
-	 * of PTIMs or CTIMs. Hence these ioctl calls must be handled specially ...
-	 *
-	 * CtrIoctlLIST_CTIM_OBJECTS
-	 * CtrIoctlLIST_PTIM_OBJECTS
+	 * Get rid of thi include later 
 	 */
 
-	if (ionr == CtrDrvrLIST_CTIM_OBJECTS) {
-		iosz = sizeof(CtrDrvrCtimObjects);
-		iodr = _IOC_READ;
-		cmd  = CtrIoctlLIST_CTIM_OBJECTS;
-	}
-
-	if (ionr == CtrDrvrLIST_PTIM_OBJECTS) {
-		iosz = sizeof(CtrDrvrPtimObjects);
-		iodr = _IOC_READ;
-		cmd  = CtrIoctlLIST_PTIM_OBJECTS;
-	}
+	#include "timlib_compat.c"
 
 	/**
 	 * Minimum is passing one uint32_t, calling kmalloc with 0 size will oops
