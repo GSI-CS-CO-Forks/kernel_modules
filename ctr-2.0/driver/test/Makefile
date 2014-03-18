@@ -46,12 +46,12 @@ clean:
 install:
 	echo "Please use install-lab/oper/lhc"
 
-install-lab: ctrptest.$(CPU) ctrtest.$(CPU)
+install-lab: ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/lab/$(CPU)/ctr
 
-install-oper: ctrptest.$(CPU) ctrtest.$(CPU)
+install-oper: ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/oper/$(CPU)/ctr
 
 
-install-lhc: ctrptest.$(CPU) ctrtest.$(CPU)
+install-lhc: ctrtest.$(CPU)
 	dsc_install $(ALL) /acc/dsc/oplhc/$(CPU)/ctr

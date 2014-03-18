@@ -17,6 +17,8 @@ modules:
 	cp ctrp.ko ctrp.$(KVER).ko
 	rm -f ctrp.ko
 	ln -s ctrp.$(KVER).ko ctrp.ko
+	mkdir -p ./$(CPU)/$(KVER)
+	cp ctrp.$(KVER).ko  ./$(CPU)/$(KVER)/ctrp.ko
 
 install: ./$(CPU)/$(KVER)/ctrp.ko
 	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"

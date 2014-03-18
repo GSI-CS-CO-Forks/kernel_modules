@@ -18,6 +18,8 @@ modules:
 	cp ctrv.ko ctrv.$(KVER).ko
 	rm -f ctrv.ko
 	ln -s ctrv.$(KVER).ko ctrv.ko
+	mkdir -p ./$(CPU)/$(KVER)
+	cp ctrv.$(KVER).ko ./$(CPU)/$(KVER)/ctrv.ko
 
 install: ./$(CPU)/$(KVER)/ctrv.ko
 	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"
