@@ -41,15 +41,13 @@ Main.$(CPU).o: $(SRCS) $(HDRS)
 
 Main.$(CPU): Main.$(CPU).o
 
-install: Main.$(CPU)
-	@for a in $(ACCS); do \
-		d=/acc/dsc/$$a/$(CPU)/tim; \
-		echo Installing timtest in $$d;\
-		dsc_install timtest.$(CPU) $$d;\
-		echo Installing configuration file; \
-		dsc_install timtest.config $$d;\
-		echo Installing TimLookat.$(CPU) in $$d; \
-		dsc_install TimLookat.$(CPU) $$d; \
-		echo Installing TimClock.$(CPU) in $$d; \
-		dsc_install TimClock.$(CPU) $$d; \
-	done;
+install-lab: 
+	d=/acc/dsc/lab/$(CPU)/tim; \
+	echo Installing timtest in $$d;\
+	dsc_install timtest.$(CPU) $$d;\
+	echo Installing configuration file; \
+	dsc_install timtest.config $$d;\
+	echo Installing TimLookat.$(CPU) in $$d; \
+	dsc_install TimLookat.$(CPU) $$d; \
+	echo Installing TimClock.$(CPU) in $$d; \
+	dsc_install TimClock.$(CPU) $$d; \
