@@ -737,6 +737,9 @@ static void Reset(CtrDrvrModuleContext *mcon)
 		}
 	}
 
+	/* Enable the Front panel outputs */
+	iowrite32be(0x100,&mmap->OutputByte);
+
 	if (mcon->Pll.KP == 0) {
 		mcon->Pll.KP = 337326;
 		mcon->Pll.KI = 901;
