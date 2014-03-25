@@ -72,7 +72,8 @@ static inline int __cvorg_channel_ready(struct cvorg_channel *channel)
 		  status & CVORG_STATUS_CLKOK;
 
 	if(!ret)
-		printk(KERN_WARNING PFX "Channel not ready. Status: 0x%x\n", status);
+		printk(KERN_WARNING PFX "Channel %d lun %d not ready. Status: 0x%x\n",
+			channel->chan_nr, channel->parent->lun, status);
 
 	return ret;
 }
@@ -1201,6 +1202,16 @@ static int cvorg_storeseq(struct cvorg_channel *channel, struct cvorg_seq *seq)
 	return -EINVAL;
 }
 
+/*
+ * The bit startable is raised when the HW finishes
+ * to copy the function from the SRAM to the internal RAM
+ * This operation is synchronized with the sampling clock rate
+ * Therefore if the sampling clock is low and the function big
+ * we might have to wait longer before the bit is raised.
+ * This is why BUSY_LOOP is so big knowing than most of the time
+ * a few iteration are enough.
+ */
+#define BUSY_LOOP 1000
 static void cvorg_poll_startable(struct cvorg_channel *channel)
 {
 	uint32_t reg;
@@ -1210,8 +1221,10 @@ static void cvorg_poll_startable(struct cvorg_channel *channel)
 	i = 0;
 	while (reg & CVORG_STATUS_SRAM_BUSY ||
 		!(reg & CVORG_STATUS_STARTABLE)) {
-		if (i > 20) {
-			printk(KERN_INFO PFX "Timeout expired: module not startable or RAM busy\n");
+		if (i > BUSY_LOOP) {
+			printk(KERN_INFO PFX "channel %d lun %d Timeout expired: "
+				"module not startable or RAM busy\n",
+				channel->chan_nr, channel->parent->lun);
 			return;
 		}
 		udelay(10);
