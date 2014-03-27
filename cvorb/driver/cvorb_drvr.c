@@ -80,8 +80,8 @@ static int __devinit cvorb_probe(struct device *pdev, unsigned int ndev)
 	cvorb->lun = lun[ndev];
 	cvorb->dbglevel = 0;
 	printk(KERN_INFO PFX "Installing board with lun %d"
-		"and vme address 0x%08x. Board %d/%d\n",
-		cvorb->lun, cvorb->vme_base, ndev, num_lun);
+		" and vme address 0x%08x. Board %d/%d\n",
+		cvorb->lun, cvorb->vme_base, ndev+1, num_lun);
 	ret = cvorb_install(cvorb_class, pdev, cvorb_devno, cvorb);
 	if (ret) {
 		printk(KERN_INFO PFX
