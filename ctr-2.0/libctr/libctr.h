@@ -12,8 +12,8 @@
 #define LIBCTR
 
 #include <sys/time.h>
-#include <ctrdrvr.h>
-#include <ctrhard.h>
+#include "ctrdrvr.h"
+#include "ctrhard.h"
 
 struct ctr_ccv_s {
 	uint32_t enable;                    /* Enable = 2, Bus = 1 Enable+Bus = 3 */
