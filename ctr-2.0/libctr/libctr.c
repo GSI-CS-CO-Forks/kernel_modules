@@ -128,6 +128,9 @@ char *ctr_get_ldver()
  *         If the library is already open only a dlopen handle is returned
  * Bind symbols in the loaded library to the libctr handels API function pointers
  */
+
+static void *__dll_handle = NULL;
+
 void *ctr_open(char *version)
 {
 
@@ -178,25 +181,30 @@ void *ctr_open(char *version)
 		return (void *) -1;
 	}
 
-	sprintf(path,"lib%s.so.%1.1f",cp,SOVER);
-	h->dll_handle = dlopen(path, RTLD_LOCAL | RTLD_LAZY);
-	if (!h->dll_handle) {
-
-		if ((version == NULL) || (strlen(version) < strlen("1.0")))
-			sprintf(path,"%s/lib%s.so.%1.1f",SO_PATH_DEFAULT,cp,SOVER);
-		else
-			sprintf(path,"%s/lib%s.so.%s",SO_PATH_DEFAULT,cp,version);
-
+	if (__dll_handle == NULL) {
+		sprintf(path,"lib%s.so.%1.1f",cp,SOVER);
 		h->dll_handle = dlopen(path, RTLD_LOCAL | RTLD_LAZY);
 		if (!h->dll_handle) {
-			errsv = errno;
-			fprintf(stderr,"ctr_open:%s\n",dlerror());
-			close(fd);
-			free(h);
-			errno = errsv;
-			return (void *) -1;
+	
+			if ((version == NULL) || (strlen(version) < strlen("1.0")))
+				sprintf(path,"%s/lib%s.so.%1.1f",SO_PATH_DEFAULT,cp,SOVER);
+			else
+				sprintf(path,"%s/lib%s.so.%s",SO_PATH_DEFAULT,cp,version);
+	
+			h->dll_handle = dlopen(path, RTLD_LOCAL | RTLD_LAZY);
+			if (!h->dll_handle) {
+				errsv = errno;
+				fprintf(stderr,"ctr_open:%s\n",dlerror());
+				close(fd);
+				free(h);
+				errno = errsv;
+				return (void *) -1;
+			}
 		}
+		__dll_handle = h->dll_handle;
 	}
+	else
+		h->dll_handle = __dll_handle;
 	ptr = (unsigned long *) &h->api;
 	for (i=0; i<CTR_INDEX_LAST; i++) {
 		ptr[i] = (unsigned long) dlsym(h->dll_handle, ctr_api_names[i]);
@@ -220,15 +228,15 @@ void *ctr_open(char *version)
 int ctr_close(void *handle)
 {
 	struct ctr_handle_s *h = handle;
-	int errsv;
+//	int errsv;
 
 	if (h) {
-		if (dlclose(h->dll_handle)) {
-			errsv = errno;
-			fprintf(stderr,"ctr_close:%s\n",dlerror());
-			errno = errsv;
-			return -1;
-		}
+//		if (dlclose(h->dll_handle)) {
+//			errsv = errno;
+//			fprintf(stderr,"ctr_close:%s\n",dlerror());
+//			errno = errsv;
+//			return -1;
+//		}
 
 		if (close(h->fd)) {
 			return -1;
