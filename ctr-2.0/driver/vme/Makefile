@@ -24,16 +24,20 @@ modules:
 install: ./$(CPU)/$(KVER)/ctrv.ko
 	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"
 
-install-all: install-lab install-oper install-oplhc
+install-all: install-lab install-oper install-oplhc install-opctf
 
 install-lab: ./$(CPU)/$(KVER)/ctrv.ko
-	mkdir -p /acc/dsc/lab/$(CPU)/$(KVER)/ctrv
-	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/lab/$(CPU)/$(KVER)/ctrv;
+	mkdir -p /acc/dsc/lab/$(CPU)/$(KVER)/ctr
+	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/lab/$(CPU)/$(KVER)/ctr;
 
 install-oper: ./$(CPU)/$(KVER)/ctrv.ko
-	mkdir -p /acc/dsc/oper/$(CPU)/$(KVER)/ctrv
-	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/oper/$(CPU)/$(KVER)/ctrv;
+	mkdir -p /acc/dsc/oper/$(CPU)/$(KVER)/ctr
+	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/oper/$(CPU)/$(KVER)/ctr;
 
 install-oplhc: ./$(CPU)/$(KVER)/ctrv.ko
-	mkdir -p /acc/dsc/oplhc/$(CPU)/$(KVER)/ctrv
-	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/oplhc/$(CPU)/$(KVER)/ctrv;
+	mkdir -p /acc/dsc/oplhc/$(CPU)/$(KVER)/ctr
+	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/oplhc/$(CPU)/$(KVER)/ctr;
+
+install-opctf: ./$(CPU)/$(KVER)/ctrv.ko
+	mkdir -p /acc/dsc/opctf/$(CPU)/$(KVER)/ctr
+	dsc_install ./$(CPU)/$(KVER)/ctrv.ko /acc/dsc/opctf/$(CPU)/$(KVER)/ctr;
