@@ -64,6 +64,7 @@ typedef enum {
 	CTR_INDEX_get_p2_output_byte,
 	CTR_INDEX_list_ltim_objects,
 	CTR_INDEX_list_ctim_objects,
+	CTR_INDEX_get_event_history,
 
 	CTR_INDEX_LAST
 } ctr_index_t;
@@ -116,6 +117,7 @@ struct ctr_api_s {
 	int   (*ctr_get_p2_output_byte)(void *handle);
 	int   (*ctr_list_ltim_objects)(void *handle, CtrDrvrPtimObjects *ltims);
 	int   (*ctr_list_ctim_objects)(void *handle, CtrDrvrCtimObjects *ctims);
+	int   (*ctr_get_event_history)(void *handle, CtrDrvrEventHistory *evt_history);
 };
 
 char *ctr_api_names[CTR_INDEX_LAST] = {
@@ -165,7 +167,8 @@ char *ctr_api_names[CTR_INDEX_LAST] = {
 	"ctr_set_p2_output_byte",
 	"ctr_get_p2_output_byte",
 	"ctr_list_ltim_objects",
-	"ctr_list_ctim_objects" };
+	"ctr_list_ctim_objects",
+	"ctr_get_event_history"};
 
 struct ctr_handle_s {
 	int fd;                 /** CTR driver file descriptor */

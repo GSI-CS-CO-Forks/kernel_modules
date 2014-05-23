@@ -1274,6 +1274,47 @@ int ctr_simulate_interrupt(void *handle, CtrDrvrConnectionClass ctr_class, int e
 }
 
 /**
+ * @brief Get the event history 
+ * @param A handle that was allocated in open
+ * @param Pointer to the client event history struct
+ * @return Zero means success else -1 is returned on error, see errno
+ */
+int ctr_get_event_history(void *handle, CtrDrvrEventHistory *event_history)
+{
+	struct ctr_handle_s *h = handle;
+	CtrDrvrEventHistory ehsb;
+	int i, j, hi;
+
+	/* first clean client buffer */
+   	bzero((void *) &ehsb, sizeof(CtrDrvrEventHistory));
+	if (ioctl(h->fd,CtrIoctlREAD_EVENT_HISTORY,&ehsb) < 0)
+		return -1;
+	/* 
+	 * The hardware buffer history is a ring buffer. Index field
+	 * points to the next write address. CTR drvr vers. 1 push the
+	 * event history as it is but ctr drvr vers. 2 reorder the
+	 * events from 0 to n. Therefore if Index!= 0 the lib does the
+	 * reorder otherwise it has been done by the drvr. 
+	 */ 
+	hi = ehsb.Index;
+   	if ((hi<0) || (hi>CtrDrvrHISTORY_TABLE_SIZE))
+		return -1;
+	if (hi == 0) {
+		for (i=0; i<CtrDrvrHISTORY_TABLE_SIZE; i++)
+			event_history->Entries[i] = ehsb.Entries[i];
+	}
+	else {
+		for (i=1; i<CtrDrvrHISTORY_TABLE_SIZE; i++) {
+			j = hi -i;
+			if (j<0)
+				j += CtrDrvrHISTORY_TABLE_SIZE;
+			event_history->Entries[i] = ehsb.Entries[j];
+		}
+	}
+	return 0;
+}
+
+/**
  * @brief generate ctim list from info file
  * @param path  - to info file or NULL is the default
  * @param count - the maximum number of ctims that can be stored in the callers array

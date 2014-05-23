@@ -638,7 +638,14 @@ int ctr_get_p2_output_byte(void *handle);
  * @param ctims - points to the array where ctime will be stored
  * @return the number of ctims found or -1 on error
  */
-
 int ctr_gcrap(char *path, uint32_t count, uint32_t *ctims);
+
+/**
+ * @brief Get the event history
+ * @param A handle that was allocated in open
+ * @param Pointer to the client event history struct
+ * @return Zero means success else -1 is returned on error, see errno
+ */
+int ctr_get_event_history(void *handle, CtrDrvrEventHistory *evt_history);
 
 #endif
