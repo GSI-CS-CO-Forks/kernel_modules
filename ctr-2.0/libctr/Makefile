@@ -45,7 +45,7 @@ LDVER=2.1
 SUBVER=1
 
 SO_TARGET=/acc/dsc/$(ACC)/$(CPU)/ctr
-AH_TARGET=/acc/local/$(CPU)/tim
+AH_TARGET=/acc/local/$(CPU)/drv/ctr
 
 include /acc/dsc/src/co/Make.auto
 
@@ -93,13 +93,15 @@ install-all: install-lib install-lab install-oper install-oplhc install-opctf
 
 install-lib: $(INSTFILES)
 	@echo -e "\nInstalling libctr.a in " $(AH_TARGET)
-	dsc_install libctr.$(CPU).a $(AH_TARGET)
-	rm -rf $(AH_TARGET)/libctr.$(LDVER)
-	mkdir $(AH_TARGET)/libctr.$(LDVER)
-	@echo "Installing libctr.a and libctr.h in " $(AH_TARGET) "/libctr." $(LDVER)
-	dsc_install libctr.$(CPU).a $(AH_TARGET)/libctr.$(LDVER)
-	dsc_install libctr.h $(AH_TARGET)/libctr.$(LDVER)
-	dsc_install $(DRVR)/*.h $(AH_TARGET)/libctr.$(LDVER)
+	rm -rf $(AH_TARGET)/$(LDVER).$(SUBVER)
+	mkdir -p $(AH_TARGET)/$(LDVER).$(SUBVER)
+	mkdir -p $(AH_TARGET)/$(LDVER).$(SUBVER)/include
+	mkdir -p $(AH_TARGET)/$(LDVER).$(SUBVER)/include/ctr
+	mkdir -p $(AH_TARGET)/$(LDVER).$(SUBVER)/lib
+	@echo "Installing libctr.a and libctr.h in " $(AH_TARGET) "/" $(LDVER) "." $(SUBVER)
+	dsc_install libctr.$(CPU).a $(AH_TARGET)/$(LDVER).$(SUBVER)/lib
+	dsc_install libctr.h $(AH_TARGET)/$(LDVER).$(SUBVER)/include/ctr
+	dsc_install $(DRVR)/*.h $(AH_TARGET)/$(LDVER).$(SUBVER)/include/ctr
 	@echo -e "Done install-lib\n"
 
 install-lab: $(INSTFILES)
