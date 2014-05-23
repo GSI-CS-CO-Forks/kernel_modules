@@ -954,6 +954,8 @@ static void ReadEventHistory(CtrDrvrModuleContext *mcon, CtrDrvrEventHistoryBuf 
 	indx = ioread32be(&mmap->EventHistory.Index);
 	if (indx >= CtrDrvrHISTORY_TABLE_SIZE)
 		indx = 0;
+	else
+		--indx; /* HW idx points the next adress which contain old event*/
 
 	for (i=0,j=indx; i<CtrDrvrHISTORY_BUF_SIZE; i++,j--) {
 		dst = &(evhs->Entries[i]);
