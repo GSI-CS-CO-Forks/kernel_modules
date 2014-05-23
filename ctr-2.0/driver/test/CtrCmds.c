@@ -3794,7 +3794,7 @@ char comment[128];
    }
 
    printf("\n");
-   for (i=size; i>=0; i--) {
+   for (i=0; i<size; ++i) {
 
 #ifdef PS_VER
       bzero((void *) comment,128);
