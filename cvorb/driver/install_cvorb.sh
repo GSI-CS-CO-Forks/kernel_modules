@@ -7,6 +7,16 @@ TRANSFER=/etc/transfer.ref
 OUTPUT=":"
 RUN=""
 
+KERNEL=`uname -s`
+VERSION=`uname -r`
+
+# if called with CVORB as first argument, drop them all
+if [ x"$1" = x"$DEVICE_NAME" ] ; then
+    while [ x"$*" != x"" ] ; do
+	shift
+    done
+fi
+
 while getopts hvnc:D:d:t: o
 do	case $o in
 	v)	OUTPUT="echo" ;;		# verbose
