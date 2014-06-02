@@ -45,3 +45,7 @@ if [ -z "$MAJOR" ]; then
 	echo "driver $DRIVER_NAME not installed!"
 	exit 1
 fi
+
+# change device node permission (default is 66- )
+sleep 1
+chmod 0666 /dev/$DRIVER_NAME.[0-9]*
