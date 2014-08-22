@@ -15,6 +15,8 @@
  */
 
 #include <linux/interrupt.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 
 #include "tsi148.h"
 #include "vme_bridge.h"
@@ -76,44 +78,60 @@ struct interrupt_stats  {
 
 #ifdef CONFIG_PROC_FS
 
-int vme_interrupts_proc_show(char *page, char **start, off_t off,
-			     int count, int *eof, void *data)
+static int vme_interrupts_proc_show(struct seq_file *m, void *data)
 {
-	char *p = page;
-	int i;
+        int i;
 
-	p += sprintf(p, " Source       Count\n");
-	p += sprintf(p, "--------------------------\n\n");
+        seq_printf(m, " Source       Count\n");
+        seq_printf(m, "--------------------------\n\n");
 
-	for (i = 0; i < ARRAY_SIZE(int_stats); i++)
-		p += sprintf(p, "%-8s      %d\n", int_stats[i].name,
-			     int_stats[i].count);
+        for (i = 0; i < ARRAY_SIZE(int_stats); i++)
+                seq_printf(m, "%-8s      %d\n", int_stats[i].name,
+                             int_stats[i].count);
 
-	*eof = 1;
-	return p - page;
+        return 1;
 }
 
-int vme_irq_proc_show(char *page, char **start, off_t off, int count,
-		      int *eof, void *data)
+static int vme_interrupts_proc_open(struct inode *inode, struct file *file)
 {
-	char *p = page;
-	int i;
-	struct vme_irq *virq;
-
-	p += sprintf(p, "Vector     Count      Client\n");
-	p += sprintf(p, "------------------------------------------------\n\n");
-
-	for (i = 0; i < VME_NUM_VECTORS; i++) {
-		virq = &vme_irq_table[i];
-
-		if (virq->handler)
-			p += sprintf(p, " %3d     %10u   %s\n",
-				     i, virq->count, virq->name);
-	}
-
-	*eof = 1;
-	return p - page;
+        return single_open(file, vme_interrupts_proc_show, NULL);
 }
+
+const struct file_operations vme_interrupts_proc_ops = {
+        .open           = vme_interrupts_proc_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
+
+static int vme_irq_proc_show(struct seq_file *m, void *data)
+{
+        int i;
+        struct vme_irq *virq;
+
+        seq_printf(m, "Vector     Count      Client\n");
+        seq_printf(m, "------------------------------------------------\n\n");
+
+        for (i = 0; i < VME_NUM_VECTORS; i++) {
+                virq = &vme_irq_table[i];
+                if (virq->handler)
+                        seq_printf(m, " %3d     %10u   %s\n",
+                                   i, virq->count, virq->name);
+        }
+        return 1;
+}
+
+static int vme_irq_proc_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, vme_irq_proc_show, NULL);
+}
+
+const struct file_operations vme_irq_proc_ops = {
+        .open           = vme_irq_proc_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
 
 #endif /* CONFIG_PROC_FS */
 

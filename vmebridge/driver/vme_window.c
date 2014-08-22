@@ -20,6 +20,8 @@
 #include <linux/list.h>
 #include <linux/pci.h>
 #include <linux/sched.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <asm/uaccess.h>
 
 #include "vmebus.h"
@@ -119,12 +121,10 @@ static char *amod[] = {
 	"A24MBLT SUP", "A24 SUP DATA", "A24 SUP PROG", "A24BLT SUP"
 };
 
-static int vme_window_proc_show_mapping(char *page, int num,
-					struct mapping *mapping)
+static int vme_window_proc_show_mapping(struct seq_file *m, int num, struct mapping *mapping)
 {
-	char *p = page;
-	char *pfs;
-	struct vme_mapping *desc = &mapping->desc;
+        char *pfs;
+        struct vme_mapping *desc = &mapping->desc;
 
 /*
            va       PCI     VME      Size     Address Modifier   Data   Prefetch
@@ -132,141 +132,144 @@ static int vme_window_proc_show_mapping(char *page, int num,
     dd: xxxxxxxx xxxxxxxx xxxxxxxx xxxxxxxx - ssssssssssssssss /  sss    sssss
     client: ddddd ssssssssssssssss
 */
-	p += sprintf(p, "    %2d: %p %.8x %.8x %.8x - ",
-		     num,
-		     desc->kernel_va, desc->pci_addrl,
-		     desc->vme_addrl, desc->sizel);
+        seq_printf(m, "    %2d: %p %.8x %.8x %.8x - ",
+                     num,
+                     desc->kernel_va, desc->pci_addrl,
+                     desc->vme_addrl, desc->sizel);
 
-	if (desc->read_prefetch_enabled)
-		switch (desc->read_prefetch_size) {
-		case VME_PREFETCH_2:
-			pfs = "PFS2";
-			break;
-		case VME_PREFETCH_4:
-			pfs = "PFS4";
-			break;
-		case VME_PREFETCH_8:
-			pfs = "PFS8";
-			break;
-		case VME_PREFETCH_16:
-			pfs = "PFS16";
-			break;
-		default:
-			pfs = "?";
-			break;
-		}
-	else
-		pfs = "NOPF";
+        if (desc->read_prefetch_enabled)
+                switch (desc->read_prefetch_size) {
+                case VME_PREFETCH_2:
+                        pfs = "PFS2";
+                        break;
+                case VME_PREFETCH_4:
+                        pfs = "PFS4";
+                        break;
+                case VME_PREFETCH_8:
+                        pfs = "PFS8";
+                        break;
+                case VME_PREFETCH_16:
+                        pfs = "PFS16";
+                        break;
+                default:
+                        pfs = "?";
+                        break;
+                }
+        else
+                pfs = "NOPF";
 
-	p += sprintf(p, "(0x%02x)%s / D%2d %5s\n",
-		     desc->am, amod[desc->am], desc->data_width, pfs);
-	p += sprintf(p, "        client: ");
+        seq_printf(m, "(0x%02x)%s / D%2d %5s\n",
+                   desc->am, amod[desc->am], desc->data_width, pfs);
+        seq_printf(m, "        client: ");
 
-	if (mapping->client.pid_nr)
-		p += sprintf(p, "%d ", (unsigned int)mapping->client.pid_nr);
+        if (mapping->client.pid_nr)
+                seq_printf(m, "%d ", (unsigned int)mapping->client.pid_nr);
 
-	if (mapping->client.name[0])
-		p += sprintf(p, "%s", mapping->client.name);
+        if (mapping->client.name[0])
+                seq_printf(m, "%s", mapping->client.name);
 
-	p += sprintf(p, "\n");
-
-	return p - page;
+        seq_printf(m, "\n");
+        return 0;
 }
 
-static int vme_window_proc_show_window(char *page, int window_num)
+static int vme_window_proc_show_window(struct seq_file *m, int window_num)
 {
-	char *p = page;
-	char *pfs;
-	struct window *window = &window_table[window_num];
-	struct mapping *mapping;
-	struct vme_mapping *desc;
-	int count = 0;
+        char *pfs;
+        struct window *window = &window_table[window_num];
+        struct mapping *mapping;
+        struct vme_mapping *desc;
+        int count = 0;
 
 
-	p += sprintf(p, "Window %d:  ", window_num);
+        seq_printf(m, "Window %d:  ", window_num);
 
-	if (!window->active)
-		p += sprintf(p, "Not Active\n");
-	else {
-		p += sprintf(p, "Active - ");
+        if (!window->active)
+                seq_printf(m, "Not Active\n");
+        else {
+                seq_printf(m, "Active - ");
+                if (window->users == 0)
+                        seq_printf(m, "No users\n");
+                else
+                        seq_printf(m, "%2d user%c\n", window->users,
+                                     (window->users > 1)?'s':' ');
+        }
 
-		if (window->users == 0)
-			p += sprintf(p, "No users\n");
-		else
-			p += sprintf(p, "%2d user%c\n", window->users,
-				     (window->users > 1)?'s':' ');
-	}
+        if (!window->active) {
+                seq_printf(m, "\n");
+                return 0;
+        }
 
-	if (!window->active) {
-		p += sprintf(p, "\n");
-		return p - page;
-	}
+        desc = &window->desc;
+        seq_printf(m, "        %p %.8x %.8x %.8x - ",
+                   desc->kernel_va, desc->pci_addrl,
+                   desc->vme_addrl, desc->sizel);
 
-	desc = &window->desc;
+        if (desc->read_prefetch_enabled)
+               switch (desc->read_prefetch_size) {
+                        case VME_PREFETCH_2:
+                                pfs = "PFS2";
+                                break;
+                        case VME_PREFETCH_4:
+                                pfs = "PFS4";
+                                break;
+                        case VME_PREFETCH_8:
+                                pfs = "PFS8";
+                                break;
+                        case VME_PREFETCH_16:
+                                pfs = "PFS16";
+                                break;
+                        default:
+                                pfs = "?";
+                                break;
+                        }
+                else
+                        pfs = "NOPF";
 
-	p += sprintf(p, "        %p %.8x %.8x %.8x - ",
-		     desc->kernel_va, desc->pci_addrl,
-		     desc->vme_addrl, desc->sizel);
+        seq_printf(m, "(0x%02x)%s / D%2d %5s\n",
+                   desc->am, amod[desc->am], desc->data_width, pfs);
 
-		if (desc->read_prefetch_enabled)
-			switch (desc->read_prefetch_size) {
-			case VME_PREFETCH_2:
-				pfs = "PFS2";
-				break;
-			case VME_PREFETCH_4:
-				pfs = "PFS4";
-				break;
-			case VME_PREFETCH_8:
-				pfs = "PFS8";
-				break;
-			case VME_PREFETCH_16:
-				pfs = "PFS16";
-				break;
-			default:
-				pfs = "?";
-				break;
-			}
-		else
-			pfs = "NOPF";
+        if (list_empty(&window->mappings)) {
+                seq_printf(m, "\n");
+                return 0;
+        }
 
-		p += sprintf(p, "(0x%02x)%s / D%2d %5s\n",
-			     desc->am, amod[desc->am], desc->data_width, pfs);
+        seq_printf(m, "\n  Mappings:\n");
+        list_for_each_entry(mapping, &window->mappings, list) {
+                vme_window_proc_show_mapping(m, count, mapping);
+                count++;
+        }
+        seq_printf(m, "\n");
 
-	if (list_empty(&window->mappings)) {
-		p += sprintf(p, "\n");
-		return p - page;
-	}
-
-	p += sprintf(p, "\n  Mappings:\n");
-
-	list_for_each_entry(mapping, &window->mappings, list) {
-		p += vme_window_proc_show_mapping(p, count, mapping);
-		count++;
-	}
-
-	p += sprintf(p, "\n");
-
-    return p - page;
+    return 0;
 }
 
-int vme_window_proc_show(char *page, char **start, off_t off, int count,
-			 int *eof, void *data)
+static int vme_window_proc_show(struct seq_file *m, void *data)
 {
-	char *p = page;
-	int i;
+        int i;
 
-	p += sprintf(p, "\nPCI-VME Windows\n");
-	p += sprintf(p, "===============\n\n");
-	p += sprintf(p, "        va       PCI      VME      Size      Address Modifier Data  Prefetch\n");
-	p += sprintf(p, "                                             and Description  Width Size\n");
-	p += sprintf(p, "----------------------------------------------------------------------------\n\n");
+        seq_printf(m, "\nPCI-VME Windows\n");
+        seq_printf(m, "===============\n\n");
+        seq_printf(m, "        va       PCI      VME      Size      Address Modifier Data  Prefetch\n");
+        seq_printf(m, "                                             and Description  Width Size\n");
+        seq_printf(m, "----------------------------------------------------------------------------\n\n");
 
-	for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++)
-		p += vme_window_proc_show_window(p, i);
+        for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++)
+                vme_window_proc_show_window(m, i);
 
-	*eof = 1;
-	return p - page;
+        return 1;
 }
+
+static int vme_window_proc_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, vme_window_proc_show, NULL);
+}
+
+const struct file_operations vme_window_proc_ops = {
+        .open           = vme_window_proc_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
 
 #endif /* CONFIG_PROC_FS */
 

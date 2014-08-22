@@ -106,12 +106,14 @@ extern irqreturn_t vme_bridge_interrupt(int, void *);
 extern int vme_enable_interrupts(unsigned int);
 extern int vme_disable_interrupts(unsigned int);
 
+
 /* vme_window.c */
 extern int vme_window_release(struct inode *, struct file *);
 extern long vme_window_ioctl(struct file *, unsigned int, unsigned long);
 extern int vme_window_mmap(struct file *, struct vm_area_struct *);
 extern void __devinit vme_window_init(void);
 extern void __devexit vme_window_exit(void);
+
 
 /* vme_dma.c */
 extern void handle_dma_interrupt(int);
@@ -128,13 +130,9 @@ extern int vme_bus_error_check_clear(struct vme_bus_error *);
 
 /* Procfs stuff grouped here for comodity */
 #ifdef CONFIG_PROC_FS
-extern int vme_interrupts_proc_show(char *page, char **start, off_t off,
-				    int count, int *eof, void *data);
-extern int vme_irq_proc_show(char *page, char **start, off_t off,
-			     int count, int *eof, void *data);
-extern int vme_window_proc_show(char *page, char **start, off_t off,
-				int count, int *eof, void *data);
-#endif /* CONFIG_PROC_FS */
-
+extern const struct file_operations vme_interrupts_proc_ops;
+extern const struct file_operations vme_irq_proc_ops;
+extern const struct file_operations vme_window_proc_ops;
+#endif
 
 #endif /* _VME_BRIDGE_H */

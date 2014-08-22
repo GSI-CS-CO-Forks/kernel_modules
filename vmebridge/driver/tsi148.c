@@ -13,6 +13,8 @@
 #include <linux/module.h>
 #include <linux/device.h>
 #include <linux/sched.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <asm/byteorder.h>
 
 #include "vme_bridge.h"
@@ -40,65 +42,72 @@ static struct proc_dir_entry *tsi148_proc_root;
  * tsi148_proc_pcfs_show() - Dump the PCFS register group
  *
  */
-static int tsi148_proc_pcfs_show(char *page, char **start, off_t off, int count,
-			  int *eof, void *data)
+static int tsi148_proc_pcfs_show(struct seq_file *m, void *data)
 {
-	char *p = page;
-	unsigned int tmp;
+        unsigned int tmp;
 
-	p += sprintf(p, "\nPCFS Register Group:\n");
+        seq_printf(m, "\nPCFS Register Group:\n");
 
-	tmp = ioread32(&chip->pcfs.veni);
-	p += sprintf(p, "\tpciveni   0x%04x\n", tmp & 0xffff);
-	p += sprintf(p, "\tpcidevi   0x%04x\n", (tmp>>16) & 0xffff);
-	tmp = ioread32(&chip->pcfs.cmmd);
-	p += sprintf(p, "\tpcicmd    0x%04x\n", tmp & 0xffff);
-	p += sprintf(p, "\tpcistat   0x%04x\n", (tmp>>16) & 0xffff);
-	tmp = ioread32(&chip->pcfs.rev_class);
-	p += sprintf(p, "\tpcirev    0x%02x\n", tmp & 0xff);
-	p += sprintf(p, "\tpciclass  0x%06x\n", (tmp >> 8) & 0xffffff);
-	tmp = ioread32(&chip->pcfs.clsz);
-	p += sprintf(p, "\tpciclsz   0x%02x\n", tmp & 0xff);
-	p += sprintf(p, "\tpcimlat   0x%02x\n", (tmp>>8) & 0xff);
-	tmp = ioread32(&chip->pcfs.mbarl);
-	p += sprintf(p, "\tpcimbarl  0x%08x\n", tmp);
-	tmp = ioread32(&chip->pcfs.mbaru);
-	p += sprintf(p, "\tpcimbaru  0x%08x\n", tmp);
-	tmp = ioread32(&chip->pcfs.subv);
-	p += sprintf(p, "\tpcisubv   0x%04x\n", tmp & 0xffff);
-	p += sprintf(p, "\tpcisubi   0x%04x\n", (tmp>>16) & 0xffff);
-	tmp = ioread32(&chip->pcfs.intl);
-	p += sprintf(p, "\tpciintl   0x%02x\n", tmp & 0xff);
-	p += sprintf(p, "\tpciintp   0x%02x\n", (tmp>>8) & 0xff);
-	p += sprintf(p, "\tpcimngn   0x%02x\n", (tmp>>16) & 0xff);
-	p += sprintf(p, "\tpcimxla   0x%02x\n", (tmp>>24) & 0xff);
-	tmp = ioread32(&chip->pcfs.pcix_cap_id);
-	p += sprintf(p, "\tpcixcap   0x%02x\n", tmp & 0xff);
-	tmp = ioread32(&chip->pcfs.pcix_status);
-	p += sprintf(p, "\tpcixstat  0x%08x\n", tmp);
+        tmp = ioread32(&chip->pcfs.veni);
+        seq_printf(m, "\tpciveni   0x%04x\n", tmp & 0xffff);
+        seq_printf(m, "\tpcidevi   0x%04x\n", (tmp>>16) & 0xffff);
+        tmp = ioread32(&chip->pcfs.cmmd);
+        seq_printf(m, "\tpcicmd    0x%04x\n", tmp & 0xffff);
+        seq_printf(m, "\tpcistat   0x%04x\n", (tmp>>16) & 0xffff);
+        tmp = ioread32(&chip->pcfs.rev_class);
+        seq_printf(m, "\tpcirev    0x%02x\n", tmp & 0xff);
+        seq_printf(m, "\tpciclass  0x%06x\n", (tmp >> 8) & 0xffffff);
+        tmp = ioread32(&chip->pcfs.clsz);
+        seq_printf(m, "\tpciclsz   0x%02x\n", tmp & 0xff);
+        seq_printf(m, "\tpcimlat   0x%02x\n", (tmp>>8) & 0xff);
+        tmp = ioread32(&chip->pcfs.mbarl);
+        seq_printf(m, "\tpcimbarl  0x%08x\n", tmp);
+        tmp = ioread32(&chip->pcfs.mbaru);
+        seq_printf(m, "\tpcimbaru  0x%08x\n", tmp);
+        tmp = ioread32(&chip->pcfs.subv);
+        seq_printf(m, "\tpcisubv   0x%04x\n", tmp & 0xffff);
+        seq_printf(m, "\tpcisubi   0x%04x\n", (tmp>>16) & 0xffff);
+        tmp = ioread32(&chip->pcfs.intl);
+        seq_printf(m, "\tpciintl   0x%02x\n", tmp & 0xff);
+        seq_printf(m, "\tpciintp   0x%02x\n", (tmp>>8) & 0xff);
+        seq_printf(m, "\tpcimngn   0x%02x\n", (tmp>>16) & 0xff);
+        seq_printf(m, "\tpcimxla   0x%02x\n", (tmp>>24) & 0xff);
+        tmp = ioread32(&chip->pcfs.pcix_cap_id);
+        seq_printf(m, "\tpcixcap   0x%02x\n", tmp & 0xff);
+        tmp = ioread32(&chip->pcfs.pcix_status);
+        seq_printf(m, "\tpcixstat  0x%08x\n", tmp);
 
-	return p - page;
+        return 0;
 }
+
+static int tsi148_proc_pcfs_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, tsi148_proc_pcfs_show, NULL);
+}
+
+static const struct file_operations tsi148_proc_pcfs_ops = {
+        .open           = tsi148_proc_pcfs_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
+
 
 /**
  * tsi148_proc_lcsr_show() - Dump the LCSR register group
  *
  */
-static int tsi148_proc_lcsr_show(char *page, char **start, off_t off, int count,
-			  int *eof, void *data)
+static int tsi148_proc_lcsr_show(struct seq_file *m, void *data)
 {
 	int i;
-	char *p = page;
 
-	p += sprintf(p, "\n");
+	seq_printf(m, "\n");
 
 	/* Display outbound decoders */
-	p += sprintf(p, "Local Control and Status Register Group (LCSR):\n");
-	p += sprintf(p, "\nOutbound Translations:\n");
-
-	p += sprintf(p, "No. otat         otsau:otsal        oteau:oteal"
+	seq_printf(m, "Local Control and Status Register Group (LCSR):\n");
+	seq_printf(m, "\nOutbound Translations:\n");
+	seq_printf(m, "No. otat         otsau:otsal        oteau:oteal"
 		     "         otofu:otofl\n");
-
 	for (i = 0; i < 8; i++) {
 		unsigned int otat, otsau, otsal, oteau, oteal, otofu, otofl;
 
@@ -109,17 +118,14 @@ static int tsi148_proc_lcsr_show(char *page, char **start, off_t off, int count,
 		oteal = ioread32be(&chip->lcsr.otrans[i].oteal);
 		otofu = ioread32be(&chip->lcsr.otrans[i].otofu);
 		otofl = ioread32be(&chip->lcsr.otrans[i].otofl);
-
-		p += sprintf(p,
-			     "%d:  %08X  %08X:%08X  %08X:%08X:  %08X:%08X\n", i,
-			     otat, otsau, otsal, oteau, oteal, otofu, otofl);
+		seq_printf(m, "%d:  %08X  %08X:%08X  %08X:%08X:  %08X:%08X\n", 
+			i, otat, otsau, otsal, oteau, oteal, otofu, otofl);
 	}
 
 	/* Display inbound decoders */
-	p += sprintf(p, "\nInbound Translations:\n");
-	p += sprintf(p, "No. itat         itsau:itsal        iteau:iteal"
+	seq_printf(m, "\nInbound Translations:\n");
+	seq_printf(m, "No. itat         itsau:itsal        iteau:iteal"
 		     "         itofu:itofl\n");
-
 	for (i = 0; i < 8; i++) {
 		unsigned int itat, itsau, itsal, iteau, iteal, itofu, itofl;
 
@@ -130,165 +136,193 @@ static int tsi148_proc_lcsr_show(char *page, char **start, off_t off, int count,
 		iteal = ioread32be(&chip->lcsr.itrans[i].iteal);
 		itofu = ioread32be(&chip->lcsr.itrans[i].itofu);
 		itofl = ioread32be(&chip->lcsr.itrans[i].itofl);
-
-		p += sprintf(p,
-			     "%d:  %08X  %08X:%08X  %08X:%08X:  %08X:%08X\n", i,
-			     itat, itsau, itsal, iteau, iteal, itofu, itofl);
+		seq_printf(m, "%d:  %08X  %08X:%08X  %08X:%08X:  %08X:%08X\n",
+			i, itat, itsau, itsal, iteau, iteal, itofu, itofl);
 	}
 
-	p += sprintf(p, "\nVME Bus Control:\n");
-	p += sprintf(p, "\tvmctrl  0x%08x\n", ioread32be(&chip->lcsr.vmctrl));
-	p += sprintf(p, "\tvctrl   0x%08x\n", ioread32be(&chip->lcsr.vctrl));
-	p += sprintf(p, "\tvstat   0x%08x\n", ioread32be(&chip->lcsr.vstat));
+	seq_printf(m, "\nVME Bus Control:\n");
+	seq_printf(m, "\tvmctrl  0x%08x\n", ioread32be(&chip->lcsr.vmctrl));
+	seq_printf(m, "\tvctrl   0x%08x\n", ioread32be(&chip->lcsr.vctrl));
+	seq_printf(m, "\tvstat   0x%08x\n", ioread32be(&chip->lcsr.vstat));
 
-	p += sprintf(p, "PCI Status:\n");
-	p += sprintf(p, "\tpcsr    0x%08x\n", ioread32be(&chip->lcsr.pstat));
+	seq_printf(m, "PCI Status:\n");
+	seq_printf(m, "\tpcsr    0x%08x\n", ioread32be(&chip->lcsr.pstat));
 
-	p += sprintf(p, "VME Exception Status:\n");
-	p += sprintf(p, "\tveau:veal 0x%08x:%08x\n",
+	seq_printf(m, "VME Exception Status:\n");
+	seq_printf(m, "\tveau:veal 0x%08x:%08x\n",
 		     ioread32be(&chip->lcsr.veau),
 		     ioread32be(&chip->lcsr.veal));
-	p += sprintf(p, "\tveat    0x%08x\n", ioread32be(&chip->lcsr.veat));
+	seq_printf(m, "\tveat    0x%08x\n", ioread32be(&chip->lcsr.veat));
 
-	p += sprintf(p, "PCI Error Status:\n");
-	p += sprintf(p, "\tedpau:edpal 0x%08x:%08x\n",
+	seq_printf(m, "PCI Error Status:\n");
+	seq_printf(m, "\tedpau:edpal 0x%08x:%08x\n",
 		     ioread32be(&chip->lcsr.edpau),
 		     ioread32be(&chip->lcsr.edpal));
-        p += sprintf(p, "\tedpxa   0x%08x\n", ioread32be(&chip->lcsr.edpxa));
-        p += sprintf(p, "\tedpxs   0x%08x\n", ioread32be(&chip->lcsr.edpxs));
-        p += sprintf(p, "\tedpat   0x%08x\n", ioread32be(&chip->lcsr.edpat));
+        seq_printf(m, "\tedpxa   0x%08x\n", ioread32be(&chip->lcsr.edpxa));
+        seq_printf(m, "\tedpxs   0x%08x\n", ioread32be(&chip->lcsr.edpxs));
+        seq_printf(m, "\tedpat   0x%08x\n", ioread32be(&chip->lcsr.edpat));
 
-	p += sprintf(p, "Inbound Translation Location Monitor:\n");
-	p += sprintf(p, "\tlmbau:lmbal 0x%08x:%08x:\n",
+	seq_printf(m, "Inbound Translation Location Monitor:\n");
+	seq_printf(m, "\tlmbau:lmbal 0x%08x:%08x:\n",
 		     ioread32be(&chip->lcsr.lmbau),
 		     ioread32be(&chip->lcsr.lmbal));
-	p += sprintf(p, "\tlmat    0x%08x\n", ioread32be(&chip->lcsr.lmat));
+	seq_printf(m, "\tlmat    0x%08x\n", ioread32be(&chip->lcsr.lmat));
 
-	p += sprintf(p, "Local bus Interrupt Control:\n");
-	p += sprintf(p, "\tinten   0x%08x\n", ioread32be(&chip->lcsr.inten));
-	p += sprintf(p, "\tinteo   0x%08x\n", ioread32be(&chip->lcsr.inteo));
-	p += sprintf(p, "\tints    0x%08x\n", ioread32be(&chip->lcsr.ints));
-	p += sprintf(p, "\tintc    0x%08x\n", ioread32be(&chip->lcsr.intc));
-	p += sprintf(p, "\tintm1   0x%08x\n", ioread32be(&chip->lcsr.intm1));
-	p += sprintf(p, "\tintm2   0x%08x\n", ioread32be(&chip->lcsr.intm2));
+	seq_printf(m, "Local bus Interrupt Control:\n");
+	seq_printf(m, "\tinten   0x%08x\n", ioread32be(&chip->lcsr.inten));
+	seq_printf(m, "\tinteo   0x%08x\n", ioread32be(&chip->lcsr.inteo));
+	seq_printf(m, "\tints    0x%08x\n", ioread32be(&chip->lcsr.ints));
+	seq_printf(m, "\tintc    0x%08x\n", ioread32be(&chip->lcsr.intc));
+	seq_printf(m, "\tintm1   0x%08x\n", ioread32be(&chip->lcsr.intm1));
+	seq_printf(m, "\tintm2   0x%08x\n", ioread32be(&chip->lcsr.intm2));
 
-	p += sprintf(p, "VMEbus Interrupt Control:\n");
-	p += sprintf(p, "\tbcu64   0x%08x\n", ioread32be(&chip->lcsr.bcu));
-        p += sprintf(p, "\tbcl64   0x%08x\n", ioread32be(&chip->lcsr.bcl));
-        p += sprintf(p, "\tbpgtr   0x%08x\n", ioread32be(&chip->lcsr.bpgtr));
-        p += sprintf(p, "\tbpctr   0x%08x\n", ioread32be(&chip->lcsr.bpctr));
-	p += sprintf(p, "\tvicr    0x%08x\n", ioread32be(&chip->lcsr.vicr));
+	seq_printf(m, "VMEbus Interrupt Control:\n");
+	seq_printf(m, "\tbcu64   0x%08x\n", ioread32be(&chip->lcsr.bcu));
+        seq_printf(m, "\tbcl64   0x%08x\n", ioread32be(&chip->lcsr.bcl));
+        seq_printf(m, "\tbpgtr   0x%08x\n", ioread32be(&chip->lcsr.bpgtr));
+        seq_printf(m, "\tbpctr   0x%08x\n", ioread32be(&chip->lcsr.bpctr));
+	seq_printf(m, "\tvicr    0x%08x\n", ioread32be(&chip->lcsr.vicr));
 
-	p += sprintf(p, "RMW Register Group:\n");
-	p += sprintf(p, "\trmwau  0x%08x\n", ioread32be(&chip->lcsr.rmwau));
-	p += sprintf(p, "\trmwal  0x%08x\n", ioread32be(&chip->lcsr.rmwal));
-	p += sprintf(p, "\trmwen  0x%08x\n", ioread32be(&chip->lcsr.rmwen));
-	p += sprintf(p, "\trmwc   0x%08x\n", ioread32be(&chip->lcsr.rmwc));
-	p += sprintf(p, "\trmws   0x%08x\n", ioread32be(&chip->lcsr.rmws));
+	seq_printf(m, "RMW Register Group:\n");
+	seq_printf(m, "\trmwau  0x%08x\n", ioread32be(&chip->lcsr.rmwau));
+	seq_printf(m, "\trmwal  0x%08x\n", ioread32be(&chip->lcsr.rmwal));
+	seq_printf(m, "\trmwen  0x%08x\n", ioread32be(&chip->lcsr.rmwen));
+	seq_printf(m, "\trmwc   0x%08x\n", ioread32be(&chip->lcsr.rmwc));
+	seq_printf(m, "\trmws   0x%08x\n", ioread32be(&chip->lcsr.rmws));
 
 	for(i = 0; i < TSI148_NUM_DMA_CHANNELS; i++){
-		p += sprintf(p, "DMA Controler %d Registers\n", i);
-		p += sprintf(p, "\tdctl   0x%08x\n",
+		seq_printf(m, "DMA Controler %d Registers\n", i);
+		seq_printf(m, "\tdctl   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dctl));
-		p += sprintf(p, "\tdsta   0x%08x\n",
+		seq_printf(m, "\tdsta   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dsta));
-		p += sprintf(p, "\tdcsau  0x%08x\n",
+		seq_printf(m, "\tdcsau  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dcsau));
-		p += sprintf(p, "\tdcsal  0x%08x\n",
+		seq_printf(m, "\tdcsal  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dcsal));
-		p += sprintf(p, "\tdcdau  0x%08x\n",
+		seq_printf(m, "\tdcdau  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dcdau));
-		p += sprintf(p, "\tdcdal  0x%08x\n",
+		seq_printf(m, "\tdcdal  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dcdal));
-		p += sprintf(p, "\tdclau  0x%08x\n",
+		seq_printf(m, "\tdclau  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dclau));
-		p += sprintf(p, "\tdclal  0x%08x\n",
+		seq_printf(m, "\tdclal  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dclal));
-		p += sprintf(p, "\tdsau   0x%08x\n",
+		seq_printf(m, "\tdsau   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dsau));
-		p += sprintf(p, "\tdsal   0x%08x\n",
+		seq_printf(m, "\tdsal   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dsal));
-		p += sprintf(p, "\tddau   0x%08x\n",
+		seq_printf(m, "\tddau   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.ddau));
-		p += sprintf(p, "\tddal   0x%08x\n",
+		seq_printf(m, "\tddal   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.ddal));
-		p += sprintf(p, "\tdsat   0x%08x\n",
+		seq_printf(m, "\tdsat   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dsat));
-		p += sprintf(p, "\tddat   0x%08x\n",
+		seq_printf(m, "\tddat   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.ddat));
-		p += sprintf(p, "\tdnlau  0x%08x\n",
+		seq_printf(m, "\tdnlau  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dnlau));
-		p += sprintf(p, "\tdnlal  0x%08x\n",
+		seq_printf(m, "\tdnlal  0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dnlal));
-		p += sprintf(p, "\tdcnt   0x%08x\n",
+		seq_printf(m, "\tdcnt   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.dcnt));
-		p += sprintf(p, "\tddbs   0x%08x\n",
+		seq_printf(m, "\tddbs   0x%08x\n",
 			     ioread32be(&chip->lcsr.dma[i].dma_desc.ddbs));
 	}
-
-	return p - page;
+	return 0;
 }
+
+static int tsi148_proc_lcsr_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, tsi148_proc_lcsr_show, NULL);
+}
+
+static const struct file_operations tsi148_proc_lcsr_ops = {
+        .open           = tsi148_proc_lcsr_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
+
 
 /**
  * tsi148_proc_gcsr_show() - Dump the GCSR register group
  *
  */
-static int tsi148_proc_gcsr_show(char *page, char **start, off_t off, int count,
-				 int *eof, void *data)
+static int tsi148_proc_gcsr_show(struct seq_file *m, void *data)
 {
-	char *p = page;
 	int i;
 	unsigned int tmp;
 
-	p += sprintf(p, "\nGlobal Control and Status Register Group (GCSR):\n");
+	seq_printf(m, "\nGlobal Control and Status Register Group (GCSR):\n");
 
 	tmp = ioread32be(&chip->gcsr.devi);
-	p += sprintf(p, "\tveni   0x%04x\n", tmp & 0xffff);
-	p += sprintf(p, "\tdevi   0x%04x\n", (tmp >> 16) & 0xffff);
+	seq_printf(m, "\tveni   0x%04x\n", tmp & 0xffff);
+	seq_printf(m, "\tdevi   0x%04x\n", (tmp >> 16) & 0xffff);
 
 	tmp = ioread32be(&chip->gcsr.ctrl);
-	p += sprintf(p, "\tgctrl  0x%04x\n", (tmp >> 16) & 0xffff);
-	p += sprintf(p, "\tga     0x%02x\n", (tmp >> 8) & 0x3f);
-	p += sprintf(p, "\trevid  0x%02x\n", tmp & 0xff);
+	seq_printf(m, "\tgctrl  0x%04x\n", (tmp >> 16) & 0xffff);
+	seq_printf(m, "\tga     0x%02x\n", (tmp >> 8) & 0x3f);
+	seq_printf(m, "\trevid  0x%02x\n", tmp & 0xff);
 
-	p += sprintf(p, "Semaphores:\n");
+	seq_printf(m, "Semaphores:\n");
 	tmp = ioread32be(&chip->gcsr.semaphore[0]);
-	p += sprintf(p, "\tsem0   0x%02x\n", (tmp >> 24) & 0xff);
-	p += sprintf(p, "\tsem1   0x%02x\n", (tmp >> 16) & 0xff);
-	p += sprintf(p, "\tsem2   0x%02x\n", (tmp >> 8) & 0xff);
-	p += sprintf(p, "\tsem3   0x%02x\n", tmp & 0xff);
+	seq_printf(m, "\tsem0   0x%02x\n", (tmp >> 24) & 0xff);
+	seq_printf(m, "\tsem1   0x%02x\n", (tmp >> 16) & 0xff);
+	seq_printf(m, "\tsem2   0x%02x\n", (tmp >> 8) & 0xff);
+	seq_printf(m, "\tsem3   0x%02x\n", tmp & 0xff);
 
 	tmp = ioread32be(&chip->gcsr.semaphore[4]);
-	p += sprintf(p, "\tsem4   0x%02x\n", (tmp >> 24) & 0xff);
-	p += sprintf(p, "\tsem5   0x%02x\n", (tmp >> 16) & 0xff);
-	p += sprintf(p, "\tsem6   0x%02x\n", (tmp >> 8) & 0xff);
-	p += sprintf(p, "\tsem7   0x%02x\n", tmp & 0xff);
+	seq_printf(m, "\tsem4   0x%02x\n", (tmp >> 24) & 0xff);
+	seq_printf(m, "\tsem5   0x%02x\n", (tmp >> 16) & 0xff);
+	seq_printf(m, "\tsem6   0x%02x\n", (tmp >> 8) & 0xff);
+	seq_printf(m, "\tsem7   0x%02x\n", tmp & 0xff);
 
-	p += sprintf(p, "Mailboxes:\n");
+	seq_printf(m, "Mailboxes:\n");
 	for (i = 0; i <= TSI148_NUM_MAILBOXES; i++){
-		p += sprintf(p,"\t Mailbox #%d: 0x%08x\n", i,
+		seq_printf(m, "\t Mailbox #%d: 0x%08x\n", i,
 			     ioread32be(&chip->gcsr.mbox[i]));
 	}
-
-	return p - page;
+	return 0;
 }
+
+static int tsi148_proc_gcsr_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, tsi148_proc_gcsr_show, NULL);
+}
+
+static const struct file_operations tsi148_proc_gcsr_ops = {
+        .open           = tsi148_proc_gcsr_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
 
 /**
  * tsi148_proc_crcsr_show() - Dump the CRCSR register group
  *
  */
-int tsi148_proc_crcsr_show(char *page, char **start, off_t off, int count,
-			  int *eof, void *data)
+static int tsi148_proc_crcsr_show(struct seq_file *m, void *data)
 {
-	char *p = page;
-
-	p += sprintf(p, "\nCR/CSR Register Group:\n");
-	p += sprintf(p, "\tbcr   0x%08x\n", ioread32be(&chip->crcsr.csrbcr));
-	p += sprintf(p, "\tbsr   0x%08x\n", ioread32be(&chip->crcsr.csrbsr));
-        p += sprintf(p, "\tbar   0x%08x\n", ioread32be(&chip->crcsr.cbar));
-
-	return p - page;
+	seq_printf(m, "\nCR/CSR Register Group:\n");
+	seq_printf(m, "\tbcr   0x%08x\n", ioread32be(&chip->crcsr.csrbcr));
+	seq_printf(m, "\tbsr   0x%08x\n", ioread32be(&chip->crcsr.csrbsr));
+        seq_printf(m, "\tbar   0x%08x\n", ioread32be(&chip->crcsr.cbar));
+	return 0;
 }
+
+static int tsi148_proc_crcsr_open(struct inode *inode, struct file *file)
+{
+        return single_open(file, tsi148_proc_crcsr_show, NULL);
+}
+
+static const struct file_operations tsi148_proc_crcsr_ops = {
+        .open           = tsi148_proc_crcsr_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
+
 
 /**
  * tsi148_procfs_register() - Create the VME proc tree
@@ -300,33 +334,25 @@ void __devinit tsi148_procfs_register(struct proc_dir_entry *vme_root)
 
 	tsi148_proc_root = proc_mkdir("tsi148", vme_root);
 
-	entry = create_proc_entry("pcfs", S_IFREG | S_IRUGO, tsi148_proc_root);
-
+	entry = proc_create("pcfs", S_IFREG | S_IRUGO, tsi148_proc_root,
+			    &tsi148_proc_pcfs_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc pcfs node\n");
 
-	entry->read_proc = tsi148_proc_pcfs_show;
-
-	entry = create_proc_entry("lcsr", S_IFREG | S_IRUGO, tsi148_proc_root);
-
+	entry = proc_create("lcsr", S_IFREG | S_IRUGO, tsi148_proc_root,
+			    &tsi148_proc_lcsr_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc lcsr node\n");
 
-	entry->read_proc = tsi148_proc_lcsr_show;
-
-	entry = create_proc_entry("gcsr", S_IFREG | S_IRUGO, tsi148_proc_root);
-
+	entry = proc_create("gcsr", S_IFREG | S_IRUGO, tsi148_proc_root,
+			    &tsi148_proc_gcsr_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc gcsr node\n");
 
-	entry->read_proc = tsi148_proc_gcsr_show;
-
-	entry = create_proc_entry("crcsr", S_IFREG | S_IRUGO, tsi148_proc_root);
-
+	entry = proc_create("crcsr", S_IFREG | S_IRUGO, tsi148_proc_root,
+			    &tsi148_proc_crcsr_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc crcsr node\n");
-
-	entry->read_proc = tsi148_proc_crcsr_show;
 }
 
 /**
@@ -339,7 +365,7 @@ void __devexit tsi148_procfs_unregister(struct proc_dir_entry *vme_root)
 	remove_proc_entry("lcsr", tsi148_proc_root);
 	remove_proc_entry("gcsr", tsi148_proc_root);
 	remove_proc_entry("crcsr", tsi148_proc_root);
-	remove_proc_entry(tsi148_proc_root->name, vme_root);
+	remove_proc_entry("tsi148", vme_root);
 }
 #endif /* CONFIG_PROC_FS */
 

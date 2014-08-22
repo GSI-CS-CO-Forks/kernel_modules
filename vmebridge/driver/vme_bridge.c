@@ -19,6 +19,8 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/interrupt.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/pci.h>
 
 #include "vme_bridge.h"
@@ -76,27 +78,32 @@ struct proc_dir_entry *vme_root;
 /*
  * Procfs stuff
  */
-static int vme_info_proc_show(char *page, char **start, off_t off, int count,
-			int *eof, void *data)
+static int vme_info_proc_show(struct seq_file *m, void *data)
 {
-    char *p = page;
-
-    p += sprintf(p, "PCI-VME driver v%s (%s)\n\n",
+    seq_printf(m, "PCI-VME driver v%s (%s)\n\n",
 		 DRV_MODULE_VERSION, DRV_MODULE_RELDATE);
 
-    p += sprintf(p, "chip revision:     %08X\n", vme_bridge->rev);
-    p += sprintf(p, "chip IRQ:          %d\n", vme_bridge->irq);
-    p += sprintf(p, "VME slot:          %d\n", vme_bridge->slot);
-    p += sprintf(p, "VME SysCon:        %s\n",
+    seq_printf(m, "chip revision:     %08X\n", vme_bridge->rev);
+    seq_printf(m, "chip IRQ:          %d\n", vme_bridge->irq);
+    seq_printf(m, "VME slot:          %d\n", vme_bridge->slot);
+    seq_printf(m, "VME SysCon:        %s\n",
 		 vme_bridge->syscon ? "Yes" : "No");
-    p += sprintf(p, "chip registers at: 0x%p\n", vme_bridge->regs);
-
-    p += sprintf(p, "\n");
-
-    *eof = 1;
-    return p - page;
+    seq_printf(m, "chip registers at: 0x%p\n", vme_bridge->regs);
+    seq_printf(m, "\n");
+    return 0;
 }
 
+static int vme_info_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, vme_info_proc_show, NULL);
+}
+
+static const struct file_operations vme_info_proc_ops = {
+        .open           = vme_info_proc_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
 
 
 void __devinit vme_procfs_register(void)
@@ -107,37 +114,24 @@ void __devinit vme_procfs_register(void)
 	vme_root = proc_mkdir("vme", NULL);
 
 	/* Create /proc/vme/info file */
-	entry = create_proc_entry("info", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("info", S_IFREG | S_IRUGO, vme_root, &vme_info_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc info node\n");
 
-	entry->read_proc = vme_info_proc_show;
-
 	/* Create /proc/vme/windows file */
-	entry = create_proc_entry("windows", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("windows", S_IFREG | S_IRUGO, vme_root, &vme_window_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc windows node\n");
 
-	entry->read_proc = vme_window_proc_show;
-
 	/* Create /proc/vme/interrupts file */
-	entry = create_proc_entry("interrupts", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("interrupts", S_IFREG | S_IRUGO, vme_root, &vme_interrupts_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX
 		       "Failed to create proc interrupts node\n");
-
-	entry->read_proc = vme_interrupts_proc_show;
-
 	/* Create /proc/vme/irq file */
-	entry = create_proc_entry("irq", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("irq", S_IFREG | S_IRUGO, vme_root, &vme_irq_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc irq node\n");
-
-	entry->read_proc = vme_irq_proc_show;
 
 	/* Create specific TSI148 proc entries */
 	tsi148_procfs_register(vme_root);
