@@ -1189,6 +1189,9 @@ long vme_window_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  *
  *  The mapping is also set non-cacheable via the vm_page_prot field.
  */
+#ifndef VM_RESERVED
+#define VM_RESERVED (VM_DONTEXPAND | VM_DONTDUMP)
+#endif
 static int vme_remap_pfn_range(struct vm_area_struct *vma)
 {
 
