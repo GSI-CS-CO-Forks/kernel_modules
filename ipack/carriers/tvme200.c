@@ -561,7 +561,8 @@ static int tvme200_probe(struct device *dev, unsigned int ndev)
 	/* Register the carrier in the industry pack bus driver */
 	tvme200->info->ipack_bus = ipack_bus_register(dev,
                                               TVME200_NB_SLOT,
-                                              &tvme200_bus_ops);
+                                              &tvme200_bus_ops,
+                                              THIS_MODULE);
 	if (!tvme200->info->ipack_bus) {
         	dev_err(dev, "error registering the carrier on ipack driver\n");
         	res = -EFAULT;
