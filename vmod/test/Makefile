@@ -50,6 +50,7 @@ HEADERS := ../include/ \
 LOADLIBES := -L../lib/
 LDLIBS=-lvmodttl 
 all: tstlibttl.$(CPU) tstlibdor.$(CPU) load_test.$(CPU) tstlibttl_quick_write.$(CPU) tstlibttl_quick_read.$(CPU) \
+	tstlibttl_read_device.$(CPU) \
 	tstlib12a2.$(CPU) tstlib12a4.$(CPU) tstlib16a2.$(CPU) tstlib12e16.$(CPU)
 
 tstlibttl.$(CPU): 
@@ -71,6 +72,10 @@ tstlibttl_quick_read.$(CPU):
 	mkdir -p obj
 	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibttl_quick_read.c -o ./obj/tstlibttl_quick_read.o
 	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibttl_quick_read.o $(LOADLIBES) $(LDLIBS) -lpthread
+
+tstlibttl_read_device.$(CPU):
+	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) tstlibttl_read_device.c -o ./obj/tstlibttl_read_device.o
+	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/tstlibttl_read_device.o $(LOADLIBES) $(LDLIBS) -lpthread
 
 load_test.$(CPU):
 	mkdir -p obj
