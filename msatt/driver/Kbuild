@@ -1,0 +1,4 @@
+obj-m := msatt.o
+
+test: test.o
+	gcc -o test_msatt test.c
