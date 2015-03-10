@@ -83,14 +83,21 @@ static int sgl_fill_user_pages(struct page **pages, unsigned long uaddr,
 static int sgl_fill_kernel_pages(struct page **pages, unsigned long kaddr,
 			const unsigned int nr_pages, int rw)
 {
+	void *addr = (void *)kaddr;
 	int i;
 
-	/* Note: this supports lowmem pages only */
-	if (!virt_addr_valid(kaddr))
-		return -EINVAL;
 
-	for (i = 0; i < nr_pages; i++)
-		pages[i] = virt_to_page(kaddr + PAGE_SIZE * i);
+	if (is_vmalloc_addr(addr)) {
+		for (i = 0; i < nr_pages; i++)
+			pages[i] = vmalloc_to_page(addr + PAGE_SIZE * i);
+	} else {
+		/* Note: this supports lowmem pages only */
+		if (!virt_addr_valid(kaddr))
+			return -EINVAL;
+		for (i = 0; i < nr_pages; i++)
+			pages[i] = virt_to_page(kaddr + PAGE_SIZE * i);
+	}
+
 
 	return nr_pages;
 }
