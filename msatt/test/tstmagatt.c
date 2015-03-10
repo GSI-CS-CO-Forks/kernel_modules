@@ -95,6 +95,7 @@ void print_menu ()
 			printf("[*]");
 	}
 
+	printf("\n\n [0] - Re-read attenuation values\n");
 	printf("\n\n [1] - Change current channel\n");
 	printf("\n [2] - Set attenuation to 20dB\n");
 	printf("\n [3] - Set attenuation to 40dB\n");
@@ -176,6 +177,9 @@ int main (int argc, char *argv[])
 		scanf("%c", &option);
 		
 		switch (option) {
+		case '0':
+			relay_register = get_register_value(fd);
+			break;
 		case '1':
 			change_channel();
 			break;
