@@ -1,6 +1,9 @@
 CPU=L865
 CFLAGS=-g -Wall
 HEADERS=../lib -I../driver
+LDFLAGS += -L/acc/local/$(CPU)/drv/msatt/1.0/lib
+
+include /acc/src/dsc/co/Make.auto
 
 all: tstmsatt.$(CPU)
 
