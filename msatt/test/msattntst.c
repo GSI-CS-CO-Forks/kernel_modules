@@ -146,9 +146,6 @@ int main (int argc, char *argv[])
 		return -1;
 	}
 
-	/* First time, get value */
-	relay_register = get_register_value(fd);
-
 	do {
 		relay_register = get_register_value(fd);
 		print_menu();
@@ -156,22 +153,18 @@ int main (int argc, char *argv[])
 		
 		switch (option) {
 		case '0':
-			relay_register = get_register_value(fd);
 			break;
 		case '1':
 			change_channel();
 			break;
 		case '2':
 			msatt_set_relay(fd, selected_channel, ATT_1);
-			relay_register = get_register_value(fd);
 			break;
 		case '3':
 			msatt_set_relay(fd, selected_channel, ATT_2);
-			relay_register = get_register_value(fd);
 			break;
 		case '4':
 			msatt_set_relay(fd, selected_channel, ATT_NONE);
-			relay_register = get_register_value(fd);
 			break;
 		default:
 			if ((option != 'q') && (option != 'Q'))
