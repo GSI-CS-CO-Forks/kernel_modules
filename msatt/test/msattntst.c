@@ -87,7 +87,7 @@ void print_menu ()
 	printf("--------------------------------------\n");
 
 	printf("\n----> Selected channel is %d\n", selected_channel);
-	printf("\n----> Relays command register: %16B\n", relay_register);
+	printf("\n----> Relays command register: %08x = %16B\n", relay_register, relay_register);
 
 	for (i=1; i<=num_channels;i++) {
 		printf("\n\tChannel %d: %2d dB ", i, get_dB_at_channel(i));
@@ -126,7 +126,7 @@ void change_channel ()
 	/* Manual flush ?? */
 	while( (ch = fgetc(stdin)) != EOF && ch != '\n' ){}
 
-	printf("\nEnter new channel [0-3]: ");
+	printf("\nEnter new channel [1-4]: ");
 	scanf("%c",&option);
 	if ((option >= '1') && (option <= '4')) {
 		selected_channel = atoi(&option);	
@@ -173,6 +173,7 @@ int main (int argc, char *argv[])
 	relay_register = get_register_value(fd);
 
 	do {
+		relay_register = get_register_value(fd);
 		print_menu();
 		scanf("%c", &option);
 		
