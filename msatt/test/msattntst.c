@@ -6,8 +6,8 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
-#include <printf.h>
 #include <math.h>
 #include <stdlib.h>
 
@@ -19,45 +19,22 @@ int selected_channel;
 int relay_register;
 int num_channels;
 
-/* Two functions to add printf a bit-by-bit print format %B */
-static int printf_arginfo_M(const struct printf_info *info, size_t n, int *argtypes) 
+char relay_bit_string[20];
+
+void uint16_to_bit_string(char *s, uint16_t r)
 {
-	/* "%M" always takes one argument, a pointer to uint8_t[6]. */
-	if (n > 0) {
-		argtypes[0] = PA_POINTER;
+	uint16_t bitmask;
+	int i;
+
+	bitmask = (1 << 15);
+	for (i = 0; i < 19; i++) {
+		s[i] = ' ';
+		if (i % 5 == 4)
+			continue;
+		s[i] = r & bitmask ? '1' : '0';
+		bitmask >>= 1;
 	}
-	return 1;
-}
-
-static int printf_output_M(FILE *stream, const struct printf_info *info, const void *const *args)
-{
-	int value = 0;
-	int len;
-
-	value = (int) (*(int **) (args[0]));
-	char buffer [50] = ""; //Is this bad?
-	char buffer2 [50] = ""; //Is this bad?
-	int bits = info->width;
-	if (bits <= 0)
-		bits = 8; //Default to 8 bits
-
-	int mask = pow(2, bits - 1);
-	int i = 0;
-	while (mask > 0) {
-		sprintf(buffer, "%s", (((value & mask) > 0) ? "1" : "0"));
-		strcat(buffer2, buffer);
-		mask >>= 1;
-		i++;
-		/* I want 4-bits packs */
-		if (i == 4) { 
-			i = 0;
-			strcat(buffer2, " ");
-		}
-
-	}
-	strcat(buffer2, "\n");
-	len = fprintf(stream, "%s", buffer2);
-	return len;
+	s[i] = 0;
 }
 
 int get_dB_at_channel (int chan)
@@ -78,6 +55,8 @@ void print_menu ()
 {
 	int i;
 
+	uint16_to_bit_string(relay_bit_string, relay_register);
+
 	printf("\033[2J");        /*  clear the screen  */
 	printf("\033[H");         /*  position cursor at top-left corner */
 
@@ -87,7 +66,8 @@ void print_menu ()
 	printf("--------------------------------------\n");
 
 	printf("\n----> Selected channel is %d\n", selected_channel);
-	printf("\n----> Relays command register: %08x = %16B\n", relay_register, relay_register);
+	printf("\n----> Relays command register: %08x = [%s]\n",
+		relay_register, relay_bit_string);
 
 	for (i=1; i<=num_channels;i++) {
 		printf("\n\tChannel %d: %2d dB ", i, get_dB_at_channel(i));
@@ -141,9 +121,6 @@ int main (int argc, char *argv[])
 	char option;
 
 	selected_channel = 1;
-
-	/* Register bit-by-bit print format */
-	register_printf_function('B', printf_output_M, printf_arginfo_M);
 
 	if (argc == 2)
 	{
