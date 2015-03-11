@@ -76,7 +76,7 @@ void print_menu ()
 	}
 
 	printf("\n\n [0] - Re-read attenuation values\n");
-	printf("\n\n [1] - Change current channel\n");
+	printf("\n [1] - Change current channel\n");
 	printf("\n [2] - Set attenuation to 20dB\n");
 	printf("\n [3] - Set attenuation to 40dB\n");
 	printf("\n [4] - Unset attenuation\n");
