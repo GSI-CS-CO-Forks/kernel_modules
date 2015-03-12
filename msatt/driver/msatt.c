@@ -337,7 +337,7 @@ static long msatt_ioctl(struct file *fp,
 		spin_unlock(&dev->lock);
 		
 		myarg.value = relay_value >> (4 * myarg.channel);
-		myarg.value &= 0x0F;
+		myarg.value &= 0x0F;	/* FIXME: this should be 0x3, not 0xf */
 
 		if (copy_to_user((void __user *)arg, myargp, sizeop)) {
 			printk(KERN_ERR PFX "can not copy to user space\n");
