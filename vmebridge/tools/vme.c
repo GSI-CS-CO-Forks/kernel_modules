@@ -25,6 +25,34 @@ int is_invalid_width(int data_width)
 		data_width != 32);
 }
 
+static void vme_mem_write(int width, volatile void *addr, uint32_t value)
+{
+	switch (width) {
+	case 8:
+		*(uint8_t *)addr = value;
+		break;
+	case 16:
+		*(uint16_t *)addr = htons(value);
+		break;
+	case 32:
+		*(uint32_t *)addr = htonl(value);
+		break;
+	}
+}
+
+static uint32_t vme_mem_read(int width, volatile void *addr)
+{
+	switch (width) {
+	case 8:
+		return *(uint8_t *)addr;
+	case 16:
+		return ntohs(*(uint16_t *)addr);
+	case 32:
+		return ntohl(*(uint32_t *)addr);
+	}
+	return -1;
+}
+
 int main(int argc, char *argv[])
 {
 
@@ -38,7 +66,7 @@ int main(int argc, char *argv[])
 	int c;
 	int write, offsets_on;
 	int width;
-	uint32_t word;
+	uint32_t word, datum;
 
 	/* vme defaults */
 	count = 1;
@@ -94,52 +122,31 @@ int main(int argc, char *argv[])
 		}
 	}
 
+	/* Prepare mmap description */
 	memset(mapp, 0, sizeof(*mapp));
-
 	mapp->am = 		am;
 	mapp->data_width = 	(data_width == 8) ? 16 : data_width;
 	mapp->sizel = 		length;
 	mapp->vme_addrl =	vmebase;
 
-	if ((ptr = vme_map(mapp, 1)) == NULL) {
+	/* Do mmap */
+	ptr = vme_map(mapp, 1);
+	if (!ptr) {
 		printf("could not map at 0x%08x\n", vmebase);
 		exit(1);
 	}
 
 	fprintf(stderr, "vme 0x%08x kernel %p user %p\n",
 			vmebase, mapp->kernel_va, mapp->user_va);
-	offset = skip_bytes;
 	for (i = 0; i < count; i++, offset += 4) {
 		volatile void *addr = ptr + offset;
 		if (!write) {
-			uint32_t datum;
-
-			switch (access_width) {
-			case 8:
-				datum = *(uint8_t *)addr;
-				break;
-			case 16:
-				datum = ntohs(*(uint16_t *)addr);
-				break;
-			case 32:
-				datum = ntohl(*(uint32_t *)addr);
-				break;
-			}
+			datum = vme_mem_read(access_width, addr);
 			if (offsets_on)
 				printf("%08x: ", vmebase + offset);
 			printf("%08x\n", datum);
 		} else {
-			switch (access_width) {
-			case 8:
-				*(uint8_t *)addr = word;
-				break;
-			case 16:
-				*(uint16_t *)addr = htons(word);
-				break;
-			case 32:
-				*(uint32_t *)addr = htonl(word);
-				break;
-			}
+			vme_mem_write(access_width, addr, word);
 		}
 	}
 
