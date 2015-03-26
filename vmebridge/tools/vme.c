@@ -18,7 +18,7 @@ void usage(char *prog)
 	exit(1);
 }
 
-int invalid(int data_width)
+int is_invalid_width(int data_width)
 {
 	return (data_width != 8 &&
 		data_width != 16 &&
@@ -63,7 +63,7 @@ int main(int argc, char *argv[])
 		case 'd':
 		case 'D':
 			width = strtoul(optarg, NULL, 0);
-			if (invalid(width)) {
+			if (is_invalid_width(width)) {
 				fprintf(stderr, "invalid data width %d\n", width);
 				exit(1);
 			}
