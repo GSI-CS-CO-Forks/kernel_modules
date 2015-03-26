@@ -60,7 +60,7 @@ int main(int argc, char *argv[])
 	struct vme_mapping *mapp = &map;
 	volatile void *ptr;
 	unsigned int vmebase, am, data_width, access_width;
-	unsigned int offset, skip_bytes;
+	unsigned int offset;
 	unsigned int length;
 	int i, count;
 	int c;
@@ -75,7 +75,7 @@ int main(int argc, char *argv[])
 
 	write = 0;
 	offsets_on = 1;
-	skip_bytes = 0;
+	offset = 0;
 	length = 0x80000;
 	while ((c = getopt(argc, argv, "ov:s:D:d:a:n:w:l:")) != -1) {
 		switch (c) {
@@ -83,7 +83,7 @@ int main(int argc, char *argv[])
 			offsets_on = 0;
 			break;
 		case 's':
-			skip_bytes = strtoul(optarg, NULL, 0);
+			offset = strtoul(optarg, NULL, 0);
 			break;
 		case 'v':
 			vmebase = strtoul(optarg, NULL, 0);
