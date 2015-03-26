@@ -6,15 +6,51 @@
 #include <arpa/inet.h>
 #include <libvmebus.h>
 
-static char usage_string[] =
-	"usage: %s [-oh?] [-w word] [-v vme_address]\n"
-	"[-s skip_bytes] [-d data_width] [-D effective_width]"
-	"[-l map_length] "
-	"[-a address_modifier] [-n word_count]\n";
-
 void usage(char *prog)
 {
-	fprintf(stderr, usage_string, prog);
+	fprintf(stderr,
+		"usage: %s [-v vme_address][options]\n\n", prog);
+	fprintf(stderr,
+		"This tool can read/write at a specific VME address\n\n");
+	fprintf(stderr,
+		"Options\n");
+	fprintf(stderr,
+		"  -v 0x<NUM> : VME address to access\n");
+	fprintf(stderr,
+		"  -s 0x<NUM> : address offset to access in bytes (skip bytes))\n");
+	fprintf(stderr,
+		"  -a 0x<NUM> : address modifier for VME bus (default 0x09)\n");
+	fprintf(stderr,
+		"  -l <NUM>   : VME map length in bytes (default 512KiB)\n");
+	fprintf(stderr,
+		"  -w <NUM>   : value to write\n");
+	fprintf(stderr,
+		"  -d <NUM>   : data width in bits (default 32 bits)\n");
+	fprintf(stderr,
+		"  -D <NUM>   : access data width in bits. It defines\n"
+		"               which data type use to access the memory\n"
+		"               (default 32 bits)\n");
+	fprintf(stderr,
+		"  -n <NUM>   : number of incremental accesses to the memory\n");
+	fprintf(stderr,
+		"  -H         : hide the address\n");
+	fprintf(stderr,
+		"  -h         : print this help\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr,
+		"Data Width\n");
+	fprintf(stderr,
+		"The supported data widths are 8, 16 and 32 for the access\n"
+		"data width; 16 and 32 for the data width\n");
+	fprintf(stderr, "\n");
+	fprintf(stderr,
+		"Address Modifier\n");
+	fprintf(stderr,
+		"The supported address modifier are the following:\n");
+	fprintf(stderr, "  0x09 A32 user data\n");
+	fprintf(stderr, "  0x29 A16 user data\n");
+	fprintf(stderr, "  0x39 A24 user data\n");
+	fprintf(stderr, "\n");
 	exit(1);
 }
 
@@ -77,9 +113,9 @@ int main(int argc, char *argv[])
 	offsets_on = 1;
 	offset = 0;
 	length = 0x80000;
-	while ((c = getopt(argc, argv, "ov:s:D:d:a:n:w:l:")) != -1) {
+	while ((c = getopt(argc, argv, "Hv:s:D:d:a:n:w:l:h")) != -1) {
 		switch (c) {
-		case 'o':
+		case 'H':
 			offsets_on = 0;
 			break;
 		case 's':
