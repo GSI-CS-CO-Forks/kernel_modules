@@ -79,22 +79,14 @@ struct vmeio_version_s {
 
 #define vmeioMAX_BUF 8192
 
-#ifdef __64BIT
 struct vmeio_riob_s {
    int winum;    /** Window number 1..2 */
    int offset;   /** Byte offset in map */
    int bsize;    /** The number of bytes to read */
    void *buffer; /** Pointer to data area */
-};
-#else
-struct vmeio_riob_s {
-   int winum;    /** Window number 1..2 */
-   int offset;   /** Byte offset in map */
-   int bsize;    /** The number of bytes to read */
-   void *buffer; /** Pointer to data area */
+   /* useless fill kept for compatibility with 32-bit clients */
    int  compat;  /** Pack out size to at least 64 bits */
 };
-#endif
 
 /*
  * Enumerate IOCTL functions
