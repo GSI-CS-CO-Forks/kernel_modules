@@ -37,6 +37,9 @@ extern int snprintf(char *s, size_t n, const char *format, ...);
 char *__cvorg_error_strings[] = {
 	"No error",
 	"Invalid frequency",
+	"No device",
+	"Not supported",
+	"Missing DAC calibration"
 };
 #define LIBCVORG_NR_ERRCODES ARRAY_SIZE(__cvorg_error_strings)
 
@@ -157,4 +160,18 @@ void __cvorg_internal_error(int err)
 
 	if (__cvorg_loglevel >= 2)
 		cvorg_perror("internal error");
+}
+
+void __cvorg_param_error(int err)
+{
+        __cvorg_errno = err;
+        if (__cvorg_loglevel >= 2)
+                cvorg_perror("parameter error");
+}
+
+void __cvorg_lib_error(int err)
+{
+        __cvorg_errno = err;
+        if (__cvorg_loglevel >= 3)
+                cvorg_perror("libcvorg error");
 }

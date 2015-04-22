@@ -11,6 +11,15 @@
 #define BIT(nr)		(1UL << (nr))
 #endif
 
+
+/*
+ * VME configuration
+ */
+
+#define CVORG_ADDRESS_MODIFIER 	0x29
+#define CVORG_WINDOW_LENGTH	0X400
+#define CVORG_DATA_SIZE		4
+
 /*
  * Channel's offset
  */

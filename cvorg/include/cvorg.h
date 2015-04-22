@@ -20,6 +20,14 @@
 /* 100MHz maximum sampling frequency */
 #define CVORG_MAX_FREQ		100000000
 
+/* Size of the char * returned by cvorg_get_hw_version: '0x' + uint32_t + '\n' + '\0' = 12 bytes */
+#define CVORG_HW_VER_MAX_CHAR 12
+
+/* IOCTL: only used by experts */
+#define CVORG_IOCTL_ADC	       	_IOR('g', 0, struct cvorg_adc) 
+#define CVORG_IOCTL_READ_SRAM 	_IOR('g', 1, struct cvorg_sram_entry)
+#define CVORG_IOCTL_WRITE_SRAM 	_IOW('g', 2, struct cvorg_sram_entry)
+
 /**
  * @brief CVORG channels
  */
@@ -104,6 +112,7 @@ struct cvorg_seq {
  * @param data - value of the SRAM entry
  */
 struct cvorg_sram_entry {
+	uint32_t	channel;
 	uint32_t	address;
 	uint16_t	data[2];
 };

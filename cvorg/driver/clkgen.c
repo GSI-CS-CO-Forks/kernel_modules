@@ -6,10 +6,7 @@
  *
  * Released under the GPL v2. (and only v2, not any later version)
  */
-#include <cdcm/cdcm.h>
-#include <cdcm/cdcmBoth.h>
-#include <cdcm/cdcmIo.h>
-
+#include <linux/delay.h>
 #include <cvorg_priv.h>
 #include <cvorg_hw.h>
 
@@ -48,13 +45,16 @@ static uint32_t clkgen_rval(struct cvorg *cvorg, unsigned int addr)
 {
 	uint32_t val;
 	int i;
+	int data;
+
+	data = cvorg_readw(cvorg, CVORG_CLKCTL) & 0xFF000000;
 
 	cvorg_writew(cvorg, CVORG_CLKCTL, CVORG_AD9516_OP_READ | (addr << 8));
 
 	/* try a few times, although normally 5us should be enough */
 	for (i = 0; i < 3; i++) {
 		/* delay to allow the serial transfer to happen */
-		usec_sleep(CVORG_AD9516_SPI_SLEEP_US);
+		udelay(CVORG_AD9516_SPI_SLEEP_US);
 		val = cvorg_readw(cvorg, CVORG_CLKCTL);
 		if (clkgen_ok(val, addr))
 			goto out;
@@ -83,7 +83,7 @@ static void debug_clkgen_wr(struct cvorg *cvorg, unsigned int addr, uint8_t data
 		unsigned raddr = (rval & CVORG_CLKCTL_ADDR) >> 8;
 		unsigned rdata = rval & CVORG_CLKCTL_DATA;
 
-		SK_INFO("SPI to AD9516-O Error: (expected/read) addr: 0x%0x"
+		printk (KERN_INFO "cvorg: SPI to AD9516-O Error: (expected/read) addr: 0x%0x"
 			 "/0x%x, data=0x%0x/0x%x", addr, raddr, data, rdata);
 	}
 }
@@ -112,7 +112,7 @@ int clkgen_check_write(struct cvorg *cvorg)
 			goto check_ok;
 		}
 		times--;
-		usec_sleep(1);
+		udelay(1);
 
 	} while(times);
 
@@ -136,9 +136,9 @@ static void clkgen_wr(struct cvorg *cvorg, unsigned int addr, uint8_t data)
 	uint32_t cmd = CVORG_AD9516_OP_WRITE | (addr << 8) | data;
 
 	cvorg_writew(cvorg, CVORG_CLKCTL, cmd);
-	usec_sleep(CVORG_AD9516_SPI_SLEEP_US);
+	udelay(CVORG_AD9516_SPI_SLEEP_US);
 	if (clkgen_check_write(cvorg)) {
-		SK_INFO("clkgen_wr : error writing on 0x%x, data 0x%x", addr, data);
+		printk(KERN_INFO "cvorg: clkgen_wr : error writing on 0x%x, data 0x%x", addr, data);
 		return;
 	}
 
@@ -200,10 +200,10 @@ static int calib_vco_sleep(struct cvorg *cvorg, int r, int freqref)
 	 * case scenario (the first tick arrives immediately after tswait
 	 * is called) we still wait for at least 'interval' tens of ms.
 	 */
-	tswait(NULL, SEM_SIGIGNORE, interval + 1);
+	msleep((interval + 1)*10);
 
 	/* check for completion */
-	return clkgen_rd(cvorg, AD9516_PLLREADBACK) & 0x40 ? 0 : -1;
+	return clkgen_rd(cvorg, AD9516_PLLREADBACK) & 0x40 ? 0 : -1;  
 }
 
 static int clkgen_read_dvco(struct cvorg *cvorg)
@@ -219,7 +219,7 @@ static int clkgen_read_dvco(struct cvorg *cvorg)
 	retval = (dvco & 0x7) + 2;
 
 	if (retval >= 7) {
-		SK_INFO("Suspicious dvco value: 0x%x", retval);
+		printk(KERN_INFO "cvorg: Suspicious dvco value: 0x%x", retval);
 		retval = 1;
 	}
 
@@ -240,8 +240,8 @@ static int clkgen_read_d(struct cvorg *cvorg, int offset, int nr)
 	int m, n;
 
 	/* sanity check */
-	if (!WITHIN_RANGE(1, nr, 2)) {
-		SK_WARN("Invalid divider nr: %d. Setting to 1", nr);
+	if ((1 > nr) || (nr > 2)) {
+		printk(KERN_WARNING "cvorg: Invalid divider nr: %d. Setting to 1\n", nr);
 		nr = 1;
 	}
 
@@ -286,7 +286,7 @@ static int clkgen_read_p(struct cvorg *cvorg)
 	else if (prescaler == 6)
 		ret = 32;
 	else
-		SK_INFO("Prescaler P not 16 nor 32");
+		printk(KERN_INFO "cvorg: Prescaler P not 16 nor 32\n");
 
 	return ret;
 }
@@ -314,8 +314,6 @@ void get_pll_conf(struct cvorg *cvorg, struct ad9516_pll *pll)
  */
 static void check_pll_dividers(struct ad9516_pll *pll)
 {
-	if (pll->r == 1)
-		pll->r = 0;
 	if (pll->dvco == 1)
 		pll->dvco = 0;
 
@@ -366,7 +364,29 @@ static void clkgen_write_r(struct cvorg *cvorg, int r)
 
 static void clkgen_write_p(struct cvorg *cvorg, int p)
 {
-	int prescaler = p == 16 ? 0x5 : 0x6; /* see the module's docs */
+	int prescaler;
+
+	switch(p) {
+	case 2:
+		prescaler = 0x2;
+		break;
+	case 4: 
+		prescaler = 0x3;
+		break;
+
+	case 8: 
+		prescaler = 0x4;
+		break;
+	case 16: 
+		prescaler = 0x5;
+		break;
+
+	case 32: 
+		prescaler = 0x6;
+		break;
+	default:
+		prescaler = 0x6;
+	}
 
 	/* reset P */
 	clkgen_and(cvorg, AD9516_PLL1, ~0x07);
@@ -382,13 +402,13 @@ static void clkgen_write_dvco(struct cvorg *cvorg, struct ad9516_pll *pll)
 			clkgen_or(cvorg, AD9516_INPUT_CLKS, 0x1);
 			return;
 		} else {
-			SK_WARN("Cannot bypass the VCO divider: setting to 2");
+			printk(KERN_WARNING "cvorg: Cannot bypass the VCO divider: setting to 2\n");
 			pll->dvco = 2;
 		}
 	}
 
-	if (!WITHIN_RANGE(2, pll->dvco, 6)) {
-		SK_WARN("Invalid d_vco: %d ([2-6]). Setting to 2", pll->dvco);
+	if ((2 > pll->dvco) || (pll->dvco > 6)) {
+		printk(KERN_WARNING "cvorg: Invalid d_vco: %d ([2-6]). Setting to 2\n", pll->dvco);
 		pll->dvco = 2;
 	}
 
@@ -416,12 +436,12 @@ static void clkgen_write_d(struct cvorg *cvorg, int divider, int nr, int d)
 	unsigned int divider_addr, bypass_addr, bypass_mask;
 
 	/* sanity checks */
-	if (!WITHIN_RANGE(3, divider, 4)) {
-		SK_INFO("Invalid divider: %d [3-4]. Ignoring.", divider);
+	if ((3 > divider) || (divider > 4)) {
+		printk(KERN_INFO "cvorg: Invalid divider: %d [3-4]. Ignoring.\n", divider);
 		return;
 	}
-	if (!WITHIN_RANGE(1, nr, 2)) {
-		SK_INFO("Invalid divider nr: %d [1-2]. Ignoring.", nr);
+	if ((1 > nr) || (nr > 2)) {
+		printk(KERN_INFO "cvorg: Invalid divider nr: %d [1-2]. Ignoring.\n", nr);
 		return;
 	}
 
@@ -464,6 +484,7 @@ int clkgen_apply_pll_conf(struct cvorg *cvorg)
 {
 	int ret = 0;
 	struct ad9516_pll *pll = &cvorg->pll;
+	unsigned int data;
 
 	check_pll_dividers(pll);
 
@@ -489,12 +510,25 @@ int clkgen_apply_pll_conf(struct cvorg *cvorg)
 	clkgen_wr(cvorg, AD9516_PLL3,		0x01);
 	clkgen_wr(cvorg, AD9516_UPDATE_ALL,	0x01);
 
-	if (calib_vco_sleep(cvorg, pll->r, AD9516_OSCILLATOR_FREQ)) {
-		SK_DEBUG("VCO calibration failed [PLL: A=%d B=%d P=%d "
+	/* Use the external clock as input for the pll
+	 * instead of the internal oscillator.
+	 */
+	
+	if (pll->ext_clk_pll) {
+		data = cvorg_readw(cvorg, CVORG_CLKCTL);
+		cvorg_writew(cvorg, CVORG_CLKCTL, data | (1 << 31));
+	} else {
+
+		data = cvorg_readw(cvorg, CVORG_CLKCTL);
+		cvorg_writew(cvorg, CVORG_CLKCTL, data & 0x7FFFFFFF);
+	}
+
+
+	if (calib_vco_sleep(cvorg, pll->r, pll->input_freq)) {
+		printk(KERN_INFO "cvorg: VCO calibration failed [PLL: A=%d B=%d P=%d "
 			"R=%d d1=%d d2=%d dvco=%d]", pll->a, pll->b,
 			pll->p, pll->r, pll->d1, pll->d2, pll->dvco);
-		pseterr(EAGAIN);
-		ret = -1;
+		ret = -EAGAIN;
 	}
 
 	return ret;
@@ -506,19 +540,22 @@ int clkgen_check_pll(struct ad9516_pll *pll)
 
 	if (pll->a > pll->b)
 		err = 1;
+
 	if (pll->a > 63)
 		err = 1;
-	if (pll->p != 16 && pll->p != 32)
+
+	if (pll->p != 4 && pll->p != 8 && pll->p != 16 && pll->p != 16 && pll->p != 32)
 		err = 1;
+
 	if (pll->b <= 0 || pll->b > 8191)
 		err = 1;
+
 	if (pll->r <= 0 || pll->r > 16383)
 		err = 1;
 
-	if (err) {
-		pseterr(EINVAL);
-		return err;
-	}
+	if (err)
+		return -EINVAL; 
+
 	return 0;
 }
 

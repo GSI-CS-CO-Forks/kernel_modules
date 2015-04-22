@@ -2,6 +2,7 @@
  * cvorgtest.c
  *
  * CVORG driver's test program
+ * Copyright (c) 2010, 2011, 2012 Samuel Iglesias Gonsalvez <siglesia@cern.ch>
  * Copyright (c) 2009 Emilio G. Cota <cota@braap.org>
  *
  * Released under the GPL v2. (and only v2, not any later version)
@@ -9,7 +10,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <time.h>
-
+#include <stdio.h>
 #include <sys/ioctl.h>
 #include <curses.h>
 #include <readline/readline.h>
@@ -17,9 +18,10 @@
 #include <general_usr.h>
 
 #include <extest.h>
+#include "cvorgdev.h"
 #include "cvorgtest.h"
-
-#include <libad9516.h>
+#include "libinternal.h"
+#include "libad9516.h"
 
 /* this compilation flag enables printing the test waveform before it's sent */
 /* #define DEBUG_CVORG_WVSHAPES */
@@ -40,6 +42,8 @@ static const struct cvorg_memtest_op cvorg_memtest_ops[] = {
 	{ 0, CVORG_SRAM_SIZE_LONGS, 1, 0x00000000, CVORG_MEMTEST_FIXED }
 };
 #define CVORG_NR_MEMTEST_OPS	ARRAY_SIZE(cvorg_memtest_ops)
+cvorg_t dev;
+cvorg_t *device = &dev;
 
 /*
  * ratio: 2 for 1 period, bigger for higher freqs
@@ -284,7 +288,7 @@ static int play_seq(struct cvorg_seq *seq)
 		return -TST_ERR_SYSCALL;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCSLOADSEQ, seq) < 0) {
+	if (cvorg_channel_set_sequence(device, seq) < 0) {
 		mperr("Write sequence");
 		return -TST_ERR_IOCTL;
 	}
@@ -389,7 +393,6 @@ out_err:
 
 int h_ch(struct cmd_desc *cmdd, struct atom *atoms)
 {
-	int channel = 0;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - select the channel (1 or 2) to work on\n"
@@ -402,19 +405,16 @@ int h_ch(struct cmd_desc *cmdd, struct atom *atoms)
 	if ((++atoms)->type == Terminator)
 		goto out;
 
-	if (atoms->type == Numeric)
-		channel = atoms->val;
+	if (atoms->type == Numeric) {
 
-	if (ioctl(_DNFD, CVORG_IOCSCHANNEL, &channel) < 0) {
-		mperr("set channel");
-		return -TST_ERR_IOCTL;
+		if (atoms->val < 0 || atoms->val > 1)
+			return -TST_ERR_WRONG_ARG;
+
+		device->channelnr = atoms->val;
 	}
+
 out:
-	if (ioctl(_DNFD, CVORG_IOCGCHANNEL, &channel) < 0) {
-		mperr("get channel");
-		return -TST_ERR_IOCTL;
-	}
-	printf("current channel: %d\n", channel);
+	printf("current channel: %d\n", device->channelnr);
 
 	return 1;
 }
@@ -469,7 +469,8 @@ int h_outoff(struct cmd_desc *cmdd, struct atom *atoms)
 
 	if (atoms->type == Numeric) {
 		offset = !!atoms->val;
-		if (ioctl(_DNFD, CVORG_IOCSOUTOFFSET, &offset) < 0) {
+		if (cvorg_channel_set_outoff(device, offset) < 0) {
+			cvorg_perror(__func__);
 			mperr("set analog output offset");
 			return -TST_ERR_IOCTL;
 		}
@@ -479,7 +480,7 @@ int h_outoff(struct cmd_desc *cmdd, struct atom *atoms)
 	}
 
  out:
-	if (ioctl(_DNFD, CVORG_IOCGOUTOFFSET, &offset) < 0) {
+	if (cvorg_channel_get_outoff(device, &offset) < 0) {
 		mperr("get analog output offset");
 		return -TST_ERR_IOCTL;
 	}
@@ -507,7 +508,7 @@ int h_inpol(struct cmd_desc *cmdd, struct atom *atoms)
 	if ((++atoms)->type == Terminator) {
 		uint32_t polarity;
 
-		if (ioctl(_DNFD, CVORG_IOCGINPOLARITY, &polarity) < 0) {
+		if (cvorg_channel_get_inpol(device, &polarity) < 0) {
 			mperr("get input polarity");
 			return -TST_ERR_IOCTL;
 		}
@@ -518,7 +519,7 @@ int h_inpol(struct cmd_desc *cmdd, struct atom *atoms)
 	if (atoms->type == Numeric) {
 		uint32_t polarity = atoms->val;
 
-		if (ioctl(_DNFD, CVORG_IOCSINPOLARITY, &polarity) < 0) {
+		if (cvorg_channel_set_inpol(device, polarity) < 0) {
 			mperr("set input polarity");
 			return -TST_ERR_IOCTL;
 		}
@@ -567,33 +568,13 @@ static void show_mode(uint32_t status, uint32_t config)
 	printf("\n");
 }
 
-static int do_rawio(unsigned int offset, uint32_t *val)
-{
-	SkelDrvrRawIoBlock rio;
-
-	memset(&rio, 0, sizeof(rio));
-
-	rio.SpaceNumber	= 0x29;
-	rio.DataWidth	= 32;
-	rio.Offset	= offset;
-
-	if (ioctl(_DNFD, SkelDrvrIoctlRAW_READ, &rio) < 0) {
-		mperr("RAW_READ ioctl fails:\n"
-			"space #: %d; data width:%d, offset: %d\n",
-			rio.SpaceNumber, rio.DataWidth, rio.Offset);
-		return -TST_ERR_IOCTL;
-	}
-
-	*val = rio.Data;
-
-	return 0;
-}
-
 int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	uint32_t status;
-	uint32_t status_reg;
+/*
+	int32_t status_reg;
 	uint32_t config_reg;
+*/
 	int32_t temperature;
 	int ret;
 
@@ -603,26 +584,29 @@ int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 		goto out;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCGCHANSTAT, &status) < 0) {
+	if (cvorg_channel_get_status(device, &status) < 0) {
 		mperr("get_chanstat");
 		return -TST_ERR_IOCTL;
 	}
-
-	ret = do_rawio(CVORG_STATUS_REG, &status_reg);
-	if (ret)
-		return ret;
-
-	ret = do_rawio(CVORG_CONFIG_REG, &config_reg);
-	if (ret)
-		return ret;
+/*
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "status", &status_reg);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
 
 	printf("status reg: 0x%08x\n", status_reg);
 
 	if (status & CVORG_CHANSTAT_READY)
 		printf("\tReady\n");
 
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "config", &config_reg);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
 	show_mode(status_reg, config_reg);
-
+*/
 	if (status & CVORG_CHANSTAT_BUSY)
 		printf("\tBusy\n");
 	if (status & CVORG_CHANSTAT_SRAM_BUSY)
@@ -645,11 +629,10 @@ int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 	else
 		printf("\tOutput disabled\n");
 
-	printf("config reg: 0x%08x\n", config_reg);
-
-	if (ioctl(_DNFD, CVORG_IOCGTEMPERATURE, &temperature) < 0) {
-		mperr("get_temperature");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_get_attr_uint(device->index, "temperature", &temperature);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 	printf("On-board Temperature: %d C\n", temperature);
 out:
@@ -684,7 +667,7 @@ int h_trigger(struct cmd_desc *cmdd, struct atom *atoms)
 		return -TST_ERR_WRONG_ARG;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCSTRIGGER, &trig) < 0) {
+	if (cvorg_channel_set_trigger(device, trig) < 0) {
 		mperr("send software trigger");
 		return -TST_ERR_IOCTL;
 	}
@@ -708,10 +691,11 @@ static void print_pll(struct ad9516_pll *pll)
 {
 	unsigned long n = pll->p * pll->b + pll->a;
 	double fvco;
+	double sampfreq;
 
-	fvco = (double)AD9516_OSCILLATOR_FREQ * n / pll->r;
+	fvco = (double)pll->input_freq * n / pll->r;
 
-	printf("debug: fref=%g, n=%lu, r=%d\n", (double)AD9516_OSCILLATOR_FREQ,
+	printf("debug: fref=%g, n=%lu, r=%d\n", (double)pll->input_freq,
 		n, pll->r);
 
 	printf("PLL params: [P=%d, B=%d, A=%d, R = %d]\n"
@@ -722,25 +706,33 @@ static void print_pll(struct ad9516_pll *pll)
 		"\tf_ref = %g Hz\n"
 		"\tN = %lu\n"
 		"\tf_vco = %g Hz\n",
-		(double)AD9516_OSCILLATOR_FREQ, n, fvco);
+		(double)pll->input_freq, n, fvco);
 
-	if (pll->external) {
+	if (pll->external) 
 		printf("f_out: external\n");
-	} else {
-		double sampfreq = fvco / pll->dvco / pll->d1 / pll->d2;
 
-		printf("f_out: ");
-		if (sampfreq < 1000000)
-			printf("%g KHz", sampfreq / 1e3);
-		else
-			printf("%g MHz", sampfreq / 1e6);
+
+	printf("f_out: ");
+	sampfreq = fvco / pll->dvco / pll->d1 / pll->d2; 
+
+	if (sampfreq < 1000000)
+		printf("%g KHz", sampfreq / 1e3);
+	else
+		printf("%g MHz", sampfreq / 1e6);
 		printf("\n");
+
+	if (pll->ext_clk_pll) {
+		printf("f_input: external\n");
+	} else {
+		printf("f_input: internal oscillator\n");
 	}
 
 }
 
 int h_pll(struct cmd_desc *cmdd, struct atom *atoms)
 {
+	int ret;
+
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - get/set the PLL configuration\n"
 			"%s - print the current configuration\n"
@@ -760,11 +752,11 @@ int h_pll(struct cmd_desc *cmdd, struct atom *atoms)
 	if ((++atoms)->type == Terminator) {
 		struct ad9516_pll pll;
 
-		if (ioctl(_DNFD, CVORG_IOCGPLL, &pll) < 0) {
-			mperr("get PLL config");
-			return -TST_ERR_IOCTL;
+		ret = cvorgdev_get_chan_attr_bin(device->index, device->channelnr, "pll", &pll, sizeof(pll));
+		if (ret < 0) {
+			__cvorg_libc_error(__func__);
+			return -1;
 		}
-
 		check_pll_dividers(&pll);
 		print_pll(&pll);
 		goto out;
@@ -776,22 +768,29 @@ out:
 int h_sampfreq(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	struct ad9516_pll pll;
+	unsigned int ext_clk = 0;
+	unsigned int freq;
+	int ret;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - get/set the sampling frequency\n"
 			"%s - print the current sampling frequency\n"
-			"%s n:\n"
+			"%s n [m]:\n"
 			"\tif n == 0, the sampling frequency is EXTCLK\n"
 			"\tif n != 0, set the sampling frequency to "
-			"(approx.) n Hz (using the internal PLL)\n",
+			"(approx.) n Hz (using the internal PLL)\n"
+			"\tif m == 0 or not present, the input of internal PLL is the internal oscillator (40 MHz)\n"
+			"\tif m != 0, set the frequency of the EXTCLK"
+			"(approx.) m Hz (using the internal PLL)\n",
 			cmdd->name, cmdd->name, cmdd->name);
 		goto out;
 	}
 
 	if ((++atoms)->type == Terminator) {
-		if (ioctl(_DNFD, CVORG_IOCGPLL, &pll) < 0) {
-			mperr("get PLL config");
-			return -TST_ERR_IOCTL;
+		ret = cvorgdev_get_chan_attr_bin(device->index, device->channelnr, "pll", &pll, sizeof(pll));
+		if (ret < 0) {
+			__cvorg_libc_error(__func__);
+			return -1;
 		}
 		check_pll_dividers(&pll);
 		print_pll(&pll);
@@ -807,16 +806,41 @@ int h_sampfreq(struct cmd_desc *cmdd, struct atom *atoms)
 		printf("Out of range sampfreq. Max: %d\n", CVORG_MAX_FREQ);
 		return -TST_ERR_WRONG_ARG;
 	}
+	
+	freq = atoms->val;
 
-	if (ad9516_fill_pll_conf(atoms->val, &pll)) {
-		printf("Invalid argument\n");
-		return -TST_ERR_WRONG_ARG;
+	if ((++atoms)->type == Terminator) {
+		ext_clk = 0;
+	} else {
+		if (atoms->type != Numeric) {
+			printf("Invalid argument\n");
+			return -TST_ERR_WRONG_ARG;
+		}
+		if(atoms->val == 0)
+			ext_clk = 0;
+		else
+			ext_clk = 1;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCSPLL, &pll) < 0) {
-		mperr("set PLL config");
-		return -TST_ERR_IOCTL;
+	if (ext_clk) {
+		if (cvorg_set_sampfreq_ext_clk(device, freq, atoms->val)) {
+			printf("Error set_sampfreq_ext_clk\n");
+			return -TST_ERR_WRONG_ARG;
+		}
+
+	} else {
+		if (cvorg_set_sampfreq(device, freq)) {
+			printf("Error set_sampfreq\n");
+			return -TST_ERR_WRONG_ARG;
+		}
 	}
+
+	ret = cvorgdev_get_chan_attr_bin(device->index, device->channelnr, "pll", &pll, sizeof(pll));
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
+	}
+	// code to read the struct ad9516_pll 
 	print_pll(&pll);
 out:
 	return 1;
@@ -835,7 +859,7 @@ int h_rsf(struct cmd_desc *cmdd, struct atom *atoms)
 		goto out;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCGSAMPFREQ, &sampfreq) < 0) {
+	if (cvorg_get_sampfreq(device, &sampfreq) < 0) {
 		mperr("get_sampfreq");
 		return -TST_ERR_IOCTL;
 	}
@@ -874,10 +898,11 @@ int h_sram(struct cmd_desc *cmdd, struct atom *atoms)
 	}
 
 	entry.address = atoms->val * 4;
+	entry.channel = device->channelnr;
 
 	if ((atoms + 1)->type != Numeric) {
 		/* read from SRAM */
-		if (ioctl(_DNFD, CVORG_IOCGSRAM, &entry) < 0) {
+		if (ioctl(device->fd, CVORG_IOCTL_READ_SRAM, &entry) < 0) {
 			mperr("Read from SRAM");
 			return -TST_ERR_IOCTL;
 		}
@@ -890,7 +915,7 @@ int h_sram(struct cmd_desc *cmdd, struct atom *atoms)
 		entry.data[0] = (++atoms)->val >> 16;
 		entry.data[1] = atoms->val & 0xffff;
 
-		if (ioctl(_DNFD, CVORG_IOCSSRAM, &entry) < 0) {
+		if (ioctl(device->fd, CVORG_IOCTL_WRITE_SRAM, &entry) < 0) {
 			mperr("Write to SRAM");
 			return -TST_ERR_IOCTL;
 		}
@@ -910,7 +935,7 @@ int h_lock(struct cmd_desc *cmdd, struct atom *atoms)
 		return 1;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCTLOCK, NULL) < 0) {
+	if (cvorg_lock(device) < 0) {
 		mperr("lock_module");
 		return 1;
 	}
@@ -932,7 +957,7 @@ int h_unlock(struct cmd_desc *cmdd, struct atom *atoms)
 	++atoms;
 
 	if (atoms->type == Numeric && atoms->val) {
-		if (ioctl(_DNFD, CVORG_IOCTUNLOCK_FORCE, NULL) < 0) {
+		if (cvorg_unlock(device) < 0) {
 			mperr("force unlock_module");
 			return -TST_ERR_IOCTL;
 		}
@@ -940,7 +965,7 @@ int h_unlock(struct cmd_desc *cmdd, struct atom *atoms)
 		return 1;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCTUNLOCK, NULL) < 0) {
+	if (cvorg_unlock(device) < 0) {
 		mperr("unlock_module");
 		return 1;
 	}
@@ -978,6 +1003,7 @@ static void print_mode(uint32_t mode)
 int h_mode(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	uint32_t mode;
+	int ret;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - get/set operation mode on the current channel\n"
@@ -1012,184 +1038,19 @@ int h_mode(struct cmd_desc *cmdd, struct atom *atoms)
 		return -TST_ERR_WRONG_ARG;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCSMODE, &mode) < 0) {
-		mperr("set mode");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "test_mode", mode);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 out:
-	if (ioctl(_DNFD, CVORG_IOCGMODE, &mode) < 0) {
-		mperr("get mode");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "test_mode", &mode);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
-
 	print_mode(mode);
 
-	return 1;
-}
-
-static int write_channel(int channel, unsigned int offset, uint32_t value)
-{
-	SkelDrvrRawIoBlock io;
-
-	io.SpaceNumber	= 0x29;
-	io.DataWidth	= 32;
-	io.Offset	= channel ? offset + CVORG_CHAN2_OFFSET : offset;
-	io.Data		= value;
-
-	if (ioctl(_DNFD, SkelDrvrIoctlRAW_WRITE, &io) < 0) {
-		mperr("RAW_WRITE ioctl fails:\n"
-			"channel: %d, offset: 0x%x, data: 0x%x\n",
-			channel + 1, offset, value);
-		return -TST_ERR_IOCTL;
-	}
-	return 0;
-}
-
-static int read_channel(int channel, unsigned int offset, uint32_t *value)
-{
-	SkelDrvrRawIoBlock io;
-
-	io.SpaceNumber	= 0x29;
-	io.DataWidth	= 32;
-	io.Offset	= channel ? offset + CVORG_CHAN2_OFFSET : offset;
-	io.Data		= 0;
-
-	if (ioctl(_DNFD, SkelDrvrIoctlRAW_READ, &io) < 0) {
-		mperr("RAW_READ ioctl fails:\n"
-			"channel: %d, offset: 0x%x, data: 0x%x\n",
-			channel + 1, offset, io.Data);
-		return -TST_ERR_IOCTL;
-	}
-
-	*value = io.Data;
-	return 0;
-}
-
-static int memtest_write(int channel, const struct cvorg_memtest_op *op)
-{
-	uint32_t pattern = op->pattern;
-	int ret;
-	int i;
-
-	if (op->type == CVORG_MEMTEST_READONLY)
-		return 0;
-
-	for (i = op->start; i < op->end; i += op->skip) {
-		ret = write_channel(channel, CVORG_SRAMADDR, i * sizeof(uint32_t));
-		if (ret)
-			return ret;
-
-		if (op->type == CVORG_MEMTEST_INCREMENT)
-			pattern = op->pattern + i * sizeof(uint32_t);
-
-		ret = write_channel(channel, CVORG_SRAMDATA, pattern);
-		if (ret)
-			return ret;
-	}
-
-	return 0;
-}
-
-static int memtest_block(int channel, const struct cvorg_memtest_op *op)
-{
-	uint32_t expected = op->pattern;
-	uint32_t read;
-	int errors = 0;
-	int ret;
-	int i;
-
-	ret = memtest_write(channel, op);
-	if (ret)
-		return ret;
-
-	for (i = op->start; i < op->end; i += op->skip) {
-		if (op->type == CVORG_MEMTEST_INCREMENT)
-			expected = op->pattern + i * sizeof(uint32_t);
-
-		ret = write_channel(channel, CVORG_SRAMADDR, i * sizeof(uint32_t));
-		if (ret)
-			return ret;
-
-		ret = read_channel(channel, CVORG_SRAMDATA, &read);
-		if (ret)
-			return ret;
-
-		if (read != expected) {
-			printf("channel %d: error @ 0x%x Read 0x%x Expected 0x%x\n",
-				channel + 1, i * sizeof(uint32_t), read, expected);
-			errors++;
-		}
-
-		if (errors >= CVORG_MEMTEST_MAX_ERRORS) {
-			printf("channel %d: memtest terminating after %d errors",
-				channel + 1, errors);
-			return 1;
-		}
-	}
-
-	return 0;
-}
-
-int memtest_channel(int channel)
-{
-	const struct cvorg_memtest_op *op;
-	uint32_t chanstat;
-	int ret;
-	int i;
-
-	if (ioctl(_DNFD, CVORG_IOCGCHANSTAT, &chanstat) < 0) {
-		mperr("get_chanstat");
-		return -TST_ERR_IOCTL;
-	}
-	if (chanstat & CVORG_CHANSTAT_BUSY ||
-		chanstat & CVORG_CHANSTAT_SRAM_BUSY) {
-		printf("channel %d: channel is busy\n", channel + 1);
-		return 1;
-	}
-
-	for (i = 0; i < CVORG_NR_MEMTEST_OPS; i++) {
-		op = &cvorg_memtest_ops[i];
-
-		printf("channel %d Memory[i]=0x%08x %s%sTest: ",
-			channel + 1, op->pattern,
-			op->skip > 1 ? "SKIP " : "",
-			op->type == CVORG_MEMTEST_READONLY ? "ReadBack " : "");
-
-		ret = memtest_block(channel, &cvorg_memtest_ops[i]);
-		if (ret) {
-			printf("Failed\n");
-			return ret;
-		} else {
-			printf("OK\n");
-		}
-	}
-
-	return 0;
-}
-
-int h_memtest(struct cmd_desc *cmdd, struct atom *atoms)
-{
-	int ret;
-	int i;
-
-	if (atoms == (struct atom *)VERBOSE_HELP) {
-		printf("%s - Perform a memory test on the current channel\n"
-			"\tNote that the memory test cannot be launched when "
-			"the channel is busy\n",
-			cmdd->name);
-		return 1;
-	}
-
-	for (i = 0; i < 2; i++) {
-		ret = memtest_channel(i);
-		if (ret) {
-			printf("channel %d: memtest failed\n", i + 1);
-			return ret;
-		} else {
-			printf("channel %d: memtest OK\n", i + 1);
-		}
-	}
-	printf("Memory test OK\n");
 	return 1;
 }
 
@@ -1285,7 +1146,7 @@ int h_adcread(struct cmd_desc *cmdd, struct atom *atoms)
 		return -TST_ERR_WRONG_ARG;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCGADC_READ, &adc) < 0) {
+	if (ioctl(device->fd, CVORG_IOCTL_ADC, &adc) < 0) {
 		mperr("adc_read");
 		return -TST_ERR_IOCTL;
 	}
@@ -1297,22 +1158,26 @@ int h_adcread(struct cmd_desc *cmdd, struct atom *atoms)
 static int dac_print_header(void)
 {
 	uint32_t val;
-	uint16_t gain;
-	int16_t offset;
+	uint32_t gain;
+	uint32_t offset;
+	int ret;
 
-	if (ioctl(_DNFD, CVORG_IOCGDAC_VAL, &val) < 0) {
-		mperr("get dac val");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "dac_value", &val);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCGDAC_GAIN, &gain) < 0) {
-		mperr("get dac gain");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "dac_gain", &gain);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 
-	if (ioctl(_DNFD, CVORG_IOCGDAC_OFFSET, &offset) < 0) {
-		mperr("get dac offset");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_get_chan_attr_uint(device->index, device->channelnr, "dac_offset", &offset);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 
 	printf("  DAC Value: 0x%04x\tgain corr: 0x%04x (%d)\toffset: 0x%04x\n",
@@ -1348,10 +1213,12 @@ static int dac_get_input(int *val, const char *prompt)
 static int dac_set_val(int val)
 {
 	uint32_t value = val;
+	int ret;
 
-	if (ioctl(_DNFD, CVORG_IOCSDAC_VAL, &value) < 0) {
-		mperr("set dac val");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "dac_value", value);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 	return 0;
 }
@@ -1359,10 +1226,12 @@ static int dac_set_val(int val)
 static int dac_set_gain(int val)
 {
 	uint16_t value = (uint16_t)val;
+	int ret;
 
-	if (ioctl(_DNFD, CVORG_IOCSDAC_GAIN, &value) < 0) {
-		mperr("set dac gain");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "dac_gain", value);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 	return 0;
 }
@@ -1370,10 +1239,12 @@ static int dac_set_gain(int val)
 static int dac_set_offset(int val)
 {
 	int16_t value = (uint16_t)val;
+	int ret;
 
-	if (ioctl(_DNFD, CVORG_IOCSDAC_OFFSET, &value) < 0) {
-		mperr("set dac offset");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "dac_value", value);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 	return 0;
 }
@@ -1450,17 +1321,19 @@ int h_dac(struct cmd_desc *cmdd, struct atom *atoms)
 	}
 
 	mode = CVORG_MODE_DAC;
-	if (ioctl(_DNFD, CVORG_IOCSMODE, &mode) < 0) {
-		mperr("set DAC mode");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "test_mode", mode);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 
 	ret = __dac();
 
 	mode = CVORG_MODE_OFF;
-	if (ioctl(_DNFD, CVORG_IOCSMODE, &mode) < 0) {
-		mperr("set mode to OFF");
-		return -TST_ERR_IOCTL;
+	ret = cvorgdev_set_chan_attr_uint(device->index, device->channelnr, "test_mode", mode);
+	if (ret < 0) {
+		__cvorg_libc_error(__func__);
+		return -1;
 	}
 
 	return ret;
@@ -1468,7 +1341,7 @@ int h_dac(struct cmd_desc *cmdd, struct atom *atoms)
 
 int h_outgain(struct cmd_desc *cmdd, struct atom *atoms)
 {
-	uint32_t gain;
+	int32_t gain;
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - get/set the analog output gain"
@@ -1484,7 +1357,8 @@ int h_outgain(struct cmd_desc *cmdd, struct atom *atoms)
 
 	if (atoms->type == Numeric) {
 		gain = atoms->val;
-		if (ioctl(_DNFD, CVORG_IOCSOUTGAIN, &gain) < 0) {
+		if (cvorg_channel_set_outgain(device, &gain) < 0) {
+			cvorg_perror(__func__);
 			mperr("set analog output gain");
 			return -TST_ERR_IOCTL;
 		}
@@ -1494,7 +1368,7 @@ int h_outgain(struct cmd_desc *cmdd, struct atom *atoms)
 	}
 
  out:
-	if (ioctl(_DNFD, CVORG_IOCGOUTGAIN, &gain) < 0) {
+	if (cvorg_channel_get_outgain(device, &gain) < 0) {
 		mperr("get analog output gain");
 		return -TST_ERR_IOCTL;
 	}
@@ -1524,7 +1398,7 @@ int h_starten(struct cmd_desc *cmdd, struct atom *atoms)
 
 	if (atoms->type == Numeric) {
 		enable = atoms->val;
-		if (ioctl(_DNFD, CVORG_IOCSOUT_ENABLE, &enable) < 0) {
+		if (cvorg_channel_enable_output(device) < 0) {
 			mperr("set output enable");
 			return -TST_ERR_IOCTL;
 		}
@@ -1534,7 +1408,7 @@ int h_starten(struct cmd_desc *cmdd, struct atom *atoms)
 	}
 
  out:
-	if (ioctl(_DNFD, CVORG_IOCGCHANSTAT, &status) < 0) {
+	if (cvorg_channel_get_status(device, &status) < 0) {
 		mperr("get_chanstat");
 		return -TST_ERR_IOCTL;
 	}
@@ -1553,8 +1427,8 @@ int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 			cmdd->name);
 		return 1;
 	}
-
-	if (ioctl(_DNFD, CVORG_IOCGPCB_ID, &pcb_id) < 0) {
+	
+	if (cvorg_get_pcb_id(device, &pcb_id) < 0) {
 		mperr("get_pcb_id");
 		return -TST_ERR_IOCTL;
 	}
@@ -1563,10 +1437,29 @@ int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 	return 1;
 }
 
+int h_hw_version(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	char *hw_version;
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - Print the HW version of the current device\n",
+			cmdd->name);
+		return 1;
+	}
+
+	hw_version = cvorg_get_hw_version(device);
+	if(hw_version == NULL)
+		return -TST_ERR_IOCTL;
+	printf("%s\n", hw_version);
+
+	return 1;
+}
+
+
 int main(int argc, char *argv[], char *envp[])
 {
+	device->channelnr = 0;	
 	return extest_init(argc, argv);
-
 }
 
 struct cmd_desc user_cmds[] = {
@@ -1613,23 +1506,22 @@ struct cmd_desc user_cmds[] = {
 	{14, CmdMODE,	"mode", "Get/Set Mode", "", 0,
 			h_mode },
 
-	{15, CmdMEMTEST, "memtest", "Memory Test", "", 0,
-			h_memtest },
-
-	{16, CmdADCREAD, "adcread", "ADC Read", "\"channel\" \"range\"", 2,
+	{15, CmdADCREAD, "adcread", "ADC Read", "\"channel\" \"range\"", 2,
 			h_adcread },
 
-	{17, CmdDAC,	"dac", "Configure DAC", "", 0,
+	{16, CmdDAC,	"dac", "Configure DAC", "", 0,
 			h_dac },
 
-	{18, CmdOUTGAIN, "outgain", "Output Gain (dB)", "", 0,
+	{17, CmdOUTGAIN, "outgain", "Output Gain (dB)", "", 0,
 			h_outgain },
 
-	{19, CmdSTARTEN, "starten", "Enable Start", "", 0,
+	{18, CmdSTARTEN, "starten", "Enable Start", "", 0,
 			h_starten },
 
-	{20, CmdPCB,	"pcb", "Get the PCB Serial Number", "", 0,
+	{19, CmdPCB,	"pcb", "Get the PCB Serial Number", "", 0,
 			h_pcb },
 
+	{20, CmdHW,	"hw_version", "Get the HW Version", "", 0,
+			h_hw_version },
 	{ 0, }
 };

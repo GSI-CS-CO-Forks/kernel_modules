@@ -7,18 +7,25 @@
 #ifndef _CVORG_PRIV_H_
 #define _CVORG_PRIV_H
 
-#include <skeldrvrP.h> /* for SkelDrvrModuleContext */
+#include <linux/device.h>
+#include <linux/cdev.h>
+#include <asm-generic/iomap.h>
+
 #include <cvorg.h>
-#include <cdcm/cdcmBoth.h>
-#include <cdcm/cdcmIo.h>
-
-#include <general_both.h>
-
+#include <cvorg_hw.h>
 #include <ad9516.h>
 #include <ad9516_priv.h>
 
 /* define this to debug I/O accesses */
-#undef CVORG_DEBUG_IO
+#define CVORG_MAX_BOARDS 	16
+
+/* Table to save the pointers to all cvorg devices */
+extern struct cvorg* cvorg_table[CVORG_MAX_BOARDS];
+
+/* Needed to create the sysfs files */
+extern struct class *cvorg_class;
+extern dev_t cvorg_devno;
+
 
 /**
  * struct cvorg_channel - internal channel structure
@@ -30,11 +37,13 @@
  * @parent:	parent CVORG module
  */
 struct cvorg_channel {
+	struct kobject  kobj;
 	int		inpol;
 	int		outoff;
 	int		outgain;
 	unsigned int	reg_offset;
 	int		out_enabled;
+	int		chan_nr;
 	struct cvorg	*parent;
 };
 
@@ -48,46 +57,23 @@ struct cvorg_channel {
  * @channels:	array containing the contexts of the two channels
  */
 struct cvorg {
-	unsigned int		hw_rev;
-	struct cdcm_mutex	lock;
-	struct cdcm_file	*owner;
+	struct device 		*dev;
+	struct cdev             cdev;
+	int			n_channels;
+	uint32_t		pcb_id;
+	uint32_t		hw_rev;
+	struct mutex		lock;
 	void			*iomap;
 	struct ad9516_pll	pll;
-	struct cvorg_channel	channels[2];
+	struct cvorg_channel	channels[CVORG_CHANNELS];
+	uint32_t		irq;
+	uint32_t		irq_level;
+	uint32_t		lun;
 };
-
-
-static inline int __cvorg_check_perm(struct cvorg *cvorg, struct cdcm_file *file)
-{
-	return cvorg->owner && cvorg->owner != file;
-}
-
-static inline struct cvorg *cvorg_get(SkelDrvrClientContext *ccon)
-{
-	SkelDrvrModuleContext *mcon = get_mcon(ccon->ModuleNumber);
-
-	return mcon->UserData;
-}
-
-static inline struct cvorg_channel
-*cvorg_get_channel(SkelDrvrModuleContext *mcon, int nr)
-{
-	struct cvorg *cvorg = mcon->UserData;
-
-	return &cvorg->channels[nr];
-}
-
-static inline struct cvorg_channel
-*cvorg_get_channel_ccon(SkelDrvrClientContext *ccon)
-{
-	SkelDrvrModuleContext *mcon = get_mcon(ccon->ModuleNumber);
-
-	return cvorg_get_channel(mcon, ccon->ChannelNr);
-}
 
 static inline uint32_t __cvorg_readw(struct cvorg *cvorg, unsigned int offset)
 {
-	return cdcm_ioread32be(cvorg->iomap + offset);
+	return ioread32be(cvorg->iomap + offset);
 }
 
 static inline uint32_t cvorg_readw(struct cvorg *cvorg, unsigned int offset)
@@ -95,24 +81,18 @@ static inline uint32_t cvorg_readw(struct cvorg *cvorg, unsigned int offset)
 	uint32_t value;
 
 	value = __cvorg_readw(cvorg, offset);
-#ifdef CVORG_DEBUG_IO
-	SK_INFO("read:\t0x%8x @ 0x%8x", value, offset);
-#endif
 	return value;
 }
 
 static inline void
 __cvorg_writew(struct cvorg *cvorg, unsigned int offset, uint32_t value)
 {
-	cdcm_iowrite32be(value, cvorg->iomap + offset);
+	iowrite32be(value, cvorg->iomap + offset);
 }
 
 static inline void
 cvorg_writew(struct cvorg *cvorg, unsigned int offset, uint32_t value)
 {
-#ifdef CVORG_DEBUG_IO
-	SK_INFO("write:\t\t0x%8x @ 0x%8x", value, offset);
-#endif
 	__cvorg_writew(cvorg, offset, value);
 }
 
@@ -174,14 +154,14 @@ static inline void cvorg_uchan(struct cvorg_channel *channel,
 static inline void
 cvorg_wchan_noswap(struct cvorg_channel *channel, unsigned int offset, uint32_t value)
 {
-	cdcm_iowrite32(value, channel->parent->iomap + channel->reg_offset + offset);
+	iowrite32(value, channel->parent->iomap + channel->reg_offset + offset);
 }
 
 /* read from a channel's register, without swapping */
 static inline uint32_t
 cvorg_rchan_noswap(struct cvorg_channel *channel, unsigned int offset)
 {
-	return cdcm_ioread32(channel->parent->iomap + channel->reg_offset + offset);
+	return ioread32(channel->parent->iomap + channel->reg_offset + offset);
 }
 
 /* Note: the clkgen functions that may fail shall set errno appropriately */
@@ -189,5 +169,33 @@ int clkgen_check_pll(struct ad9516_pll *pll);
 void clkgen_startup(struct cvorg *cvorg);
 int clkgen_apply_pll_conf(struct cvorg *cvorg);
 void clkgen_get_pll_conf(struct cvorg *cvorg, struct ad9516_pll *pll);
+
+/* Functions used on sysfs callbacks */
+int cvorg_reset(struct cvorg *cvorg);
+int cvorg_read_sampfreq(struct cvorg *cvorg, void *arg);
+int cvorg_get_pcb_id(struct cvorg *cvorg, void *arg);
+int cvorg_get_temperature(struct cvorg *cvorg, void *arg);
+int cvorg_chan_offset(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_inpol(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_status(struct cvorg_channel *channel, void *arg);
+int cvorg_chan_output_gain(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_sw_trigger(struct cvorg_channel *channel, void *arg);
+int cvorg_chan_out_enable(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_dac_gain(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_dac_offset(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_dac_val(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_adc_read(struct cvorg_channel *channel, void *arg);
+int cvorg_chan_loadseq(struct cvorg_channel *channel, void *arg);
+int cvorg_chan_test_mode(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_chan_sram(struct cvorg_channel *channel, void *arg, int set);
+int cvorg_pll(struct cvorg *cvorg, void *arg, int set);
+
+/* Functios used by cvorgdrv.c */
+
+int cvorg_module_install(struct device *pdev, uint32_t lun, unsigned long base_address, 
+				uint32_t irq, uint32_t irq_level, unsigned int index);
+void cvorg_module_uninstall(struct cvorg *cvorg);
+int cvorg_create_sysfs_files(struct cvorg *cvorg);
+void cvorg_remove_sysfs_files(struct cvorg *cvorg);
 
 #endif /* _CVORG_PRIV_H_ */

@@ -1,10 +1,9 @@
-# ccflags-y =
-# EXTRA_CFLAGS =
+EXTRA_CFLAGS += \
+             -I$(M) \
+             -I$(M)/../include \
+             -I$(M)/../../include 
+EXTRA_CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-# XTRA_DSRC =
+obj-m += cvorg.o
 
-# Space separated list of driver directories this driver depends on
-DEP_SYMVERS = $(ROOTDIR)/vmebridge
-
-# include standart general kbuild
-include $(ROOTDIR)/makefiles/Kbuild
+cvorg-objs := cvorg-func.o cvorg_sysfs.o clkgen.o cvorgdrv.o 

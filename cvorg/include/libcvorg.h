@@ -5,14 +5,19 @@
 #ifndef _CVORG_LIB_H_
 #define _CVORG_LIB_H_
 
-#include <cvorg.h>
+#include "cvorg.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif /* __cplusplus */
-
+#define CVORG_NR_CALIB_VALUES 18
 struct cvorglib {
 	int fd;
+	int index;
+	int channelnr;
+	uint32_t *dac_calib; /* dac offset/gain calibration values */
+	void *reserved1;
+	void *reserved2;
 };
 
 typedef struct cvorglib cvorg_t;
@@ -33,6 +38,7 @@ int cvorg_unlock(cvorg_t *device);
 
 int cvorg_set_sampfreq(cvorg_t *device, unsigned int freq);
 int cvorg_get_sampfreq(cvorg_t *device, unsigned int *freq);
+int cvorg_set_sampfreq_ext_clk(cvorg_t *device, unsigned int freq, unsigned int ext_clk_freq);
 
 int cvorg_channel_set_outoff(cvorg_t *device, enum cvorg_outoff outoff);
 int cvorg_channel_get_outoff(cvorg_t *device, enum cvorg_outoff *outoff);
