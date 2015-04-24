@@ -1,3 +1,0 @@
-include ../Makefile.specific
-
-DOXY_FILES = icv196vmelib.c ../include/icv196vmelib.h
