@@ -26,7 +26,7 @@ my @keys = ('ln', 'mln', 'bus', 'mtno', 'module-type', 'lu', 'W1', 'AM1',
 my @cratekeys =('sl', 'pcibus', 'pcislot');
 my %base_addrs;
 my $carrier_register = "modulbus_register";
-my $insmod_register = "insmod $carrier_register.ko";
+my $insmod_register = "/sbin/insmod $carrier_register.ko";
 
 GetOptions(
 	   "help|?|h"=> \$help,
@@ -151,7 +151,7 @@ close(INPUT);
   }
     if (defined $index_parm) {
 	my $driver_name = $driver.".ko";
-	my $insmod = "insmod $driver_name lun=$index_parm bus_number=$bus_number slot_number=$slot_number";
+	my $insmod = "/sbin/insmod $driver_name lun=$index_parm bus_number=$bus_number slot_number=$slot_number";
 	print $insmod, "\n";
 	system($insmod) == 0 or die("$insmod failed");
 	

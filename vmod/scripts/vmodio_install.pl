@@ -24,7 +24,7 @@ my @keys = ('ln', 'mln', 'bus', 'mtno', 'module-type', 'lu', 'W1', 'AM1',
 my %base_addrs;
 
 my $carrier_register = "modulbus_register";
-my $insmod_register = "insmod $carrier_register.ko";
+my $insmod_register = "/sbin/insmod $carrier_register.ko";
 
 # allow single-character options
 Getopt::Long::Configure("bundling_override");
@@ -117,7 +117,7 @@ sub vmodio_install {
       }
   }
     if (defined $index_parm) {
-	my $insmod = "insmod vmodio.ko lun=$index_parm base_address=$base_parm irq=$irq";
+	my $insmod = "/sbin/insmod vmodio.ko lun=$index_parm base_address=$base_parm irq=$irq";
 	system($insmod) == 0 or die("$insmod failed");
         #print $insmod, "\n";
     }

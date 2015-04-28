@@ -142,7 +142,7 @@ sub vmod_install {
   }
     if (defined $index_parm) {
 	my $driver_name = $driver.".ko";
-	my $insmod = "insmod $driver_name lun=$index_parm carrier=$carrier carrier_number=$carrier_number slot=$slot";
+	my $insmod = "/sbin/insmod $driver_name lun=$index_parm carrier=$carrier carrier_number=$carrier_number slot=$slot";
 	print $insmod, "\n";
 	system($insmod) == 0 or die("$insmod failed");
 
