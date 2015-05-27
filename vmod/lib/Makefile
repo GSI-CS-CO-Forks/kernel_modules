@@ -1,11 +1,9 @@
 CPU=L865
-
+include /acc/src/dsc/co/Make.auto
 
 all: lib
 
-
 ifeq ($(CPU), ppc4)
-include /acc/src/dsc/co/Make.auto
 
 LIBS=libvmod2dioaio.a libvmodttl2dioaio.a libvmoddor2dioaio.a
 lib: $(LIBS)
@@ -34,69 +32,59 @@ libvmoddor2dioaio.o:
 libvmod2dioaio.so: $(OBJS)
 	gcc -shared -o $@ $^
 libvmod2dioaio.a: $(OBJS)
-	ar r $@ $^
+	$(AR) r $@ $^
 
 libvmod12a22dioaio.a: libvmod12a22dioaio.o
-	ar r $@ $^
+	$(AR) r $@ $^
 libvmod16a22dioaio.a: libvmod16a22dioaio.o
-	ar r $@ $^
+	$(AR) r $@ $^
 libvmod12e162dioaio.a: libvmod12e162dioaio.o
-	ar r $@ $^
+	$(AR) r $@ $^
 
 libvmodttl2dioaio.a: libvmodttl2dioaio.o
-	ar r $@ $^
+	$(AR) r $@ $^
 libvmodttl2dioaio.so: libvmodttl2dioaio.o
 	$(CC) -shared -o $@ $^
 libvmoddor2dioaio.a: libvmoddor2dioaio.o
-	ar r $@ $^
+	$(AR) r $@ $^
 libvmoddor2dioaio.so: libvmoddor2dioaio.o
 	$(CC) -shared -o $@ $^
 
 else
 
+LIBS=libvmod.$(CPU).a libvmodttl.$(CPU).a libvmoddor.$(CPU).a
+OBJS=libvmod12a2.$(CPU).o libvmod12a4.$(CPU).o libvmod16a2.$(CPU).o libvmod12e16.$(CPU).o
 
-LIBS=libvmod.a libvmodttl.a libvmoddor.a
-lib: $(LIBS)
-OBJS=libvmod12a2.o libvmod12a4.o libvmod16a2.o libvmod12e16.o
-
-HEADERS=../include \
-	-I../driver
 CFLAGS=-g -Wall
+CFLAGS += -I ../include -I../driver
 
-libvmod12a2.o:
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmod12a2.c -o $@
-libvmod12a4.o:
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmod12a4.c -o $@
-libvmod16a2.o:
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmod16a2.c -o $@
-libvmod12e16.o:
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmod12e16.c -o $@
-libvmodttl.o: 
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmodttl.c -o $@
-libvmoddor.o: 
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libvmoddor.c -o $@
+lib: $(LIBS)
 
-libvmod.so: $(OBJS)
+libvmod12a2.$(CPU).o:	libvmod12a2.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+libvmod12a4.$(CPU).o:   libvmod12a4.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+libvmod16a2.$(CPU).o:   libvmod16a2.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+libvmod12e16.$(CPU).o:  libvmod12e16.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+libvmodttl.$(CPU).o:  libvmodttl.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+libvmoddor.$(CPU).o:  libvmoddor.c
+	$(CC) $(CFLAGS) -c -o $@ $^
+
+libvmod.$(CPU).so: $(OBJS)
 	gcc -shared -o $@ $^
-libvmod.a: $(OBJS)
+libvmod.$(CPU).a: $(OBJS)
 	ar r $@ $^
 
-libvmod12a2.a: libvmod12a2.o
+libvmodttl.$(CPU).a: libvmodttl.$(CPU).o
 	ar r $@ $^
-libvmod12a4.a: libvmod12a4.o
-	ar r $@ $^
-libvmod16a2.a: libvmod16a2.o
-	ar r $@ $^
-libvmod12e16.a: libvmod12e16.o
-	ar r $@ $^
-
-libvmodttl.a: libvmodttl.o
-	ar r $@ $^
-libvmodttl.so: libvmodttl.o
+libvmodttl.$(CPU).so: libvmodttl.$(CPU).o
 	gcc -shared -o $@ $^
-libvmoddor.a: libvmoddor.o
+libvmoddor.$(CPU).a: libvmoddor.$(CPU).o
 	ar r $@ $^
-libvmoddor.so: libvmoddor.o
+libvmoddor.$(CPU).so: libvmoddor.$(CPU).o
 	gcc -shared -o $@ $^
 
 endif
