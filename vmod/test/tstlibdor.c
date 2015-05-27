@@ -21,19 +21,19 @@ int main (int argc, char *argv[])
 
 	if(argc != 5){
 		printf("tstlibdor <lun> <offset> <size> <value>\n");
-		printf("<lun> Logical Unit Number. \n"
-			"<offset> value of the offset applied. \n"
-			"<size> size of the data (4, 8, 16). \n"
-			"<value> integer value to be written.\n");
+		printf("<lun>		Logical Unit Number.\n"
+			"<offset>	value of the offset (first channel) applied.\n"
+			"<size>		size of the data (4, 8, 16 channels).\n"
+			"<value>	integer value to be written (dec, hex and oct accepted).\n");
 
 		exit(-1);
 	} 
 	else
 	{
-		lun = atoi(argv[1]);
-		val.offset = atoi(argv[2]);
-		val.size = atoi(argv[3]);
-		val.data = atoi(argv[4]);
+		lun = strtoul(argv[1], NULL, 0);
+		val.offset = strtoul(argv[2], NULL, 0);
+		val.size = strtoul(argv[3], NULL, 0);
+		val.data = strtol(argv[4], NULL, 0);
 	}
 
 	ret = vmoddor_open(lun);
