@@ -1180,3 +1180,341 @@ int sis33_get_max_event_timestamping_clock_ticks(sis33_t *device, unsigned int *
 	*maxticks_log2 = val;
 	return 0;
 }
+
+int get_setup_attr (char *attr, unsigned int channel, enum sis33_itrigger_setup param)
+{
+	char param_str[255];
+
+	switch (param) {
+		case SIS3300_PULSE_MODE: 
+			snprintf(param_str, sizeof(param_str) - 1, "pulse_mode");
+			break;
+		case SIS3300_P: 
+			snprintf(param_str, sizeof(param_str) - 1, "p");
+			break;
+		case SIS3300_N_M_MODE: 
+			snprintf(param_str, sizeof(param_str) - 1, "nm_mode");
+			break;
+		case SIS3300_N: 
+			snprintf(param_str, sizeof(param_str) - 1, "n");
+			break;
+		case SIS3300_M: 
+			snprintf(param_str, sizeof(param_str) - 1, "m");
+			break;
+		case SIS3320_PULSE_LENGTH: 
+			snprintf(param_str, sizeof(param_str) - 1, "pulse_length");
+			break;
+		case SIS3320_SUM_G: 
+			snprintf(param_str, sizeof(param_str) - 1, "sum_g");
+			break;
+		case SIS3320_PEAKING_TIME:
+			snprintf(param_str, sizeof(param_str) - 1, "peaking_time");
+			break;
+		default:
+			return -1;
+	}
+
+	snprintf(attr, SIS33_PATH_MAX - 1, "channels/channel%d/trigger_%s", channel, param_str);
+	attr[SIS33_PATH_MAX - 1] = '\0';
+
+	return 0;
+	
+}
+
+/**
+ * @brief Setup internal trigger
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param param		- param identifier
+ * @param value		- Value to set
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_set_internal_trigger_setup(sis33_t *device, unsigned int channel, 
+					enum sis33_itrigger_setup param, int value)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret = 0;
+
+	LIBSIS33_DEBUG(4, "handle %p sis33_set_internal_trigger_setup param %d value %d\n", 
+			device, param, value);
+
+	if (get_setup_attr(&attr[0], channel, param) < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	ret = sis33dev_set_attr_int(device->index, attr, value);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Gets internal trigger setup.
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param param		- param identifier
+ * @param value		- retrieved setup value.
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_get_internal_trigger_setup(sis33_t *device, unsigned int channel, 
+					enum sis33_itrigger_setup param, int *value)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret = 0;
+
+	if (get_setup_attr(&attr[0], channel, param) < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	ret = sis33dev_get_attr_int(device->index, attr, value);
+
+	LIBSIS33_DEBUG(4, "handle %p sis33_get_internal_trigger_setup param %d value %d\n", 
+			device, param, *value);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Sets internal trigger threshold. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param threshold	- threshold value 
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_set_internal_trigger_threshold(sis33_t *device, unsigned int channel, int threshold)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	LIBSIS33_DEBUG(4, "handle %p sis33_set_internal_trigger_threshold threshold:%d \n",
+			 device, threshold);
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_threshold", channel);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_uint(device->index, attr, threshold);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+
+}
+
+/**
+ * @brief Gets the current threshold value for a given channel. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param value	 	- retrieved threshold value
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_get_internal_trigger_threshold(sis33_t *device, unsigned int channel, int *value)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_threshold", channel);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(device->index, attr, value);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Sets internal trigger direction. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param direction	- 0 for 'Greater than', 1 for 'Less than'. Note that 'equal' depends on
+ * card type. In sis3300 is GT/LE and in sis33200 is GE/LT.
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_set_internal_trigger_direction(sis33_t *device, unsigned int channel, int direction)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	LIBSIS33_DEBUG(4, "handle %p sis33_set_internal_trigger_direction dir:%d\n",
+			 device, direction);
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_direction", channel);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_set_attr_uint(device->index, attr, direction);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+
+}
+
+
+/**
+ * @brief Gets the current condition value for a given channel. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param value	 	- retrieved direction value
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_get_internal_trigger_direction(sis33_t *device, unsigned int channel, int *value)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_direction", channel);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(device->index, attr, value);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * @brief Enable/Disable internal trigger 
+ *
+ * @param device	- SIS33 device handle
+ * @param enable	- 0 disable, 1 enable
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_set_internal_trigger_enable(sis33_t *device, int enable)
+{
+	int ret;
+
+	LIBSIS33_DEBUG(4, "handle %p enable  %d\n", device, enable);
+	ret = sis33dev_set_attr_int(device->index, "trigger_internal_enable", enable);
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+	return 0;
+
+}
+
+/**
+ * @brief Gets enabled status for internal trigger
+ *
+ * @param device	- SIS33 device handle
+ * @param enable	- Retrieved status: 0 disabled, 1 enabled
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_get_internal_trigger_enable(sis33_t *device, int *enable)
+{
+	int ret;
+
+	LIBSIS33_DEBUG(4, "handle %p\n", device);
+	ret = sis33dev_get_attr_int(device->index, "trigger_internal_enable", enable);
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+}
+/**
+ * @brief Sets 3320's internal trigger mode. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param mode		- Trigger mode: SIS3320_FIR or SIS3320_LEADING_EDGE 
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_set_internal_trigger_mode(sis33_t *device, unsigned int channel, enum sis3320_trigger_mode mode)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+	unsigned int fir = (mode == SIS3320_FIR);
+
+	LIBSIS33_DEBUG(4, "handle %p sis33_set_internal_trigger_mode mode :%d fir %d \n",
+			 device, mode, fir);
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_fir_mode", channel);
+	attr[sizeof(attr) - 1] = '\0';
+
+	ret = sis33dev_set_attr_uint(device->index, attr, fir);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	return 0;
+
+}
+
+/**
+ * @brief Gets the current threshold value for a given channel. 
+ * @param device	- SIS33 device handle
+ * @param channel	- number of channel (0 to n-1)
+ * @param mode	 	- retrieved mode value: SIS3320_FIR or SIS3320_LEADING_EDGE
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_get_internal_trigger_mode(sis33_t *device, unsigned int channel, enum sis3320_trigger_mode *mode)
+{
+	char attr[SIS33_PATH_MAX];
+	int ret;
+	int fir;
+
+	snprintf(attr, sizeof(attr) - 1, "channels/channel%d/trigger_fir_mode", channel);
+	attr[sizeof(attr) - 1] = '\0';
+	ret = sis33dev_get_attr_int(device->index, attr, &fir);
+
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+
+	*mode = (fir == (int)SIS3320_FIR);
+
+	return 0;
+}
+
+/**
+ * @brief Reset threshold to default value in all channels
+ * @param device	- SIS33 device handle
+ *
+ * @return 0 on success, -1 on failure
+ */
+int sis33_reset_internal_trigger_all(sis33_t *device)
+{
+	int ret;
+
+	ret = sis33dev_set_attr_int(device->index, "trigger_internal_reset_all", 1);
+	if (ret < 0) {
+		__sis33_libc_error(__func__);
+		return -1;
+	}
+	
+	return 0;
+
+}
