@@ -117,7 +117,7 @@ static struct vme_driver cvorb_driver = {
 
 static int __init cvorb_init_module(void)
 {
-	int error, i;
+	int error;
 
 	/* Check Parameters */
 	if (num_lun > CVORB_MAX_BOARDS) {
@@ -125,18 +125,6 @@ static int __init cvorb_init_module(void)
 		       "Number of boards to install exceed the limit (%d)\n",
 		       CVORB_MAX_BOARDS);
 		return -EINVAL;
-	}
-	/*
-	 * Check if the difference between base addresses
-	 *  is more that the board size
-	 */
-	for (i = 1; i < num_lun; ++i) {
-		if ((base_address[i] - base_address[i - 1]) <
-		    CVORB_WINDOW_LENGTH) {
-			printk(KERN_ERR PFX
-			       "base address are not correct(doesn't respect \n");
-			return -EINVAL;
-		}
 	}
 	/* create device class */
 	cvorb_class = class_create(THIS_MODULE, "cvorb");
