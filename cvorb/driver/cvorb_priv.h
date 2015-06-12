@@ -99,6 +99,7 @@ struct cvorb_dev {
 	void *iomap;
 	struct cvorb_submodule submodules[CVORB_SUBMODULES];
 	uint32_t lun;
+	int dbglevel;
 };
 
 enum cvorb_reset {
@@ -167,7 +168,7 @@ int cvorb_enable_fcn(struct cvorb_channel *ch, uint32_t value);
 int cvorb_disable_fcn(struct cvorb_channel *ch, uint32_t value);
 int cvorb_ch_repeat_count(struct cvorb_channel *ch, uint32_t value);
 int cvorb_sysfs_set_fcn(struct cvorb_channel *channel, uint32_t fcn_nr,
-			void *arg);
+			void *arg, ssize_t count);
 int cvorb_sysfs_get_fcn(struct cvorb_channel *channel, uint32_t fcn_nr,
 			void *arg, ssize_t * count);
 

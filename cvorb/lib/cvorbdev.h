@@ -12,6 +12,11 @@ enum cvorb_attr_scope {
 	CVORB_ATTR_CHANNEL,
 };
 
+struct cvorb_data {
+	uint64_t pcb_id;
+	uint32_t loglevel;
+};
+
 int cvorbdev_get_sysfs_path(int lun, char *path, int size);
 int cvorbdev_get_nr_devices(void);
 int cvorbdev_get_device_list(int *indexes, int elems);

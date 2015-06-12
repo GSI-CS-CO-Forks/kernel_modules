@@ -17,6 +17,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <math.h>
+#include <stdint.h>
 
 #include <extest/general_usr.h>  /* for handy definitions (mperr etc..) and macros coming from general_both.h */
 #include <extest/extest.h>
@@ -27,6 +28,7 @@
 #if __CVORB_DEBUG__
 #include "time_stamp_counter.h"
 #endif
+
 /* mandatory external global variables */
 int use_builtin_cmds = 0;
 char xmlfile[128] = "cvorb.xml";
@@ -280,12 +282,13 @@ int h_hw_version(struct cmd_desc *cmdd, struct atom *atoms)
 
 int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 {
+	uint64_t pcb_id;
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - Print the PCB Serial Number of the current device\n", cmdd->name);
 		return 1;
 	}
-
-	printf ("0x%016llx\n", (unsigned long long)current_dev->pcb_id);
+	cvorb_get_pcb_id(current_dev, &pcb_id);
+	printf ("0x%016llx\n", pcb_id);
 	return 1;
 }
 
@@ -792,7 +795,8 @@ static int write_file(const char *filename, struct cvorb_vector_fcn *fv, unsigne
 
 int h_fcn_read(struct cmd_desc *cmdd, struct atom *atoms)
 {
-	unsigned int fcn_nr, n_vector, display_type=0;
+	unsigned int fcn_nr, n_vector;
+	int display_type = -1;
 	char devname[32];
 	char filename[64];
 	char cmd[256];
@@ -801,7 +805,7 @@ int h_fcn_read(struct cmd_desc *cmdd, struct atom *atoms)
 
 	if (atoms == (struct atom *)VERBOSE_HELP) {
 		printf("%s - Read and display the current channel function from the module (SRAM)\n"
-		       "%s function_nr display\n"
+		       "%s function_nr [display]\n"
 		       "\tfunction_nr - function number [1,64]\n"
 		       "\tdisplay - display type\n"
 		       "\t\t0: table of vectors (default display)\n"
@@ -870,6 +874,60 @@ int h_fcn_read(struct cmd_desc *cmdd, struct atom *atoms)
 	return 1;
 }
 
+int h_fcn_load_read_all(struct cmd_desc *cmdd, struct atom *atoms)
+{
+	int res =0, save_ch, ch_idx, fcn_idx;
+	struct atom load_trigatoms[4] = {
+		{.text="f_load", .type=String},
+		{.val=1, .type=Numeric},
+		{.text="fcn_type", .type=String},
+		{.text="", .type=Terminator}};
+	struct atom read_trigatoms[3] = {
+		{.text="f_read", .type=String},
+		{.val=1, .type=Numeric},
+		{.text="", .type=Terminator}};
+
+	if (atoms == (struct atom *)VERBOSE_HELP) {
+		printf("%s - loop over all channel/fcn loading and reading back the given function\n"
+		       "%s function_type  \n"
+		       "\tfunction_type - function to load among a list of predefined ones given by \"string\":\n",
+		       cmdd->name, cmdd->name);
+		return (get_fcn_list(1));
+	}
+
+	/* keep current channel */
+	save_ch = current_ch;
+
+	++atoms;
+	if (atoms->type != String) {
+		printf("Invalid resource name\n");
+		return -TST_ERR_WRONG_ARG;
+	}
+	
+	/*Chain automatically the full sequence, that is to say */
+	/* Load function */
+	for (ch_idx = 1; ch_idx <= CVORB_MAX_CH_NR; ++ch_idx) {
+		current_ch = ch_idx;
+		for (fcn_idx = 1; fcn_idx <= CVORB_MAX_FCT_NR; ++fcn_idx) {
+			load_trigatoms[1].val = fcn_idx;
+			strncpy(load_trigatoms[2].text, atoms->text, strlen(atoms->text));
+			load_trigatoms[2].text[strlen(atoms->text)] = '\0';
+			res = h_fcn_load(cmdd, load_trigatoms);
+			if (res < 0)
+				fprintf(stdout, "h_fcn_load failed loading %s into ch %d fcn_number %d\n", atoms->text, ch_idx, fcn_idx);
+			read_trigatoms[1].val = fcn_idx;
+			res = h_fcn_read(cmdd, read_trigatoms);
+			if (res < 0)
+				fprintf(stdout, "h_fcn_read failed reading ch %d fcn_number %d\n", ch_idx, fcn_idx);
+			if (res >= 0)
+				fprintf(stdout, "load %s into ch %d fcn_number %d and read it back successfully.\n",atoms->text, ch_idx, fcn_idx);
+		}
+	}
+	/* restore the channel */
+	current_ch = save_ch;
+	return 1;
+}
+
 int h_fcn_enable(struct cmd_desc *cmdd, struct atom *atoms)
 {
 	unsigned int fcnnr;
@@ -934,7 +992,7 @@ int h_fcn_enable_mask(struct cmd_desc *cmdd, struct atom *atoms)
 		mperr("set_attr channel %d enable_mask_fcn failed\n", current_ch);
 		return -TST_ERR_SYSCALL;
 	}
-	printf("0x%llx\n", enbl_mask);
+	printf("0x%lx\n", (long)enbl_mask);
 	return 1;
 }
 
@@ -1103,6 +1161,7 @@ enum _tag_cmd_id {
 	CmdDEVICE,
 	CmdDEVICE_NEXT,
 	CmdFCN_LOAD,
+	CmdFCN_LOAD_READ_ALL,
 	CmdFCN_PLAY,
 	CmdFCN_READ,
 	CmdFCN_ENABLE,
@@ -1144,6 +1203,7 @@ struct cmd_desc user_cmds[] = {
 	{ 1, CmdCH_SRC,                 "ch_src", "Connect the current channel to the given resource", "resource", 0, h_ch_src},
 	{ 1, CmdCH_REPEAT_COUNT,        "ch_repeat", "Set number of times a function will be generated for the current channel", "[n]", 0, h_ch_repeat},
 	{ 1, CmdFCN_LOAD,               "f_load", "Load the current channel's function into SRAM", "fcn_nr fcn_type", 0, h_fcn_load},
+	{ 1, CmdFCN_LOAD_READ_ALL,      "f_load_read_all", "Load all the channel/slot function into SRAM", "fcn_type", 0, h_fcn_load_read_all},
 	{ 1, CmdFCN_PLAY,               "f_play", "Play the current channel's function from SRAM", "fcn_nr", 0, h_fcn_play},
 	{ 1, CmdFCN_READ,               "f_read", "Read the current channel's function from SRAM", "fcn_nr display_type", 0, h_fcn_read},
 	{ 1, CmdFCN_ENABLE,             "f_en", "Enable current channel's function", "fcn_nr", 0, h_fcn_enable},

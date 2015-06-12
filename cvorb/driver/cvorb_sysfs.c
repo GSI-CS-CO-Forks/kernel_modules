@@ -279,7 +279,7 @@ static ssize_t cvorb_store_fcn(struct kobject *channels_dir,
 			    &fcn_nr);
 	if (ret)
 		return ret;
-	ret = cvorb_sysfs_set_fcn(channel, fcn_nr, (void *) buffer);
+	ret = cvorb_sysfs_set_fcn(channel, fcn_nr, (void *) buffer, count);
 	return (ret) ? ret : count;
 }
 
@@ -676,6 +676,34 @@ static ssize_t cvorb_show_sysfs_fcn_enabled(struct device *pdev,
 static DEVICE_ATTR(sysfs_fcn_enabled, S_IRUGO,
 		   cvorb_show_sysfs_fcn_enabled, NULL);
 
+static ssize_t cvorb_show_debug_level(struct device *pdev,
+					    struct device_attribute *attr,
+					    char *buf)
+{
+	struct cvorb_dev *card = dev_get_drvdata(pdev);
+	return snprintf(buf, PAGE_SIZE, "%d\n", card->dbglevel);
+}
+
+static ssize_t cvorb_store_debug_level(struct device *pdev,
+				 	struct device_attribute *attr,
+				 	const char *buf, size_t count)
+{
+	struct cvorb_dev *card = dev_get_drvdata(pdev);
+	uint32_t value;
+	int ret;
+
+	/* Extract the value as an int from the sysfs file */
+	ret = cvorb_get_int(buf, count, &value);
+	if (ret)
+		return ret;
+
+	card->dbglevel = value; 
+	return count;
+}
+
+static DEVICE_ATTR(debug_level, S_IRUGO | S_IWUSR,
+		   cvorb_show_debug_level, cvorb_store_debug_level);
+
 static struct attribute *cvorb_attrs[] = {
 	&dev_attr_hw_version.attr,
 	&dev_attr_temperature.attr,
@@ -683,6 +711,7 @@ static struct attribute *cvorb_attrs[] = {
 	&dev_attr_description.attr,
 	&dev_attr_reset.attr,
 	&dev_attr_sysfs_fcn_enabled.attr,
+	&dev_attr_debug_level.attr,
 	NULL,
 };
 

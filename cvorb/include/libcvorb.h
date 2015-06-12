@@ -19,7 +19,16 @@ struct __cvorb_t {
         int lun;
         char sysfs_path[CVORB_PATH_SIZE];
         char hw_version[CVORB_HW_VER_SIZE];
-        uint64_t pcb_id;
+	/* original field was:  uint64_t pcb_id;
+	 * we need to add more private data without changing the size
+	 * of this opaque structure.
+	 * trick to keep bacward compatibility on both architecture 32/64 bits:
+	 * the field uint64_t pcb_id is replaced
+	 * by a pointer to private data which will contain
+	 * pcb_id, debuglevel, + ...
+	 * This brings flexibility in case we need to add more data in the future
+	 */
+	uint64_t *_data;
 };
 /** @endcond */
 

@@ -60,6 +60,7 @@ cvorb_t *cvorb_open(unsigned int lun)
 	char path[CVORB_PATH_SIZE];
 	char devname[32];
 	int len;
+	struct cvorb_data *privdata;
 
 	if (!__cvorb_init) {
 		__cvorb_initialize();
@@ -79,6 +80,14 @@ cvorb_t *cvorb_open(unsigned int lun)
 		__cvorb_libc_error(__func__);
 		return NULL;
 	}
+	privdata = calloc (1, sizeof(struct cvorb_data));
+	if (privdata == NULL) {
+		__cvorb_libc_error(__func__);
+		free(dev);
+		return NULL;
+	}
+	dev->_data = (uint64_t *)privdata;
+	
 	/* keep lun and the sysfs path for this card */
 	dev->lun = lun;
 	strncpy(dev->sysfs_path, path, CVORB_PATH_SIZE);
@@ -98,14 +107,19 @@ cvorb_t *cvorb_open(unsigned int lun)
 	    snprintf(path, CVORB_PATH_SIZE, "%s/%s", dev->sysfs_path,
 		     "hw_version");
 	path[len] = '\0';
-	if (cvorbdev_get_attr_char
-	    (path, dev->hw_version, CVORB_HW_VER_SIZE))
+	if (cvorbdev_get_attr_char(path, dev->hw_version, CVORB_HW_VER_SIZE))
 		goto out_free;
 	len =
 	    snprintf(path, CVORB_PATH_SIZE, "%s/%s", dev->sysfs_path,
 		     "pcb_id");
 	path[len] = '\0';
-	if (cvorbdev_get_attr_uint64(path, &dev->pcb_id))
+	if (cvorbdev_get_attr_uint64(path, &((struct cvorb_data *)(dev->_data))->pcb_id))
+		goto out_free;
+	len =
+	    snprintf(path, CVORB_PATH_SIZE, "%s/%s", dev->sysfs_path,
+		     "debug_level");
+	path[len] = '\0';
+	if (cvorbdev_get_attr_uint32(path, &((struct cvorb_data *)(dev->_data))->loglevel))
 		goto out_free;
 
 	/* Create a file descriptor */
@@ -121,8 +135,10 @@ cvorb_t *cvorb_open(unsigned int lun)
 	return dev;
 
       out_free:
-	if (dev)
+	if (dev) {
+		free(dev->_data);
 		free(dev);
+	}
 	__cvorb_libc_error(__func__);
 	return NULL;
 }
@@ -142,6 +158,7 @@ int cvorb_close(cvorb_t * device)
 	if (ret < 0)
 		__cvorb_libc_error(__func__);
 
+	free(device->_data);
 	free(device);
 	return ret;
 }
@@ -175,7 +192,7 @@ int cvorb_get_hw_version(cvorb_t * device, char *hw_version,
  */
 int cvorb_get_pcb_id(cvorb_t * device, uint64_t * pcb_id)
 {
-	*pcb_id = device->pcb_id;
+	*pcb_id = ((struct cvorb_data *)(device->_data))->pcb_id;
 	return 0;
 }
 
@@ -838,9 +855,7 @@ int cvorb_ch_set_fcn(cvorb_t * dev, unsigned int chnr, unsigned int fcnnr,
 	struct cvorb_hw_fcn fcn;
 	unsigned int sz32, i, res = 0, n_vtr;
 	uint16_t *vp, ss, nos;
-#if __CVORB_DEBUG__
 	uint16_t *lp;
-#endif
 	int ret, len;
 	char attr_path[CVORB_PATH_SIZE];
 
@@ -878,22 +893,27 @@ int cvorb_ch_set_fcn(cvorb_t * dev, unsigned int chnr, unsigned int fcnnr,
 		vp[2] = value[i].v;
 	}
 
-#if __CVORB_DEBUG__
-	printf("cvorb_ch_set_fcn hw-function:\n");
-	vp = (uint16_t *) fcn.hw_fcn;
-	printf("N of vectors[0]: %d | not used[1]:%d | V0[2]: %d\n", vp[0],
-	       vp[1], vp[2]);
-	for (i = 1, vp += 3; i <= vp[0]; ++i, vp += 3) {
-		printf("nos: %d | ss: %d | amp.: %d\n", vp[0], vp[1],
-		       vp[2]);
+	if (((struct cvorb_data *)(dev->_data))->loglevel) {
+		fprintf(stderr, "%s hw-function using %s: fcn_size32: %d "
+			"fcn_nvec: %d fcn_ch: %d fcn_submod: %d fcn_nr: %d\n",
+			__func__, ((is_sysfs_fcn_enabled) ? "sysfs" : "ioctl"),
+			fcn.hw_fcn_size32, fcn.n_vector, fcn.channr,
+			fcn.submodulenr, fcn.fcnnr);
+		vp = (uint16_t *) fcn.hw_fcn;
+		fprintf(stderr, "N of vectors[0]: %d | not used[1]:%d | V0[2]: %d\n",
+			vp[0], vp[1], vp[2]);
+		for (i = 1, vp += 3; i <= fcn.n_vector; ++i, vp += 3) {
+			fprintf(stderr, "nos: %d | ss: %d | amp.: %d\n",
+				vp[0], vp[1], vp[2]);
+		}
+		fprintf(stderr, "footer:\n");
+		/* address of the last 16 bits word */
+		lp = ((uint16_t *) fcn.hw_fcn + (sz32 * 2)) - 1;
+		for (; vp <= lp; ++vp)
+			fprintf(stderr, "%d,", *vp);
+		fprintf(stderr, "\n");
 	}
-	printf("footer:\n");
-	/* address of the last 16 bits word */
-	lp = ((uint16_t *) fcn.hw_fcn + (sz32 * 2)) - 1;
-	for (; vp <= lp; ++vp)
-		printf("%d,", *vp);
-	printf("\n");
-#endif
+	
 	/* call the driver */
 	if (is_sysfs_fcn_enabled) {	/* via sysfs is supported */
 		len =
@@ -1001,15 +1021,16 @@ int cvorb_ch_get_fcn(cvorb_t * dev, unsigned int chnr, unsigned int fcnnr,
 		__cvorb_lib_error(__func__, LIBCVORB_ENOBUFS);
 		goto error;
 	}
-#if __CVORB_DEBUG__
-	printf("cvorb_ch_get_fcn hw-function:\n");
-	vp = (uint16_t *) fcn.hw_fcn;
-	printf("N of vectors: %d | V0: %d\n", vp[0], vp[2]);
-	for (i = 1, vp += 3; i <= fcn.n_vector; ++i, vp += 3) {
-		printf("nos: %d | ss: %d | amp.: %d\n", vp[0], vp[1],
-		       vp[2]);
+	if (((struct cvorb_data *)(dev->_data))->loglevel) {
+		fprintf(stderr, "%s hw-function using %s\n",
+			__func__, ((is_sysfs_fcn_enabled) ? "sysfs" : "ioctl"));
+		vp = (uint16_t *) fcn.hw_fcn;
+		fprintf(stderr, "N of vectors: %d | V0: %d\n", vp[0], vp[2]);
+		for (i = 1, vp += 3; i <= fcn.n_vector; ++i, vp += 3) {
+			fprintf(stderr, "nos: %d | ss: %d | amp.: %d\n",
+				vp[0], vp[1], vp[2]);
+		}
 	}
-#endif
 	*fcn_sz = fcn.n_vector + 1;
 	/* Convert HW function table into user function vector table */
 	vp = (uint16_t *) fcn.hw_fcn;
