@@ -3,6 +3,7 @@
 DEVICE_NAME=CVORB
 DRIVER_NAME=cvorb
 TRANSFER=/etc/transfer.ref
+DRIVER_VERSION=
 
 OUTPUT=":"
 RUN=""
@@ -36,7 +37,15 @@ if [ x"$INSMOD_ARGS" == x"" ] ; then
     exit 1
 fi
 
-INSMOD_CMD="/sbin/insmod $DRIVER_NAME.ko $INSMOD_ARGS"
+# manage exception
+HOSTNAME=$(hostname)
+if [ x"$DRIVER_VERSION" = x"" -a -r $HOSTNAME ] ; then
+	DRIVER_VERSION=`cat $HOSTNAME`
+	echo "installing special version $DRIVER_VERSION for $HOSTNAME"
+	DRIVER_VERSION=-$DRIVER_VERSION
+fi
+
+INSMOD_CMD="/sbin/insmod $DRIVER_NAME.ko$DRIVER_VERSION $INSMOD_ARGS"
 $OUTPUT "$DRIVER_NAME install by [$INSMOD_CMD]"
 sh -c "$RUN $INSMOD_CMD"
 
