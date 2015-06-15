@@ -265,7 +265,7 @@ static int last_bus_error = 0;	/* Last printed bus error */
 
 static void BusErrorHandler(struct vme_bus_error *error)
 {
-	bus_error_count++;
+	/* bus_error_count++; */
 }
 
 /* ==================== */
@@ -669,12 +669,10 @@ int vmeio_install(void)
 
 		map0->vaddr = map_window(map0->base_address, map0->address_modifier,
 						map0->data_width, map0->window_size);
-		map0->bus_error_handler = set_berr_handler(map0->base_address,
-					map0->window_size, map0->address_modifier);
+		map0->bus_error_handler = NULL;
 		map1->vaddr = map_window(map1->base_address, map1->address_modifier,
 						map1->data_width, map1->window_size);
-		map1->bus_error_handler = set_berr_handler(map1->base_address,
-					map1->window_size, map1->address_modifier);
+		map1->bus_error_handler = NULL;
 
 		if (dev->lvl && dev->vec) {
 			unsigned int cr;
