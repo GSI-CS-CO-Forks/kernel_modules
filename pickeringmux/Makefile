@@ -8,6 +8,7 @@ include /acc/src/dsc/co/Make.auto
 
 ifeq ($(CPU),L866)
     KVER ?= 3.6.11.2-rt33.39.el6rt.x86_64
+    KVER ?= 3.6.11-rt30.25.el6rt.x86_64
 endif
 ifeq ($(CPU),L865)
     KVER ?= 3.2.43-rt63
