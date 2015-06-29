@@ -42,7 +42,8 @@ struct sis33_compat_acq {
 	compat_u64		prevticks;
 	u32			first_samp;
 	u32			be;
-	u32			unused[4];
+	u32			trig_correction;
+	u32			unused[3];
 };
 
 struct sis33_compat_acq_list {
@@ -136,6 +137,8 @@ static int sis33_get_compat_acq(struct sis33_acq __user *acq, struct sis33_compa
 	err |= __put_user(uint, &acq->first_samp);
 	err |= __get_user(uint, &compat_acq->be);
 	err |= __put_user(uint, &acq->be);
+	err |= __get_user(uint, &compat_acq->trig_correction);
+	err |= __put_user(uint, &acq->trig_correction);
 	return err ? -EFAULT : 0;
 }
 
@@ -160,6 +163,8 @@ static int sis33_put_compat_acq(struct sis33_compat_acq __user *acq32, struct si
 	err |= __put_user(uint, &acq32->first_samp);
 	err |= __get_user(uint, &acq->be);
 	err |= __put_user(uint, &acq32->be);
+	err |= __get_user(uint, &acq->trig_correction);
+	err |= __put_user(uint, &acq32->trig_correction);
 	return err ? -EFAULT : 0;
 }
 

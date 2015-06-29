@@ -59,6 +59,9 @@ static int sis33acq_reorder(struct sis33_acq *acq)
 	uint8_t *buf;
 	size_t len1;
 
+	if ((acq->first_samp < 0) || (acq->first_samp > (acq->nr_samples -1)))
+		return -1;
+
 	buf = malloc(acq->size);
 	if (buf == NULL)
 		return -1;
@@ -71,6 +74,31 @@ static int sis33acq_reorder(struct sis33_acq *acq)
 	return 0;
 }
 
+/* Reorder the data as the 'ADC1-8 Next Sample address register' chapter in
+ * the doc says. This function fixs a extra jitter introduced by the FW.
+ * Explained in sis33/doc/sis3320_jitter.txt
+ */
+static int sis33acq_correction(struct sis33_acq *acq)
+{
+	uint16_t *buf;
+	int index;
+
+	/* Remove samples is needed to align the acquisitions, fixing the
+         * infamous jitter. This code aligns the samples using "Correction +2"
+	 * as reference (trig_correction = 3). This way simplifies the code.
+	 */
+	if ((acq->trig_correction >= 0) && (acq->trig_correction < 3)) {
+		index = acq->trig_correction + 1;
+		buf = malloc(acq->size - index*sizeof(uint16_t));
+
+		memcpy(buf, &acq->data[index], acq->size - index*sizeof(uint16_t));
+		memcpy(acq->data, buf, acq->size - index*sizeof(uint16_t));
+		acq->nr_samples -= index;
+		free(buf);
+	}
+	return 0;
+}
+
 static int sis33acq_list_reorder(struct sis33_acq_list *list, int elems)
 {
 	struct sis33_acq *acq;
@@ -80,6 +108,8 @@ static int sis33acq_list_reorder(struct sis33_acq_list *list, int elems)
 		acq = &list->acqs[i];
 		if (acq->first_samp && sis33acq_reorder(acq))
 				return -1;
+
+		sis33acq_correction(acq);
 	}
 	return 0;
 }

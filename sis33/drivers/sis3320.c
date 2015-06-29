@@ -192,6 +192,7 @@ sis3320_process_event(struct sis33_card *card, int segment_nr, int channel,
 	struct sis33_event *event;
 	unsigned int next_sample;
 	u32 reg;
+	unsigned int correction;
 
 	event = sis3320_get_event(segment, channel, event_nr);
 	reg = raw_events[event_nr];
@@ -200,15 +201,18 @@ sis3320_process_event(struct sis33_card *card, int segment_nr, int channel,
 	/* convert to an offset relative to the first sample */
 	next_sample -= event_nr * segment->nr_samp_per_ev;
 	next_sample -= sis3320_get_segment_base(card, segment_nr);
+	correction = next_sample & 0x3;
 
 	/* acquisitions are done in groups of 4 samples */
 	next_sample &= ~0x3;
 	if (reg & EV_DIR_WRAP) {
 		event->nr_samples = segment->nr_samp_per_ev;
 		event->first_samp = next_sample;
+		event->trig_correction = correction; 
 	} else {
 		event->nr_samples = next_sample;
 		event->first_samp = 0;
+		event->trig_correction = correction; 
 	}
 }
 
@@ -934,6 +938,7 @@ sis3320_read_event(struct sis33_card *card, int segment_nr, struct sis33_acq *ac
 	event = sis3320_get_event(segment, channel, event_nr);
 	acq->nr_samples = event->nr_samples;
 	acq->first_samp = event->first_samp;
+	acq->trig_correction = event->trig_correction;
 	return sis3320_get_data(card, segment_nr, acq, channel, event_nr);
 }
 

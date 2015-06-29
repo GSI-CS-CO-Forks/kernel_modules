@@ -328,6 +328,7 @@ sis3300_read_event(struct sis33_acq *acq, int channel, u32 *raw_data, u64 prevti
 	acq->first_samp = event->first_samp;
 	acq->prevticks = prevticks;
 	acq->be = 0;
+	acq->trig_correction = -1;
 
 	/* NOTE: raw_data buffer is already in the cpu's endianness */
 	for (i = 0; i < acq->nr_samples; i++) {

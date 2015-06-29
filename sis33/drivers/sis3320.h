@@ -310,7 +310,8 @@
  */
 #define SAMPLE_NEXT1	0x10
 #define SAMPLE_NEXT2	0x14
-#define SAMPLE_NEXT(n)	((SAMPLE_NEXT1)+(n-1)*4)
+#define SAMPLE_NEXT(n)	((SAMPLE_NEXT1)+(n%2)*4)
+#define SIS3320_SAMPLE_NEXT(n) (0x2000000+((n)/2)*0x800000+SAMPLE_NEXT(n))
 
 /*
  * Actual (I think they meant current) sample value

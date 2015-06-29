@@ -1,5 +1,5 @@
 CPU	:= L865
-KVER	:= 2.6.24.7-rt27
+KVER	:= 3.2.43-rt63
 KERN_DIR:= "/acc/sys/$(CPU)/usr/src/kernels/$(KVER)"
 VME_DIR := "../../vmebridge/driver"
 VME_OBJDIR := "../../vmebridge/driver/$(CPU)/$(KVER)"

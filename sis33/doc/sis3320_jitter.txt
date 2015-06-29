@@ -1,0 +1,38 @@
+SIS3320 Stop trigger correction bits
+
+There were a problem appeared in June, 14 2011. After some dozens of acquisitions and
+plotting the sampled data in the same graph, the clients realized that there was
+a jitter in the sampled signal.
+
+The source of this jitter was unexplained: the signal was OK in the oscilloscope and the
+SIS3300 behaved properly. After a quick question to Struck Innovative Systeme, they
+answered with the following email.
+
+NOTE: The attached documents are included in sis33/doc directory.
+
+-------------------------------------------------------------------------------
+
+Hello Samuel,
+
+did you or your client use the "rearrange with regard to the trigger correction bits" ?
+I try to explain:
+
+The sampled data are stored always in group four samples in the SIS3302/SIS3320 memory.
+In Stop mode the STOP could come anywhere between single samples but the logic stops the sampling after a group of four samples.
+
+Please, have a look to the illustration "sis3320-Z-050611-1-v100-wrap-rearrange-illustration1.pdf".
+This illustration shows how the logic sammples the data in groups of four (yellow/red groups).
+With a "Simple" rearrangement regardless of the Stop correction bits you will see what you see on your plots.
+
+Please, have now a look to the illustration "sis3320-Z-050611-1-v100-wrap-rearrange-illustration2.pdf". 
+This shows a rearrangement with regard to the Stop correction bits.
+
+The intention to use the rearrangement with regard to the Stop correction bits is that the samples, where the trigger (STOP1, STOP2 .. STOP4) occurs, on the same x-axsis value are displayed.
+
+In this case you should remove two (one) samples from the beginning and two samples from the end of the page, to have a plot which you are expected.
+
+Please, have a look to the manual chapter: ADC1-8 Next Sample address register (bits 1 and 0)
+
+Best regards
+
+Tino
