@@ -4,3 +4,6 @@
 [submodule "ctr-2.0"]
 	path = ctr-2.0
 	url = ./ctr-2.0
+[submodule "encore"]
+	path = encore
+	url = ./encore
