@@ -51,8 +51,14 @@ install_driver: pickeringmuxdrv.$(CPU).ko pickmuxinstall
 install_lib: libpickeringmux.$(CPU).a  pickeringmuxlib.h
 	dsc_install $^ /acc/local/$(CPU)/pickering
 
+doc:
+	sh makedoc
+doc-clean:
+	rm -rf html Doxyfile Doxyfile.bak
+doc-install: doc
+	rsync -av html/ /acc/doc/html/private/coht/doxy/pickeringmux
 
-clean:
+clean: doc-clean
 	rm -rf *~ core .*.cmd *.o *.ko .tmp* *.cmd.? \
 		.es* ,* *.a *.mod.c *.$(CPU) \
 		Module.symvers modules.order
