@@ -21,8 +21,15 @@ typedef struct
 
 static MuxHandle muxHanlde[MAX_SLOT];
 
-/***************************************************************************************************
+/**
+ * @brief generate a device handle for subsequent reference
+ * @param aSlot		- pickeringmux cPCI slot
  *
+ * @return and opaque MuxHandle for the device
+ * 		at aSlot on success, NULL on failure.
+ *
+ * The returned handle points to information on the device,
+ * which is kept statically by the library.
  */
 static MuxHandle * checkMuxHandle(int aSlot)
 {
@@ -70,8 +77,13 @@ static MuxHandle * checkMuxHandle(int aSlot)
   return &muxHanlde[aSlot];
 }
 
-/***************************************************************************************************
+/**
+ * @brief connect input and output channels of the mux
+ * @param aSlot		- pickeringmux cPCI slot
+ * @param anInput	- analog input channel
+ * @param anOutput	- analog output channel
  *
+ * @return 0 on success, <0 on failure, sets errno
  */
 int pickeringMuxConnect(int aSlot, int anInput, int anOutput)
 {
@@ -101,8 +113,12 @@ int pickeringMuxConnect(int aSlot, int anInput, int anOutput)
   return 0;
 }
 
-/***************************************************************************************************
+/**
+ * @brief destroy the connection going to an analog channel
+ * @param aSlot		- pickeringmux cPCI slot
+ * @param anOutput	- analog output channel
  *
+ * @return 0 on success, <0 on failure, sets errno
  */
 int pickeringMuxDisconnect(int aSlot, int anOutput)
 {
@@ -128,8 +144,11 @@ int pickeringMuxDisconnect(int aSlot, int anOutput)
   return 0;
 }
     
-/***************************************************************************************************
+/**
+ * @brief reset the multiplexor
+ * @param aSlot		- pickeringmux cPCI slot
  *
+ * @return 0 on success, <0 on failure, sets errno
  */
 int pickeringMuxReset(int aSlot)
 {
@@ -151,14 +170,13 @@ int pickeringMuxReset(int aSlot)
   return 0;
 }
 
-/*-----------------------------------------------------------------------------
- * FUNCTION:    pickeringMuxWidth.
- * DESCRIPTION: Returns the width of the hardware module, installed in
- *		slot 'aSlot'. Module width can be up to 2 slots. 
- * RETURNS:	module width             - if succeed.
- *		PICKERINGMUX_NO_SUCH_MUX - if slot is empty.
- *    PICKERINGMUX_SYSTEM_ERROR - if the driver returns an error.
- *-----------------------------------------------------------------------------
+/**
+ * @brief width of a hardware module
+ * @param aSlot		- pickeringmux cPCI slot
+ * @return module width on success, <0 on failure, sets errno
+ *
+ * Returns the width of the hardware module, installed in
+ *		cPCI slot 'aSlot'. Module width can be up to 2 slots. 
  */
 int
 pickeringMuxWidth(
@@ -180,7 +198,10 @@ pickeringMuxWidth(
 }
 
 
-/***************************************************************************************************
+/**
+ * @brief obtain maximum output channel # of a module
+ * @param aSlot		- pickeringmux cPCI slot
+ * @return max output (e.g. 16 in a x to 16 mux), <0 on failure, sets errno
  *
  */
 int pickeringMuxMaxOutput(int aSlot)
@@ -192,8 +213,11 @@ int pickeringMuxMaxOutput(int aSlot)
   }
   return muxHandle->maxOutput;
 }
-    
-/***************************************************************************************************
+
+/**
+ * @brief obtain maximum input channel # of a module
+ * @param aSlot		- pickeringmux cPCI slot
+ * @return max output (e.g. 22 in a 22 to 8 mux), <0 on failure, sets errno
  *
  */
 int pickeringMuxMaxInput(int aSlot)
@@ -205,9 +229,16 @@ int pickeringMuxMaxInput(int aSlot)
   }
   return muxHandle->maxInput;
 }
-    
-/***************************************************************************************************
+
+/**
+ * @brief get status of module outputs
+ * @param aSlot		- pickeringmux cPCI slot
+ * @param outputs	- a vector [1..maxout]
+ * @return module width on success, <0 on failure, sets errno
  *
+ *    Entry outputs[i-1] receives the input it is connected to, or
+ *    a zero value if disconnected (this description is
+ *    reverse-engineered from the code, take with a grain of salt)
  */
 int pickeringMuxOuputStatus(int aSlot, const int *outputs)
 {
@@ -228,8 +259,13 @@ int pickeringMuxOuputStatus(int aSlot, const int *outputs)
   return 0;
 }
 
-/***************************************************************************************************
+/**
+ * @brief set channel attenuation
+ * @param aSlot		- pickeringmux cPCI slot
+ * @param aChannel	- analog channel to which attn applies
+ * @param anAttn	- attenuation to apply (0 to 63, in dB)
  *
+ * @return module width on success, <0 on failure, sets errno
  */
 int  pickeringAttn(int aSlot, int aChannel, int anAttn)
 {
@@ -254,8 +290,16 @@ int  pickeringAttn(int aSlot, int aChannel, int anAttn)
   return 0;
 }
 
-/***************************************************************************************************
+
+/**
+ * @brief decode libpickeringmux error codes
  *
+ * @param aMessage	- pointer to receive decoded string
+ * @param anError	- error code
+ *
+ * Almost all library functions return a specific error code < 0,
+ * which this function decodes into a human-readable diagnostic or its
+ * errno equivalent
  */
 void pickeringMuxPrintError(char *aMessage, int anError)
 {
