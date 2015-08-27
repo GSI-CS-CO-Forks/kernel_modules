@@ -1,0 +1,40 @@
+The historical tendency since 2010 has been to host all low-level code
+(drivers, libraries and ancillary support files) in a single non-bare
+git repository at
+
+/acc/src/dsc/drivers/coht/
+
+(hereafter, $COHT).
+
+This tendency has progressively been broken due to the following factors
+
+* inability of developers to stick to a single-repository workflow,
+  mainly for fear of git
+* outsourced developments typically hosted externally (ohwr.org) as
+  per-project git repos
+* projects started as out-of-tree, non-merged code that never integrated
+  properly or were injected into $COHT as submodules
+
+The resulting situation at this date (Aug 2015) is that $COHT contains
+most of the codebase maintained by the drivers team, but with some of
+the projects included as submodules, or as mere subdiretories.
+
+This situation is undesirable and we should aim at two final scenarios
+
+* single-tree repository holding all the code base
+* umbrella repository containing all the projects as submodules and
+  describing their dependencies
+
+The first option has been rendered almost impossible by the practice of
+hosting most FMC developments as separate, OHWR-hosted projects with
+their own presumedly independent git repository.
+
+The word "presumedly" is a fiction: most FMC developments, however
+independently managed as different OHWR projects, are heavily
+interdependent. This has resulted in a maze of submodules devised to
+alleviate this dependency hell, with relative success, we should say.
+
+None of these problems happens in the context of the classical
+development model, where barely *any* dependency occurs despite the fact
+that all different drivers are hosted in the same tree. The only hard
+dependency these modules have in common is on the vmebus driver.
