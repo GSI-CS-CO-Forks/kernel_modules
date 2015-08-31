@@ -1,0 +1,53 @@
+* Sacrificial machine: cfv-774-cdv32
+
+* To change boot server / boot image: go to cs-ccr-feop and
+  in /acc/sys/adm/ get credentials through ./get_hw -sh and change boot
+  server image through ./boot_select
+
+* Development for SLC7 is cs-ccr-el7 (possibly missing bits)
+  Development for SLC[56] is cs-ccr-dev[1-4] (any one of these
+      cross-compiles to the indicated architecture)
+
+* master git repository under the usual /acc/src/dsc/drivers/coht;
+  some of the drivers are under submodules
+
+* list of drivers in order of priority (approx).
+
+    vmebridge			done (sort of)
+    ctrp/v -> ctr-2.0		start by ctrp
+    FIP (WorldFIP master)	Michel will help
+    encore			Michel will help
+    mil1553			I can help
+    sis33			all are similar, A/D and WV generators
+    vd80-2
+    cvorb
+    cvorg
+    fmc				wow! fmc-fdelay, fmc-adc, fmc-tdc, s[pv]ec
+    					fmc-bus, sdb, zio
+    ctc				simple
+    cvora			"
+    pickeringmux		"
+    vmod			structure is a bit horrible (David can help)
+    icv196			standard
+    msatt
+    ctsyn mttn			central timing boards (needs rework for L866 too)
+    timlib
+    tpci200 tvme200 ipoctal ipack
+    				Federico knows well
+    rawio			userspace utilities
+    acdx			very specialized driver
+    jtag			userspace utilities
+
+* must be compatible with the three kernels in production, conditional
+  compilation on kernel version being the last resort
+
+* usually, what we do, what should work:
+
+	make CPU=L867
+
+  or, worst case
+  	make CPU=L867 KVER=a.b.c.d.e.f.g-el7.d.f.
+
+  in the kernel, we JUST want to say
+  	make LINUX=/lib/..../2.6.27
+  for module compilation to work.
