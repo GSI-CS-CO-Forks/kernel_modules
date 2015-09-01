@@ -1,16 +1,21 @@
-include ../common.mk
+CPU?=L866
+DRVR := vmebus
+INSTDIR ?= "/acc/local/$(CPU)/$(DRVR)"
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
+all: vmebus.h libvmebus.h
 
-all: clean
-	ln -s ../$(DRVDIR)/vmebus.h vmebus.h
-	ln -s ../$(LIBDIR)/libvmebus.h libvmebus.h
+vmebus.h:
+	ln -s ../driver/vmebus.h vmebus.h
+
+libvmebus.h:
+	ln -s ../lib/libvmebus.h libvmebus.h
 
 .PHONY: all clean deliver
 
-clean:
-	rm -f vmebus.h libvmebus.h
-	$(RM) $(BAKS)
+clean cleanall:
+	$(RM) -f vmebus.h libvmebus.h
 
 deliver: all
 	@ umask 0002; \

@@ -1,21 +1,20 @@
-# If it exists includes Makefile.specific. In this Makefile, you should put
-# specific Makefile code that you want to run before this. For example,
-# build a particular environment.
--include Makefile.specific
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
-LIBVME = ../lib
+CFLAGS = -Wall -I. -I../include $(EXTRACFLAGS)
+LDFLAGS = -L../lib
+LDLIBS = -lvmebus.$(CPU)
 
-CFLAGS = -Wall -I. -I../include --static $(EXTRACFLAGS)
-LDFLAGS = -L$(LIBVME) -lvmebus
-
-progs := vme
+progs := vme.$(CPU)
 
 all: $(progs)
 
-%: %.c $(lib)
-	$(CC) $(CFLAGS) $*.c $(LDFLAGS) -o $@
+vme.$(CPU): vme.c
 
-.PHONY: all clean
+.PHONY: all clean celanall
 
 clean:
 	$(RM) $(progs) *.o
+
+cleanall:
+	$(RM) -r vme.{${ALL_CPUS_COMMAS}}

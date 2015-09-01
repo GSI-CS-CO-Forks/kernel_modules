@@ -1,6 +1,5 @@
-TARGET_CPU = L865
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
-include ../../makefiles/rules.mk
 
 SRCS =	create_window.c destroy_window.c setflag.c \
 	test_mapping.c testctr.c testctr2.c testctr_ces.c \
@@ -12,7 +11,7 @@ LIBVMEBUS	= ../lib/libvmebus.$(CPU).a
 LIBVD80		= libvd80.$(CPU).a
 LDLIBS		= -lrt
 
-_build: $(SRCS:.c=.$(CPU))
+all: $(SRCS:.c=.$(CPU))
 
 .PHONY: all sources doc clean libvd80doc
 
@@ -44,5 +43,9 @@ doublemap.$(CPU): doublemap.c $(LIBVMEBUS)
 doc: libvd80doc
 
 clean:
-	$(RM) *.$(CPU) *.o *.$(CPU).a $(BAKS)
+	$(RM) *.$(CPU) *.o *.$(CPU).a
+	$(RM) -r doc
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)} *.o *.{$(ALL_CPUS_COMMAS)}.a
 	$(RM) -r doc
