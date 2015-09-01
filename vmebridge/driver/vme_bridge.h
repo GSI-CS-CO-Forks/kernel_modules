@@ -111,15 +111,15 @@ extern int vme_disable_interrupts(unsigned int);
 extern int vme_window_release(struct inode *, struct file *);
 extern long vme_window_ioctl(struct file *, unsigned int, unsigned long);
 extern int vme_window_mmap(struct file *, struct vm_area_struct *);
-extern void __devinit vme_window_init(void);
-extern void __devexit vme_window_exit(void);
+extern void vme_window_init(void);
+extern void vme_window_exit(void);
 
 
 /* vme_dma.c */
 extern void handle_dma_interrupt(int);
 extern long vme_dma_ioctl(struct file *, unsigned int, unsigned long);
-extern int __devinit vme_dma_init(void);
-extern void __devexit vme_dma_exit(void);
+extern int vme_dma_init(void);
+extern void vme_dma_exit(void);
 
 /* vme_misc.c */
 extern ssize_t vme_misc_read(struct file *, char *, size_t, loff_t *);

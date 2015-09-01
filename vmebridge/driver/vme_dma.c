@@ -495,7 +495,7 @@ long vme_dma_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
  *
  *
  */
-void __devexit vme_dma_exit(void)
+void vme_dma_exit(void)
 {
 	int i;
 
@@ -520,7 +520,7 @@ void __devexit vme_dma_exit(void)
  * vme_dma_init() - Initialize DMA management
  *
  */
-int __devinit vme_dma_init(void)
+int vme_dma_init(void)
 {
 	int i;
 

@@ -1,7 +1,7 @@
 /*
  * vme_bridge.c - PCI-VME bridge driver
  *
- * Copyright (c) 2009 Sébastien Dugué
+ * Copyright (c) 2009 Sebastien Dugue
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -25,7 +25,7 @@
 
 #include "vme_bridge.h"
 
-static char version[] __devinitdata =
+static char version[] =
 	"PCI-VME bridge: V" DRV_MODULE_VERSION " (" DRV_MODULE_RELDATE ")";
 
 /* Module parameters */
@@ -55,20 +55,20 @@ static unsigned int dma_ok;
 
 static struct class *vme_class;
 
-static __devinitdata struct pci_device_id tsi148_ids[] = {
+static struct pci_device_id tsi148_ids[] = {
     { PCI_DEVICE(PCI_VENDOR_ID_TUNDRA, PCI_DEVICE_ID_TUNDRA_TSI148) },
     { 0, },
 };
 
-static int __devinit vme_bridge_init(struct pci_dev *pdev,
+static int vme_bridge_init(struct pci_dev *pdev,
 				     const struct pci_device_id *id);
-static void __devexit vme_bridge_remove(struct pci_dev *pdev);
+static void vme_bridge_remove(struct pci_dev *pdev);
 
 static struct pci_driver vme_bridge_driver = {
 	.name = "vme_bridge",
 	.id_table = tsi148_ids,
 	.probe = vme_bridge_init,
-	.remove = __devexit_p(vme_bridge_remove),
+	.remove = vme_bridge_remove,
 };
 
 
@@ -106,7 +106,7 @@ static const struct file_operations vme_info_proc_ops = {
 };
 
 
-void __devinit vme_procfs_register(void)
+void vme_procfs_register(void)
 {
 	struct proc_dir_entry *entry;
 
@@ -137,7 +137,7 @@ void __devinit vme_procfs_register(void)
 	tsi148_procfs_register(vme_root);
 }
 
-void __devexit vme_procfs_unregister(void)
+void vme_procfs_unregister(void)
 {
 
 	tsi148_procfs_unregister(vme_root);
@@ -148,8 +148,8 @@ void __devexit vme_procfs_unregister(void)
 	remove_proc_entry("vme", NULL);
 }
 #else /* !CONFIG_PROC_FS */
-void __devinit vme_procfs_register(void) {}
-void __devexit vme_procfs_unregister(void) {}
+void vme_procfs_register(void) {}
+void vme_procfs_unregister(void) {}
 #endif /* CONFIG_PROC_FS */
 
 /*
@@ -362,7 +362,7 @@ static int vme_mmap(struct file *file, struct vm_area_struct *vma)
  *
  * Returns 0 on success, or a standard kernel error.
  */
-static int __devinit vme_bridge_create_devices(void)
+static int vme_bridge_create_devices(void)
 {
 	int i;
 	int rc;
@@ -422,7 +422,7 @@ static void vme_bridge_remove_devices(void)
  *
  * RETURNS: zero on success or -ERRNO value
  */
-static int __devinit vme_bridge_map_regs(struct pci_dev *pdev)
+static int vme_bridge_map_regs(struct pci_dev *pdev)
 {
 	unsigned int tmp;
 	unsigned int vid, did;
@@ -465,7 +465,7 @@ static int __devinit vme_bridge_map_regs(struct pci_dev *pdev)
  *
  *
  */
-static int __devinit vme_bridge_map_crg(void)
+static int vme_bridge_map_crg(void)
 {
 	int rc;
 	unsigned int tmp;
@@ -543,7 +543,7 @@ static int vme_bridge_unmap_crg(void)
  * vme_bridge_init_interrupts() - Initialize the bridge interrupts
  *
  */
-static int __devinit vme_bridge_init_interrupts(void)
+static int vme_bridge_init_interrupts(void)
 {
 	int rc;
 	unsigned int intmask;
@@ -601,7 +601,7 @@ static inline void vme_bus_error_init(struct vme_verr *verr)
  * RETURNS:
  * Zero on success, or -ERRNO value.
  */
-static int __devinit vme_bridge_init(struct pci_dev *pdev,
+static int vme_bridge_init(struct pci_dev *pdev,
 				     const struct pci_device_id *id)
 {
 	int rc;
@@ -768,7 +768,7 @@ out_err:
  * @dev: PCI device to unregister
  *
  */
-static void __devexit vme_bridge_remove(struct pci_dev *pdev)
+static void vme_bridge_remove(struct pci_dev *pdev)
 {
 	/* First quiesce the bridge */
 	tsi148_quiesce(vme_bridge->regs);

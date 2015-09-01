@@ -1113,14 +1113,14 @@ extern int tsi148_dma_setup(struct dma_channel *);
 extern void tsi148_dma_start(struct dma_channel *);
 extern void tsi148_dma_abort(struct dma_channel *);
 extern void tsi148_dma_release(struct dma_channel *);
-extern void __devexit tsi148_dma_exit(void);
-extern int __devinit tsi148_dma_init(void);
+extern void tsi148_dma_exit(void);
+extern int tsi148_dma_init(void);
 
 extern void tsi148_get_window_attr(struct vme_mapping *);
 extern int tsi148_create_window(struct vme_mapping *);
 extern void tsi148_remove_window(struct vme_mapping *);
 
-extern int __devinit tsi148_setup_crg(unsigned int, enum vme_address_modifier);
+extern int tsi148_setup_crg(unsigned int, enum vme_address_modifier);
 extern void tsi148_disable_crg(struct tsi148_chip *);
 
 #ifdef CONFIG_PROC_FS

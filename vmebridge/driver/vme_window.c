@@ -1296,7 +1296,7 @@ try_next:
  *  Not much to do here aside from initializing the windows mutexes and
  * mapping lists.
  */
-void __devinit vme_window_init(void)
+void vme_window_init(void)
 {
 	int i;
 
@@ -1312,7 +1312,7 @@ void __devinit vme_window_init(void)
  *
  * Unmap all the windows that were mapped.
  */
-void __devexit vme_window_exit(void)
+void vme_window_exit(void)
 {
 	int i;
 

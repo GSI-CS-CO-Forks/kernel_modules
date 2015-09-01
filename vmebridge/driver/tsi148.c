@@ -328,7 +328,7 @@ static const struct file_operations tsi148_proc_crcsr_ops = {
  * tsi148_procfs_register() - Create the VME proc tree
  * @vme_root: Root directory of the VME proc tree
  */
-void __devinit tsi148_procfs_register(struct proc_dir_entry *vme_root)
+void tsi148_procfs_register(struct proc_dir_entry *vme_root)
 {
 	struct proc_dir_entry *entry;
 
@@ -359,7 +359,7 @@ void __devinit tsi148_procfs_register(struct proc_dir_entry *vme_root)
  * tsi148_procfs_unregister() - Remove the VME proc tree
  *
  */
-void __devexit tsi148_procfs_unregister(struct proc_dir_entry *vme_root)
+void tsi148_procfs_unregister(struct proc_dir_entry *vme_root)
 {
 	remove_proc_entry("pcfs", tsi148_proc_root);
 	remove_proc_entry("lcsr", tsi148_proc_root);
@@ -1415,12 +1415,12 @@ void tsi148_dma_release(struct dma_channel *chan)
 		tsi148_dma_free_chain(chan);
 }
 
-void __devexit tsi148_dma_exit(void)
+void tsi148_dma_exit(void)
 {
 	pci_pool_destroy(dma_desc_pool);
 }
 
-int __devinit tsi148_dma_init(void)
+int tsi148_dma_init(void)
 {
 	/*
 	 * Create the DMA chained descriptor pool.
@@ -1835,7 +1835,7 @@ static int am_to_crgattrs(enum vme_address_modifier am)
  * @vme_base: VME base address for the CRG mapping
  * @am: Address modifier for the mapping
  */
-int __devinit tsi148_setup_crg(unsigned int vme_base,
+int tsi148_setup_crg(unsigned int vme_base,
 			       enum vme_address_modifier am)
 {
 	int attrs;
@@ -1938,7 +1938,7 @@ void tsi148_quiesce(struct tsi148_chip *regs)
  * @regs: Chip registers base address
  *
  */
-void __devinit tsi148_init(struct tsi148_chip *regs)
+void tsi148_init(struct tsi148_chip *regs)
 {
 	unsigned int vme_stat_reg;
 
