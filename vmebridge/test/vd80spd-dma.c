@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -143,8 +144,6 @@ int time_read_samples_dma(unsigned int first_frame, unsigned int num_frames,
 
 	dma_desc.src.data_width = VD80_DMA_DW;
 	dma_desc.src.am = VD80_DMA_AM;
-	dma_desc.src.addru = 0;
-	dma_desc.dst.addru = 0;
 
 	dma_desc.ctrl.pci_block_size = VME_DMA_BSIZE_4096;
 	dma_desc.ctrl.pci_backoff_time = VME_DMA_BACKOFF_0;
@@ -182,9 +181,15 @@ int time_read_samples_dma(unsigned int first_frame, unsigned int num_frames,
 		 * */
 		for (j = 0; j < num_frames/MAX_MBLT_FRAMES; j++) {
 			/* Setup the DMA descriptor */
+			dma_desc.src.addru = 0;
 			dma_desc.src.addrl = VD80_DMA_BASE;
-			dma_desc.dst.addrl = (unsigned int)(read_buf[i] +
-							    (j*MAX_MBLT_FRAMES));
+			/* strange casting to keep compiler quiet */
+			dma_desc.dst.addru = (unsigned int)
+				(((unsigned long long)(uintptr_t)
+					(read_buf[i] + (j*MAX_MBLT_FRAMES)))
+					>>32);
+			dma_desc.dst.addrl = (unsigned int)(uintptr_t)
+					  (read_buf[i] + (j*MAX_MBLT_FRAMES));
 			dma_desc.length = MAX_MBLT_FRAMES * 4;
 
 /* 			printf("DMA read frame %d len %d -> 0x%08x\n", */
@@ -207,9 +212,15 @@ int time_read_samples_dma(unsigned int first_frame, unsigned int num_frames,
 		if (rem_length) {
 
 			/* Setup the DMA descriptor */
+			dma_desc.src.addru = 0;
 			dma_desc.src.addrl = VD80_DMA_BASE;
-			dma_desc.dst.addrl = (unsigned int)(read_buf[i] +
-							    rem_start);
+			/* strange casting to keep compiler quiet */
+			dma_desc.dst.addru = (unsigned int)
+				(((unsigned long long)(uintptr_t)
+					(read_buf[i] + rem_start))
+					>>32);
+			dma_desc.dst.addrl = (unsigned int)(uintptr_t)
+						    (read_buf[i] + rem_start);
 			dma_desc.length = rem_length * 4;
 
 /* 			printf("DMA read frame %d len %d -> 0x%08x\n", */

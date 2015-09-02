@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -72,8 +73,10 @@ dma_desc_init(int32_t *buf, struct vme_dma *desc, enum vme_dma_dir dir)
 		vme = &desc->src;
 	}
 
-	pci->addru	= 0;
-	pci->addrl	= (unsigned int)buf;
+	/* strange casting to keep compiler quiet */
+	pci->addru	= (unsigned int)
+				(((unsigned long long)(uintptr_t)buf)>>32);
+	pci->addrl	= (unsigned int)(uintptr_t)buf;
 
 	vme->addru	= 0;
 	vme->addrl	= HSM_VME_ADDR;
