@@ -1,0 +1,59 @@
+Hi all,
+
+As you all probably know, the next platform to run in the control system
+will be CentOS 7 (not anymore SLC7). I would like to keep us all in the
+same page as to what are the plans, ways and means, and the absence
+thereof.
+
+First: for the time being, the next kernel-to-be is available at
+
+    /acc/sys/L867/usr/src/kernels/3.10.0-229.1.2.rt56.141.2.el7_1.x86_64
+
+and the development environment, AFAIK, is only available in
+
+    cs-ccr-el7
+
+which is slightly lacking with respect to cs-ccr-dev* (you'll miss some
+bits regarding home directories and the like).
+
+I have commissioned Adam with this dirty but highly educational task,
+with two aims in mind:
+
+1. to fully involve him with the operational aspects of development and
+operations of drivers at BE/CO, and expose him to the precious codebase
+maintained by the team, and
+2. to have him have a fresh look at all the little and big tidbits that
+need to be kept in place, with QA and validation procedures in mind.
+
+To elaborate more on the second point, my view is that the CentOS 7
+migration is a golden oportunity to do a huge cleanup and establish a
+solid workflow that avoids some scattering and dispersion that we
+chronically suffered in the development and systems integration process
+(something I will call devops for lack of a better term). In more
+material terms, we will have a complete separate platform to make a
+fresh deployment of **everything**, and to validate most of the things
+we didn't dare to given the constrains imposed during the SLC5->SLC6
+move.
+
+There are dozens of issues that come to my mind while I am behind the
+screen and also behnd the wheel of my car. Now it's the time to tackle
+them all.
+
+So as not to let these ideas go down the cracks, I have been adding notes on
+the process under 
+
+    /acc/src/dsc/drivers/coht/docs/driver-devops/
+
+collecting do's, don'ts and most things related to how the repositories
+are organized, how the build process works, what standards we should
+stick to, and what other things I have no screaming idea on how to solve.
+This is only in the drivers-devops branch of the repository, because my
+intention is that most of these end up in the HT Driver Development
+sub-wiki, when their form is less sketchy and are worth of the master
+branch (from which they will be wikified, hopefully in automated
+manner).
+
+I would encourage you to contribute whatever comes to your mind, even in
+the form of brain dumps. Some ideas noted there are clear to me as
+dogma, and others are rather dubious, so let's discuss whenever you feel
+like it (which means: at any time).
