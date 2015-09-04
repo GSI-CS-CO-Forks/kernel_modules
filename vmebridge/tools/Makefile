@@ -1,7 +1,7 @@
 include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
-CFLAGS = -Wall -I. -I../include $(EXTRACFLAGS)
+CFLAGS = -Wall -I../include $(EXTRACFLAGS)
 LDFLAGS = -L../lib
 LDLIBS = -lvmebus.$(CPU)
 

@@ -22,7 +22,7 @@
 #include <string.h>
 
 #include <libvmebus.h>
-#include <libvd80.h>
+#include "libvd80.h"
 
 unsigned int *regs;
 struct vme_mapping regs_desc;

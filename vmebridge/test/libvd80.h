@@ -19,7 +19,7 @@
 #ifndef _LIBVD80_H
 #define _LIBVD80_H
 
-#include <vd80.h>
+#include "vd80.h"
 
 /**
  * \name CR/CSR address space mapping parameters

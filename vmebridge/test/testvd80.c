@@ -12,7 +12,7 @@
 #include <time.h>
 
 #include <libvmebus.h>
-#include <libvd80.h>
+#include "libvd80.h"
 
 #define CHAN_USED	1
 
