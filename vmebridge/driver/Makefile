@@ -1,17 +1,20 @@
+CPU?=L866
 include ../../common.mk
-OUTPUTDIR?=`pwd`/$(CPU)/$(KVER)
-
-CFLAGS= -g -Wall
+include /acc/dsc/src/co/Make.auto
 
 all: driver
 driver: modules
 
 modules:
-	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) modules
-	mkdir -p $(OUTPUTDIR)
-	mv *.o *.ko $(OUTPUTDIR)
-	mv Module.symvers $(OUTPUTDIR)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv *.o *.ko $(CPU)/$(KVER)
+	mv Module.symvers $(CPU)/$(KVER)
 
-clean cleanall:
+clean:
+	$(RM) -r $(CPU)
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
-	rm -rf $(ALL_CPUS)
+
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)
+

@@ -1,4 +1,17 @@
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
+ccflags-y += -g -Wall
 ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-obj-m := vmebus.o
-vmebus-objs := tsi148.o vme_bridge.o vme_cesif.o vme_dma.o vme_irq.o vme_misc.o vme_window.o
+
+obj-m += vmebus.o
+vmebus-objs += tsi148.o
+vmebus-objs += vme_bridge.o
+vmebus-objs += vme_cesif.o
+vmebus-objs += vme_dma.o
+vmebus-objs += vme_irq.o
+vmebus-objs += vme_misc.o
+vmebus-objs += vme_window.o
