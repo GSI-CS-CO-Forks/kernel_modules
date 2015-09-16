@@ -1,3 +1,4 @@
+CPU?=L866
 include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
