@@ -591,6 +591,55 @@ static inline void vme_bus_error_init(struct vme_verr *verr)
 }
 
 /**
+ * Linux kernel's function pci_find_parent_resource has changed in commit:
+ * f44116ae PCI: Remove pci_find_parent_resource() use for allocation
+ * This commit changed functionality of this function in a way that it cannot
+ * be used anymore. Due to this there is a local copy of old version of the
+ * function.
+ *
+ * Function vme_bridge_init uses pci_find_parent_resource to find PCI bridge's
+ * resource with flag IORESOURCE_MEM. By not specifying range of resource, old
+ * version of the function returns a range of allocated region. However, new
+ * function expects the range of resource to contain subrange of PCI bridge.
+ * The problem is that PCI bridge resource mapping is not known at this point.
+ * Even more this is the information that we're looking for.
+ */
+/**
+ * pci_find_parent_resource - return resource region of parent bus of given region
+ * @dev: PCI device structure contains resources to be searched
+ * @res: child resource record for which parent is sought
+ *
+ *  For given resource region of given device, return the resource
+ *  region of parent bus the given region is contained in or where
+ *  it should be allocated from.
+ */
+static struct resource *
+pci_find_parent_resource_local(const struct pci_dev *dev, struct resource *res)
+{
+	const struct pci_bus *bus = dev->bus;
+	int i;
+	struct resource *best = NULL, *r;
+
+	pci_bus_for_each_resource(bus, r, i) {
+		if (!r)
+			continue;
+		if (res->start && !(res->start >= r->start && res->end <= r->end))
+			continue;	/* Not contained */
+		if ((res->flags ^ r->flags) & (IORESOURCE_IO | IORESOURCE_MEM))
+			continue;	/* Wrong type */
+		if (!((res->flags ^ r->flags) & IORESOURCE_PREFETCH))
+			return r;	/* Exact match */
+		/* We can't insert a non-prefetch resource inside a prefetchable parent .. */
+		if (r->flags & IORESOURCE_PREFETCH)
+			continue;
+		/* .. but we can put a prefetchable resource inside a non-prefetchable one */
+		if (!best)
+			best = r;
+	}
+	return best;
+}
+
+/**
  * vme_bridge_init() - Initialize the device
  * @dev: PCI device to register
  * @id: Entry in piix_pci_tbl matching with @pdev
@@ -664,7 +713,7 @@ static int vme_bridge_init(struct pci_dev *pdev,
 	memset(&res, 0, sizeof(res));
 	res.flags = IORESOURCE_MEM;
 
-	parent_rsrc = pci_find_parent_resource(pdev, &res);
+	parent_rsrc = pci_find_parent_resource_local(pdev, &res);
 
 	if (parent_rsrc == 0) {
 		printk(KERN_ERR PFX
