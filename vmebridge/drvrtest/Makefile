@@ -1,6 +1,7 @@
 #
 # Makefile for test drivers.
 #
+CPU?=L866
 include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
@@ -16,7 +17,7 @@ vmedriver:
 vmeheaders:
 	$(MAKE) -C ../include
 
-mymodules:
+mymodules: vmedriver
 	$(MAKE) -C $(KERNELSRC) M=`pwd` modules
 	mkdir -p $(OUTPUTDIR)
 	mv *.o *.ko $(OUTPUTDIR)
