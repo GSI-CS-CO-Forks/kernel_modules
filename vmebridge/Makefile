@@ -1,6 +1,5 @@
 DIRS = \
 	driver \
-	include \
 	lib \
 	tools \
 	test \
