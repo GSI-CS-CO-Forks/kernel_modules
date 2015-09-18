@@ -3,9 +3,8 @@ include $(M)/../../common.mk
 # Uncomment line below when build env supports it
 #include /acc/dsc/src/co/Make.auto
 
-ccflags-y += -I$(M)
 ccflags-y += -I$(M)/../include
-ccflags-y += -I$(M)/../../include
+ccflags-y += -I$(M)/../../vmebridge/include
 ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 obj-m := sis33.o sis3320.o sis3300.o
