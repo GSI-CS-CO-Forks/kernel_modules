@@ -4,20 +4,11 @@ include /acc/dsc/src/co/Make.auto
 
 TARGET = vd80-2
 
-ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
-ccflags-y += -g -Wall
-ccflags-y += -I /acc/local/$(CPU)/include
-ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
-
-obj-m = $(TARGET).o
-$(TARGET)-objs += vd80.o
-
-
 all: modules
 
 modules: 
 	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` CPU=$(CPU) modules
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
 	rm -rf ./$(CPU)
 	mkdir ./$(CPU)
 	mkdir ./$(CPU)/$(KVER)

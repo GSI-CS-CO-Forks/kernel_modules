@@ -1,0 +1,12 @@
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
+ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
+ccflags-y += -g -Wall
+ccflags-y += -I /acc/local/$(CPU)/include
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
+obj-m = vd80-2.o
+vd80-2-objs += vd80.o
