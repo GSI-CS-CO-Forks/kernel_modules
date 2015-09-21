@@ -1,6 +1,7 @@
-CPU ?= L865
+CPU?=L866
 
-include /acc/src/dsc/co/Make.auto
+include ../../common.mk
+include /acc/dsc/src/co/Make.auto
 
 VPATH = ../../utils/extest ../lib
 INCDIR := ../include
