@@ -2,8 +2,8 @@
 # Makefile to produce standard CTX1 test applications
 #================================================================
 
-CPU=L866
-
+CPU?=L866
+include ../../../common.mk
 include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
