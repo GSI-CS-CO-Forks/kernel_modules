@@ -1,17 +1,8 @@
-CPU=L866
-
-ifeq ($(CPU),L865)
-KVER=3.2.43-rt63
-endif
-
-ifeq ($(CPU),L866)
-KVER=3.6.11-rt30.25.el6rt.x86_64
-endif
+CPU?=L866
+include ../../common.mk
+include /acc/dsc/src/co/Make.auto
 
 TARGET = vd80-2
-
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-GIT_VERSION = $(shell cd $(src); git describe --dirty --long --tags --always)
 
 ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
 ccflags-y += -g -Wall
