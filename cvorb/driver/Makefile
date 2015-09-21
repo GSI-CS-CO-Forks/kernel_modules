@@ -14,8 +14,9 @@ modules:
 	mv *.o *.ko $(CPU)/$(KVER)
 
 clean:
-	rm -f *.o *.a *.pyc *.so $(TESTS)
-	rm -rf L865 L864 ppc 
-	make -C $(KERNELSRC) M=`pwd` clean
+	$(RM) -r $(CPU)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
 
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)
 
