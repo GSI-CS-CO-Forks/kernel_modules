@@ -48,7 +48,7 @@ static dev_t cvorb_devno;
 
 /*====================================================================*/
 
-static int __devinit cvorb_match(struct device *pdev, unsigned int ndev)
+static int cvorb_match(struct device *pdev, unsigned int ndev)
 {
 	if ((ndev >= num_lun) || (ndev >= num_base_address)) {
 		//Not enough number of arguments.
@@ -58,7 +58,7 @@ static int __devinit cvorb_match(struct device *pdev, unsigned int ndev)
 	return 1;
 }
 
-static int __devinit cvorb_probe(struct device *pdev, unsigned int ndev)
+static int cvorb_probe(struct device *pdev, unsigned int ndev)
 {
 	int j;
 	int ret;
@@ -95,7 +95,7 @@ static int __devinit cvorb_probe(struct device *pdev, unsigned int ndev)
 	return 0;
 }
 
-static int __devexit cvorb_remove(struct device *pdev, unsigned int ndev)
+static int cvorb_remove(struct device *pdev, unsigned int ndev)
 {
 	struct cvorb_dev *cvorb = dev_get_drvdata(pdev);
 
@@ -110,7 +110,7 @@ static int __devexit cvorb_remove(struct device *pdev, unsigned int ndev)
 static struct vme_driver cvorb_driver = {
 	.match = cvorb_match,
 	.probe = cvorb_probe,
-	.remove = __devexit_p(cvorb_remove),
+	.remove = cvorb_remove,
 	.driver = {
 		   .name = DRIVER_NAME},
 };
