@@ -1,10 +1,11 @@
 DOXY_INSTPATH = /acc/doc/html/private/coht/doxy/vd80/lib
 
 all:
-	echo Make documentation for stub library
-	rm -f ,*.h
+	@echo Make documentation for stub library
+	../../../doxy/doxy.sh -n"Stub dynamic library loader" -o "doc" stub.doxygen 2>&1
+
+clean cleanall:
 	rm -rf doc
-	../../../doxy/doxy.sh -n"Stub dynamic library loader" -o "doc" stub.doxygen
 
 doxy_install: all
 	mkdir -p $(DOXY_INSTPATH)
