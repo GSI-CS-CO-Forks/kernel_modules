@@ -2,7 +2,6 @@ CPU?=L866
 include ../../common.mk
 include /acc/dsc/src/co/Make.auto
 
-CFLAGS=-g -Wall -Wstrict-prototypessss
 all: driver
 driver: modules
 
