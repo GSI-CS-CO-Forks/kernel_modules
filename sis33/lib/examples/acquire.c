@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include <libsis33.h>
 #include "my_stringify.h"
@@ -125,7 +126,7 @@ static void print_timestamps(const struct sis33_acq *acqs, int n_acqs)
 	int i;
 
 	for (i = 0; i < n_acqs; i++) {
-		printf("%4i 0x%llx\n", i, acqs[i].prevticks);
+		printf("%4i 0x%"PRIx64"\n", i, acqs[i].prevticks);
 	}
 }
 
