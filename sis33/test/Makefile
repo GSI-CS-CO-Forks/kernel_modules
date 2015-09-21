@@ -6,7 +6,7 @@ include /acc/dsc/src/co/Make.auto
 VPATH = ../../utils/extest ../lib
 INCDIR := ../include
 CFLAGS := -Wall -g -I$(INCDIR) -I../../include -I../../utils/extest -I../lib \
-	-I../../utils/user -I/acc/local/$(CPU)/include -DDRIVER_NAME=\"sis33\"
+	-I../../utils/user -DDRIVER_NAME=\"sis33\"
 LIBUTILSPATH := ../../utils/user
 LIBUTILS := $(LIBUTILSPATH)/object/libutils.$(CPU).a
 LDLIBS := $(LIBUTILS)
