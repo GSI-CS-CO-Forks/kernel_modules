@@ -3,7 +3,7 @@ include ../../common.mk
 include /acc/dsc/src/co/Make.auto
 
 INCDIR := ../include
-CFLAGS := -Wall -fPIC -g -I. -I$(INCDIR) -I../../include
+CFLAGS := -Wall -fPIC -g -I$(INCDIR) -I../../include
 LIBSIS33 := libsis33.$(CPU).a 
 HLIBSIS33 := $(INCDIR)/libsis33.h
 HSIS33 := $(INCDIR)/sis33.h

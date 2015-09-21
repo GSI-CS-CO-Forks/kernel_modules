@@ -19,8 +19,8 @@
 #include <stdio.h>
 
 #include <libsis33.h>
-#include <sis33acq.h>
-#include <sis33dev.h>
+#include "sis33acq.h"
+#include "sis33dev.h"
 #include "libinternal.h"
 
 #define LIBSIS33_VERSION	"1.0"

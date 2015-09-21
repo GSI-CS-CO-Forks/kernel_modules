@@ -22,7 +22,7 @@ SRCS := \
 
 INCDIR := ../../include
 LDFLAGS := -lm
-CFLAGS := -Wall -D_GNU_SOURCE -g -I. -I$(INCDIR)
+CFLAGS := -Wall -D_GNU_SOURCE -g -I$(INCDIR)
 HLIBSIS33 := $(INCDIR)/libsis33.h
 LIBSIS33 := ../libsis33.$(CPU).a
 MYSTR := my_stringify.h
