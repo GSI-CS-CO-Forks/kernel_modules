@@ -1,4 +1,6 @@
-CPU ?= L865
+CPU?=L866
+include ../../../common.mk
+include /acc/dsc/src/co/Make.auto
 
 SRCS := \
 	acquire.c \
@@ -18,8 +20,6 @@ SRCS := \
 	two_segments.c \
 	version.c
 
-include /acc/src/dsc/co/Make.auto
-
 INCDIR := ../../include
 LDFLAGS := -lm
 CFLAGS := -Wall -D_GNU_SOURCE -g -I. -I$(INCDIR)
@@ -34,5 +34,12 @@ all: $(LIBSIS33) $(FINAL_OBJS)
 .PHONY: all clean
 $(OBJS): $(HLIBSIS33) $(MYSTR)
 $(FINAL_OBJS): $(LDLIBS)
+
 clean:
-	$(RM) *.$(CPU) *.o $(BAKS)
+	$(RM) *.$(CPU)
+	$(RM) *.$(CPU).o
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+
