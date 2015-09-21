@@ -1,3 +1,8 @@
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
 EXTRA_CFLAGS += \
 	     -DGIT_VERSION=\"$(GIT_VERSION)\" \
 	     -Wstrict-prototypes \
