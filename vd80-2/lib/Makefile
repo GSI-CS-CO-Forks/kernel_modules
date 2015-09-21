@@ -19,4 +19,7 @@ libvd80.$(CPU).a: libvd80.$(CPU).o
 	$(RANLIB) $@
 
 clean:
-	-$(RM) *.so *.a *.o
+	$(RM) *.$(CPU).{o,so,a}
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
