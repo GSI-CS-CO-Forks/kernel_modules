@@ -12,11 +12,9 @@ all: libvd80.$(CPU).so libvd80.$(CPU).a
 libvd80.$(CPU).o: $(SRCS)
 
 libvd80.$(CPU).so: libvd80.$(CPU).o
-	-$(RM) $@
 	$(CC) $(CFLAGS) -o $@ -shared $^
 
 libvd80.$(CPU).a: libvd80.$(CPU).o
-	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
