@@ -8,7 +8,7 @@ driver: modules
 
 # compile with V=1 to see compilation details
 modules: 
-	$(CP) Module.symvers.vme Module.symvers
+	$(CP) Module.symvers.vmebus Module.symvers
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
