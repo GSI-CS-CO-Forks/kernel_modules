@@ -5,7 +5,7 @@ include $(M)/../../common.mk
 
 ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
 ccflags-y += -g -Wall
-ccflags-y += -I /acc/local/$(CPU)/include
+ccflags-y += -I$(M)/../../vmebridge/include
 ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 obj-m = vd80-2.o
