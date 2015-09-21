@@ -26,8 +26,8 @@
 #include <vmebus.h>
 
 #include <cvorb.h>
-#include <cvorb_priv.h>
-#include <cvorb_hw.h>
+#include "cvorb_priv.h"
+#include "cvorb_hw.h"
 
 #define DRIVER_NAME 	"cvorb"
 #define PFX 		DRIVER_NAME ": "

@@ -4,10 +4,9 @@ include $(M)/../../common.mk
 #include /acc/dsc/src/co/Make.auto
 
 ccflags-y += -g -Wall
-ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 ccflags-y += -Wstrict-prototypes
-ccflags-y += -I$(M)
-ccflags-y += -I $(M)/../include
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+ccflags-y += -I$(M)/../include
 ccflags-y += -I$(M)/../../vmebridge/include
 
 obj-m += cvorb.o

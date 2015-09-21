@@ -14,8 +14,8 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 
-#include <cvorb.h>
-#include <cvorb_priv.h>
+#include "cvorb.h"
+#include "cvorb_priv.h"
 
 MODULE_AUTHOR ("Samuel Iglesias Gonsalvez <siglesia@cern.ch>,"
 		"Michel Arruat <michel.arruat@cern.ch>");
