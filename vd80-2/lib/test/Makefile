@@ -23,9 +23,12 @@ HDRS = Cmds.h $(VD80LB)/libvd80.h $(DRIVER)/vd80.h
 all: $(ALL)
 
 clean:
-	$(RM) $(ALL) $(BAKS) *.o *.L86[456]
+	$(RM) *.$(CPU).o
+	$(RM) *.$(CPU)
 
-# Run on Workstation only
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
 
 vd80test.$(CPU).o: $(SRCS) $(HDRS)
 
