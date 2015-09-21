@@ -14,6 +14,9 @@ clean:
 	$(RM) -r $(CPU)
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
 
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)
+
 install: ./$(CPU)/$(KVER)/vd80-2.ko
 	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"
 
