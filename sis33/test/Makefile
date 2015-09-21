@@ -15,7 +15,7 @@ HSIS33 := $(INCDIR)/sis33.h
 
 all: sis33test.$(CPU)
 
-.PHONY: all clean
+.PHONY: all clean cleanall
 
 sis33test.$(CPU): sis33test.$(CPU).o sis33acq.$(CPU).o sis33dev.$(CPU).o \
 	extest.$(CPU).o cmd_generic.$(CPU).o $(LIBUTILS)
@@ -29,4 +29,9 @@ $(LIBUTILS):
 	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU)
 
 clean:
-	$(RM) *.$(CPU) *.o *.$(CPU).a $(BAKS)
+	$(RM) *.$(CPU)
+	$(RM) *.$(CPU).{o,a}
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
