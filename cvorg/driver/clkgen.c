@@ -7,11 +7,11 @@
  * Released under the GPL v2. (and only v2, not any later version)
  */
 #include <linux/delay.h>
-#include <cvorg_priv.h>
-#include <cvorg_hw.h>
+#include "cvorg_priv.h"
+#include "cvorg_hw.h"
 
 #include <ad9516.h>
-#include <ad9516_priv.h>
+#include "ad9516_priv.h"
 
 /*
  * @todo separate 100% CVORG code from AD9516 code.

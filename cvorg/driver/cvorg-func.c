@@ -20,8 +20,8 @@
 
 #include <vmebus.h>
 #include <cvorg.h>
-#include <cvorg_priv.h>
-#include <cvorg_hw.h>
+#include "cvorg_priv.h"
+#include "cvorg_hw.h"
 
 #define DRIVER_NAME 	"cvorg"
 #define PFX 		DRIVER_NAME ": "
