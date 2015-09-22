@@ -14,37 +14,37 @@ DOXY_INSTDIR := /acc/doc/html/private/coht/doxy/cvorg
 
 all: $(LIBCVORG) examples
 
-.PHONY: all clean examples
+.PHONY: all clean cleanall examples
 
-cvorg.$(CPU).o: cvorg.c $(HCVORG) $(HLIBCVORG) libinternal.h cvorgdev.h 
-	$(CC) $(CFLAGS) -c -I. -I../ad9516 cvorg.c -o $@
+cvorg.$(CPU).o: cvorg.c $(HCVORG) $(HLIBCVORG) libinternal.h cvorgdev.h
 
 libcvorg.$(CPU).a: cvorg.$(CPU).o cvorgdev.$(CPU).o error.$(CPU).o $(OBJAD9516)
 	$(AR) rv $(LIBCVORG) $^
 
 cvorgdev.$(CPU).o: cvorgdev.c cvorgdev.h
-	$(CC) $(CFLAGS) -c -I. cvorgdev.c -o $@
 
 error.$(CPU).o: error.c libinternal.h
-	$(CC) $(CFLAGS) -c -I. error.c -o $@
 
 libcvorg.$(CPU).so: cvorg.$(CPU).o cvorgdev.$(CPU).o error.$(CPU).o $(OBJAD9516)
 	$(CC) -shared -o $@ $^
 
-examples:
+examples: $(LIBCVORG)
 	$(MAKE) -C $(EXAMPLES_DIR) CPU=$(CPU)
 
 clean:
-	$(MAKE) clean -C $(EXAMPLES_DIR) CPU=$(CPU)
-	$(RM) *.a *.o $(BAKS)
-	$(RM) -r doc
+	$(RM) *.$(CPU).{o,so,a}
+	$(MAKE) clean -C $(EXAMPLES_DIR)
+
+cleanall: doxy_clean
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
+	$(MAKE) cleanall -C $(EXAMPLES_DIR)
 
 doxy: doxy_clean $(DOXY_FILES)
 	../../doxy/doxy.sh -n"libcvorg" -o"$(DOXY_DIR)" $(DOXY_FILES)
 
 doxy_clean:
-	rm -rf $(DOXY_DIR)
+	$(RM) -r $(DOXY_DIR)
 
 doxy_install: doxy
-	mkdir -p $(DOXY_INSTDIR)
-	cp -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+	$(MKDIR) -p $(DOXY_INSTDIR)
+	$(CP) -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
