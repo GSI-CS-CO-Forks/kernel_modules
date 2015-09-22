@@ -51,7 +51,7 @@ struct class *cvorg_class;
 dev_t cvorg_devno;
 
 
-static int __devinit cvorg_match(struct device *pdev, unsigned int ndev)
+static int cvorg_match(struct device *pdev, unsigned int ndev)
 {
 
 	if ((ndev >= num_lun) || (ndev >= num_base_address) || (ndev >= num_irq)) {
@@ -62,7 +62,7 @@ static int __devinit cvorg_match(struct device *pdev, unsigned int ndev)
 	return 1;
 }
 
-static int __devinit cvorg_probe(struct device *pdev, unsigned int ndev)
+static int cvorg_probe(struct device *pdev, unsigned int ndev)
 {
 	int i = ndev;
 	int j;
@@ -89,7 +89,7 @@ static int __devinit cvorg_probe(struct device *pdev, unsigned int ndev)
 	return 0;
 }
 
-static int __devexit cvorg_remove(struct device *pdev, unsigned int ndev)
+static int cvorg_remove(struct device *pdev, unsigned int ndev)
 {
 	struct cvorg *cvorg = dev_get_drvdata(pdev);
 	
@@ -103,7 +103,7 @@ static int __devexit cvorg_remove(struct device *pdev, unsigned int ndev)
 static struct vme_driver cvorg_driver = {
         .match          = cvorg_match,
         .probe          = cvorg_probe,
-        .remove         = __devexit_p(cvorg_remove),
+        .remove         = cvorg_remove,
         .driver         = {
                 .name   = DRIVER_NAME,
         },
