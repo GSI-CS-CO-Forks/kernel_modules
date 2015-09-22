@@ -2,8 +2,8 @@ CPU?=L866
 include ../../common.mk
 include /acc/dsc/src/co/Make.auto
 
-CFLAGS := -Wall -g -I. -I../include -I../../include
-LIBCVORB := libcvorb.$(CPU).a 
+CFLAGS := -Wall -g -I../include
+LIBCVORB := libcvorb.$(CPU).a
 HLIBCVORB := ../include/libcvorb.h
 HCVORB := ../include/cvorb.h
 EXAMPLES_DIR := examples
@@ -34,16 +34,17 @@ examples:
 	$(MAKE) -C $(EXAMPLES_DIR) CPU=$(CPU)
 
 clean:
-	$(MAKE) clean -C $(EXAMPLES_DIR) CPU=$(CPU)
-	$(RM) *.a *.o $(BAKS)
-	$(RM) -r doc
+	$(RM) *.$(CPU).{o,a}
+
+cleanall: doxy_clean
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
 
 doxy: doxy_clean $(DOXY_FILES)
 	../../doxy/doxy.sh -n"libcvorb" -o"$(DOXY_DIR)" $(DOXY_FILES)
 
 doxy_clean:
-	rm -rf $(DOXY_DIR)
+	$(RM) -r $(DOXY_DIR)
 
 doxy_install: doxy
-	mkdir -p $(DOXY_INSTDIR)
-	cp -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+	$(MKDIR) -p $(DOXY_INSTDIR)
+	$(CP) -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
