@@ -531,7 +531,7 @@ out:
 	return 1;
 }
 
-static void show_mode(uint32_t status, uint32_t config)
+void show_mode(uint32_t status, uint32_t config)
 {
 	unsigned int chanmode = config & 0xf;
 
@@ -575,7 +575,7 @@ int h_chanstat(struct cmd_desc *cmdd, struct atom *atoms)
 	int32_t status_reg;
 	uint32_t config_reg;
 */
-	int32_t temperature;
+	unsigned int temperature;
 	int ret;
 
 
