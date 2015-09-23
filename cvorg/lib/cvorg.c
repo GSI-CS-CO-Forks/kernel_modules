@@ -18,6 +18,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 #include "libcvorg.h"
 #include "cvorgdev.h"
@@ -165,7 +166,7 @@ static int __cvorg_get_dac_calib(void)
 		/* line starting by '0': 0xa500... */
 		/* line format: column1(pcb_id) column[2..19](correction values) */
 		ptr_line = line;
-		nitems = sscanf(line, " %llx ", &pcb_id); /* get pcb_id */
+		nitems = sscanf(line, " %"SCNx64, &pcb_id); /* get pcb_id */
 		/* pcb_id is used as a key to retrieve the corresponding dac correction values */
 		for (idx=0; idx<__cvorg_nr_dev; ++idx) {
 			if (cvorg_pcb_id_list[idx] == pcb_id) { /* calib line of interest */
