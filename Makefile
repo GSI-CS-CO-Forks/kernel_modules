@@ -7,6 +7,7 @@ DIRS = \
     cvorb \
     cvorg \
     vmebridge \
+    ctc \
     cvora \
     pickeringmux \
     vmod \
