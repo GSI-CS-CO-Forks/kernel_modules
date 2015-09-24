@@ -8,9 +8,15 @@ INCDIR := ../include
 CFLAGS := -Wall -g -I$(INCDIR) -I../../include -I../../utils/extest -I../lib \
 	-I../../utils/user -DDRIVER_NAME=\"sis33\"
 LIBUTILSPATH := ../../utils/user
-LIBUTILS := $(LIBUTILSPATH)/object/libutils.$(CPU).a
-LDLIBS := $(LIBUTILS)
-LDFLAGS := -lxml2 -lz -ltermcap -lreadline -lrt
+LIBUTILS := $(LIBUTILSPATH)/libutils.$(CPU).a
+LDLIBS := -lxml2 -lreadline -lrt
+LDFLAGS := $(LIBUTILS)
+
+#L865 requires tempcap for readline
+ifeq ($(CPU),L865)
+LDFLAGS+=-ltermcap
+endif
+
 HSIS33 := $(INCDIR)/sis33.h
 
 all: sis33test.$(CPU)
@@ -31,7 +37,9 @@ $(LIBUTILS):
 clean:
 	$(RM) *.$(CPU)
 	$(RM) *.$(CPU).{o,a}
+	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU) clean
 
 cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
+	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU) cleanall
