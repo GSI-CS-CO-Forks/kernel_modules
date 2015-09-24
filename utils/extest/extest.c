@@ -480,6 +480,8 @@ static int do_cmd(int idx, struct atom *atoms)
 			 * but for the time being we'll leave it like that.
 			 */
 			ret = (*cdp->handle)(cdp, args_copy);
+			/* keep compiler silent */
+			(void) ret;
 			idx += cdp->pa + 1;
 			if (IS_ERR_VALUE(idx)) {
 				return idx;
