@@ -30,8 +30,8 @@ static __attribute__((unused)) char *rcsid = "$Id: pickeringmuxmain.c,v 1.10 201
 /* Prototypes */
 static int  __init    pickeringMuxInit(void);
 static void __exit    pickeringMuxCleanup(void);
-static int  __devinit pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id *pciid);
-static void __devexit pickeringMuxRemove(struct pci_dev *dev);
+static int            pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id *pciid);
+static void           pickeringMuxRemove(struct pci_dev *dev);
 static int            pickeringMuxOpen(struct inode *inode, struct file *file);
 static int            pickeringMuxRelease(struct inode *inode, struct file *file);
 static long           pickeringMuxIoctl(struct file *file, unsigned int cmd, unsigned long arg);
@@ -60,7 +60,7 @@ static struct file_operations pickeringMuxFileOps =
 static unsigned int pickeringMuxMajor = 0;
 
 /* Structure for the PCI device layer */
-static struct pci_device_id pickeringMuxIdtable[] __devinitdata = 
+static struct pci_device_id pickeringMuxIdtable[] = 
 {
   { 
     .vendor = PICKERINGMUX_VENDOR,
@@ -80,7 +80,7 @@ static struct pci_driver pickeringMux_driver =
   .name = PICKERINGMUX_DIR_NAME,
   .id_table = pickeringMuxIdtable,
   .probe = pickeringMuxProbe,
-  .remove = __devexit_p(pickeringMuxRemove),
+  .remove = pickeringMuxRemove,
 };
   
 /* Definition of the init & exit functions for the module */ 
@@ -90,7 +90,7 @@ module_exit(pickeringMuxCleanup);
 /***************************************************************************************************
  *
  */
-static int __devinit pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id *pciid)
+static int pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id *pciid)
 {    
   PickeringMuxDescr *muxDesc;
   int rc = 0;
@@ -182,7 +182,7 @@ static int __devinit pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_
 /***************************************************************************************************
  *
  */
-static void __devexit pickeringMuxRemove(struct pci_dev *pcidev)
+static void pickeringMuxRemove(struct pci_dev *pcidev)
 {
   PickeringMuxDescr *muxDesc;
   
