@@ -16,7 +16,7 @@ static __attribute__((unused)) char test_version[] = "version: " GIT_VERSION;
 static void printUsage(char *basename);
 static void printStatus(int *status, int size);
 static char waitUserInput();
-static void dumpMemory(void *addr, int size);
+void dumpMemory(void *addr, int size);
 
 /* Mode flags */
 static int testMode;
@@ -335,7 +335,7 @@ int main(int argc, char *argv[])
 /******************************************************************************
  *
  */
-static void doOpen()
+void doOpen()
 {
   
 }
