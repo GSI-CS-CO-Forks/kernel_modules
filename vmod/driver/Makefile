@@ -6,7 +6,7 @@ all: driver
 driver: modules
 
 modules:
-	$(CP) Module.symvers.vme Module.symvers
+	$(CP) Module.symvers.vmebus Module.symvers
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
