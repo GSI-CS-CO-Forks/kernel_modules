@@ -28,7 +28,7 @@ patch <<EOFPATCH
  # configuration options related to the input files
  #---------------------------------------------------------------------------
 -INPUT                  =
-+INPUT                  = pickeringmuxlib.c
++INPUT                  = ../lib/pickeringmuxlib.c
  INPUT_ENCODING         = UTF-8
  FILE_PATTERNS          =
  RECURSIVE              = NO
