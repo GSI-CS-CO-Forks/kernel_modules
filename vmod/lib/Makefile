@@ -1,4 +1,5 @@
-CPU=L865
+CPU ?= L866
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 all: lib
@@ -50,44 +51,41 @@ libvmoddor2dioaio.a: libvmoddor2dioaio.o
 libvmoddor2dioaio.so: libvmoddor2dioaio.o
 	$(CC) -shared -o $@ $^
 
+clean:
+	$(RM) *.{o,so,a}
+
 else
 
 LIBS=libvmod.$(CPU).a libvmodttl.$(CPU).a libvmoddor.$(CPU).a
 OBJS=libvmod12a2.$(CPU).o libvmod12a4.$(CPU).o libvmod16a2.$(CPU).o libvmod12e16.$(CPU).o
 
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -fPIC
 CFLAGS += -I ../include -I../driver
 
 lib: $(LIBS)
-
-libvmod12a2.$(CPU).o:	libvmod12a2.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-libvmod12a4.$(CPU).o:   libvmod12a4.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-libvmod16a2.$(CPU).o:   libvmod16a2.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-libvmod12e16.$(CPU).o:  libvmod12e16.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-libvmodttl.$(CPU).o:  libvmodttl.c
-	$(CC) $(CFLAGS) -c -o $@ $^
-libvmoddor.$(CPU).o:  libvmoddor.c
-	$(CC) $(CFLAGS) -c -o $@ $^
+shlib: $(LIBS:.a=.so)
 
 libvmod.$(CPU).so: $(OBJS)
-	gcc -shared -o $@ $^
+	$(CC) -shared -o $@ $^
 libvmod.$(CPU).a: $(OBJS)
-	ar r $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 
 libvmodttl.$(CPU).a: libvmodttl.$(CPU).o
-	ar r $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 libvmodttl.$(CPU).so: libvmodttl.$(CPU).o
-	gcc -shared -o $@ $^
+	$(CC) -shared -o $@ $^
+
 libvmoddor.$(CPU).a: libvmoddor.$(CPU).o
-	ar r $@ $^
+	$(AR) $(ARFLAGS) $@ $^
 libvmoddor.$(CPU).so: libvmoddor.$(CPU).o
-	gcc -shared -o $@ $^
+	$(CC) -shared -o $@ $^
+
+clean:
+	$(RM) *.$(CPU).{o,so,a}
 
 endif
 
-clean:
-	rm -f *.o *.a *.pyc *.so
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
+	$(RM) *.{o,so,a}
