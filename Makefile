@@ -9,6 +9,7 @@ DIRS = \
     vmebridge \
     cvora \
     pickeringmux \
+    vmod \
 
 .PHONY: all clean cleanall $(DIRS)
 
