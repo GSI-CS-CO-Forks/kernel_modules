@@ -122,8 +122,13 @@ static int pickeringMuxProbe(struct pci_dev *pcidev, const struct pci_device_id 
  
   /* Set the driver data and init the device */
   pci_set_drvdata(pcidev, muxDesc);
-  pci_enable_device(pcidev);
-  
+
+  if ((rc = pci_enable_device(pcidev))) {
+    printk(KERN_ERR "pickeringMuxProbe: Could not enable device %s\n",
+	   pci_name(pcidev));
+    return rc;
+  }
+
   /* Specific part */
   switch(muxDesc->type)
   {
