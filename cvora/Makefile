@@ -1,43 +1,46 @@
-# CPU=L865
-# KVER=2.6.24.7-rt21
-# KVER=2.6.24.7-rt27
-# KVER=2.6.29.4-rt15
-# KVER=2.6.31.6-rt19
-# KVER=2.6.24.7-rt27
-
-CPU ?= L865
-KVER ?= 3.2.43-rt63
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-
-GIT_VERSION = $(shell git describe --dirty --long --tags --always)
-
+CPU?=L866
+include ../common.mk
 include /acc/dsc/src/co/Make.auto
 
-all: modules libs test
+all: modules libs
 
-modules: 
-	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) GIT_VERSION=$(GIT_VERSION) modules
-	mkdir -p $(CPU)/$(KVER)
-	cp cvora.ko $(CPU)/$(KVER)
+#used for mv
+DRIVER_OBJ=cvora.o cvora.mod.o
+
+modules:
+	$(CP) Module.symvers.vmebus Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules;
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv $(DRIVER_OBJ) $(CPU)/$(KVER)
+	mv *.ko $(CPU)/$(KVER)
+	ln -s $(CPU)/$(KVER)/cvora.ko
+
 clean:
-	rm -f *.so
-	make -C $(KERNELSRC) M=`pwd` KVER=$(KVER) clean
-	make -C test clean
-	make -C doc clean
+	$(RM) *.$(CPU).{o,so,a}
+	$(RM) -r $(CPU)
+	$(RM) cvora.ko;
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean;
+#	$(MAKE) -C test CPU=$(CPU) clean
+
+cleanall: clean
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
+	$(RM) -r {$(ALL_CPUS_COMMAS)}
+#	$(MAKE) -C test CPU=$(CPU) cleanall
+	$(MAKE) -C doc clean
+
 docs:
-	make -C doc
+	$(MAKE) -C doc
 
 CFLAGS= -g -Wall -fPIC
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-libs: libcvora.$(CPU).a libcvora.$(CPU).so
+
+libs: libcvora.$(CPU).so libcvora.$(CPU).a
 
 libcvora.$(CPU).o: libcvora.c libcvora.h
 libcvora.$(CPU).so: libcvora.$(CPU).o
 	$(CC) $(CFLAGS) -shared -o $@ $^
 libcvora.$(CPU).a: libcvora.$(CPU).o
-	-$(RM) $@
 	$(AR) $(ARFLAGS) $@ $^
 	$(RANLIB) $@
 
