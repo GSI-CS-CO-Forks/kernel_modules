@@ -160,10 +160,9 @@ int vmodttl_io_config(int lun, struct vmodttl_config conf)
 int vmodttl_io_chan_config(int lun, enum vmodttl_channel chan, struct vmodttl_config conf)
 {
 	struct vmodttl_config ttl_conf;
-	int fd, i;
+	int i;
 
 	vmodttl_read_config(lun, &ttl_conf);
-	fd = luns_to_fd[lun];
 	
 	switch(chan) {
 	case VMOD_TTL_CHANNEL_A:
