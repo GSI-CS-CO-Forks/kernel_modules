@@ -7,6 +7,7 @@ DIRS = \
     cvorb \
     cvorg \
     vmebridge \
+    cvora \
 
 .PHONY: all clean cleanall $(DIRS)
 
