@@ -11,6 +11,7 @@ DIRS = \
     pickeringmux \
     vmod \
     icv196 \
+    msatt \
 
 .PHONY: all clean cleanall $(DIRS)
 
