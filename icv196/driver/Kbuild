@@ -1,5 +1,11 @@
-EXTRA_CFLAGS += -DCOMPILE_TIME=$(shell date +%s) -g -Wall \
-		-I/acc/src/dsc/drivers/cohtdrep/lewis/icv196/linux/driver
-EXTRA_CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
+ccflags-y += -g -Wall
+ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
+ccflags-y += -I/acc/src/dsc/drivers/cohtdrep/lewis/icv196/linux/driver
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 obj-m:=icv196.o

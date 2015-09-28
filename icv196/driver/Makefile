@@ -1,35 +1,20 @@
-CPU=L866
-
-ifeq ($(CPU),L865)
-KVER=3.2.43-rt63
-endif
-
-ifeq ($(CPU),L866)
-KVER=3.6.11-rt30.25.el6rt.x86_64
-endif
-
-GIT_VERSION = $(shell git describe --dirty --tags --always --long)
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-
-CFLAGS=-g -Wall
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
 all: modules
-modules: 
-	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) modules
-	rm -rf ./$(CPU)
-	mkdir ./$(CPU)
-	mkdir ./$(CPU)/$(KVER)
-	mv icv196.ko ./$(CPU)/$(KVER)/icv196.ko
-	chmod 664 ./$(CPU)/$(KVER)/icv196.ko
-	rm -f *.o
+modules:
+	$(CP) Module.symvers.vmebus Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv *.o *.ko $(CPU)/$(KVER)
 
 clean:
-	rm -f icv196.ko
-	rm -f  Module.symvers modules.order *.mod.c
-	rm -f ./$(CPU)/$(KVER)/icv196.ko
-	rm -f *.o
-	rm -rf L86[56]
+	$(RM) -r $(CPU)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
+
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)
 
 install: ./$(CPU)/$(KVER)/icv196.ko
 	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"
