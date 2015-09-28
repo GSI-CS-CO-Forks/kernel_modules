@@ -14,7 +14,6 @@
 #include <asm/io.h>
 #include <linux/moduleparam.h>
 #include <linux/fs.h>
-#include <linux/byteorder/swabb.h>
 
 #include <vmebus.h>
 #include <carrier.h>
