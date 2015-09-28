@@ -10,6 +10,7 @@ DIRS = \
     cvora \
     pickeringmux \
     vmod \
+    icv196 \
 
 .PHONY: all clean cleanall $(DIRS)
 
