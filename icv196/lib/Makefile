@@ -21,19 +21,21 @@ libicv196.$(CPU).a: libicv196.$(CPU).o
 clean:
 	$(RM) libicv196.$(CPU).{o,so,a}
 
-cleanall:
+cleanall: docs_clean
 	$(RM) libicv196.{$(ALL_CPUS_COMMAS)}.{o,so,a}
-	$(RM) -r html
 
 docs:
 	doxygen -s -g t
 	sed -f Doxyfile.sed t > Doxyfile
-	rm t
+	$(RM) t
 	doxygen
 
 docs-update: docs
 	rsync -av html/ /acc/doc/html/private/coht/doxy/icv196
 
+docs_clean:
+	$(RM) -r html
+	$(RM) t
 
 install:
 	dsc_install libicv196.$(CPU).a /acc/local/$(CPU)/drv/icv196vme/
