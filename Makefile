@@ -12,6 +12,7 @@ DIRS = \
     vmod \
     icv196 \
     msatt \
+    tpci200 \
 
 .PHONY: all clean cleanall $(DIRS)
 
