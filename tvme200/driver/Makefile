@@ -1,23 +1,19 @@
-CPU=L865
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
-# KVER=2.6.24.7-rt21
-# KVER=2.6.24.7-rt27
-# KVER=2.6.29.4-rt15
-# KVER=2.6.31.6-rt19
-
-KVER=2.6.24.7-rt27
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-
-OUTPUTDIR=$(PWD)/$(CPU)/$(KVER)
+all: modules
 
 
 modules:
-	mkdir -p $(OUTPUTDIR)
-	cp Module.symvers.vmebridge Module.symvers
-	make -C $(KERNELSRC) M=$(PWD) modules
-	mkdir -p $(OUTPUTDIR)
-	mv *.o *.ko $(OUTPUTDIR)
-clean:
-	make -C $(KERNELSRC) M=$(PWD) clean
-	rm -rf L865/
+	$(CP) Module.symvers.vmebridge Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) modules
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv *.o *.ko $(CPU)/$(KVER)
 
+clean:
+	$(RM) -r $(CPU)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
+
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)

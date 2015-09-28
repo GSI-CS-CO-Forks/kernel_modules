@@ -1,8 +1,12 @@
-EXTRA_CFLAGS= \
-	-I$(src)/../utils/driver \
-	-I$(src)/../../vmebridge/driver \
-	-I$(src)/../../include \
-	-I$(src)/../include 
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
+ccflags-y += -I$(M)/../utils/driver
+ccflags-y += -I$(M)/../../vmebridge/driver
+ccflags-y += -I$(M)/../../include
+ccflags-y += -I$(M)/../include
 
 obj-m 	     := tvme200.o
 tvme200-objs := carrier_tvme200.o 
