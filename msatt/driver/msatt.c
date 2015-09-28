@@ -171,7 +171,7 @@ failed:
 	return 0;
 }
 
-static int __devinit msatt_probe(struct pci_dev *dev,
+static int msatt_probe(struct pci_dev *dev,
 					const struct pci_device_id *ent)
 {
 	struct msatt_t *cfg_entry;
@@ -220,7 +220,7 @@ failed_enable:
 
 }
 
-static void __devexit msatt_remove(struct pci_dev *dev)
+static void msatt_remove(struct pci_dev *dev)
 {
 	printk(PFX "Releasing PCI device\n");
 
@@ -370,7 +370,7 @@ static const struct file_operations fops = {
 static struct pci_driver msatt_driver = {
 	.name		= DRIVER_NAME,
 	.probe		= msatt_probe,
-	.remove		= __devexit_p(msatt_remove),
+	.remove		= msatt_remove,
 	.id_table	= msatt_tbl
 };
 
