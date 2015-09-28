@@ -3,7 +3,7 @@ include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 CFLAGS= -g -Wall -fPIC
-CFLAGS+= -I. -I../driver
+CFLAGS+= -I../driver
 CFLAGS+=-DCOMPILE_TIME=$(shell date +%s)
 
 SRCS = libicv196.c libicv196.h
