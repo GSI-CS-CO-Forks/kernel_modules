@@ -5,7 +5,7 @@ include $(M)/../../common.mk
 
 ccflags-y += -g -Wall
 ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
-ccflags-y += -I/acc/src/dsc/drivers/cohtdrep/lewis/icv196/linux/driver
+ccflags-y += -I$(M)/../../vmebridge/include
 ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 obj-m:=icv196.o

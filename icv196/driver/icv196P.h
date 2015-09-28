@@ -11,8 +11,8 @@
 #ifndef ICV196DRVR_P
 #define ICV196DRVR_P
 
-#include <icv196.h>
-#include <Z8536CIO.h>
+#include "icv196.h"
+#include "Z8536CIO.h"
 
 /* ============================================= */
 /* Declare the structures in the ICV196 memory map */
