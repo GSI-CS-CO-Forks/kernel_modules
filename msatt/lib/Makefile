@@ -1,18 +1,23 @@
-lib: libmsatt.a
-OBJS=libmsatt.o
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
-HEADERS=./../driver
+lib: libmsatt.$(CPU).a
+OBJS=libmsatt.$(CPU).o
 
-CFLAGS=-g -Wall
+CFLAGS=-g -Wall -fPIC
+CFLAGS+=-I../driver
 
 all: lib
 
-libmsatt.o:
-	$(CC) $(CFLAGS) -c -I. -I$(HEADERS) libmsatt.c -o $@
-libmsatt.so: $(OBJS)
-	gcc -shared -o $@ $^ 
-libmsatt.a: $(OBJS)
-	ar r $@ $^
+libmsatt.$(CPU).so: $(OBJS)
+	$(CC) -shared -o $@ $^
+
+libmsatt.$(CPU).a: $(OBJS)
+	$(AR) $(ARFLAGS) $@ $^
 
 clean:
-	rm -f *.o *.a *.pyc *.so
+	$(RM) libmsatt.$(CPU).{o,so,a}
+
+cleanall:
+	$(RM) libmsatt.{$(ALL_CPUS_COMMAS)}.{o,so,a}
