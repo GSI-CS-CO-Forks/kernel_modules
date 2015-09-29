@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/io.h>
 #include "../ipack/linux/ipack.h"
+#include "../ipack/mod_dev_table.h"
 #include "ipoctal.h"
 #include "scc2698.h"
 
