@@ -1,11 +1,14 @@
-EXTRA_CFLAGS += \
-	-Wno-strict-prototypes \
-	-DCTR_PCI \
-	-DEMULATE_LYNXOS_ON_LINUX \
-	-DHARD_FLOAT \
-	-mhard-float \
-	-I/acc/src/dsc/drivers/coht/acdx/driver
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
 
+ccflags-y += -Wno-strict-prototypes
+ccflags-y += -DCTR_PCI
+ccflags-y += -DEMULATE_LYNXOS_ON_LINUX
+ccflags-y += -DHARD_FLOAT
+ccflags-y += -mhard-float
+ccflags-y += -I/acc/src/dsc/drivers/coht/acdx/driver
 
 obj-m := acdx.o
 acdx-objs := acdxdrvr.o DrvrSpec.o EmulateLynxOs.o ModuleLynxOs.o
