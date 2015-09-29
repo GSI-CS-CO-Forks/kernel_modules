@@ -6,7 +6,7 @@ all: modules
 
 
 modules:
-	$(CP) Module.symvers.vmebridge Module.symvers
+	$(CP) Module.symvers.vmebus Module.symvers
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
