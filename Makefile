@@ -13,6 +13,7 @@ DIRS = \
     icv196 \
     msatt \
     tpci200 \
+    tvme200 \
 
 .PHONY: all clean cleanall $(DIRS)
 
