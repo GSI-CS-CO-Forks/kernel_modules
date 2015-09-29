@@ -4,9 +4,7 @@ include $(M)/../../common.mk
 #include /acc/dsc/src/co/Make.auto
 
 ccflags-y += -Wno-strict-prototypes
-ccflags-y += -DCTR_PCI
 ccflags-y += -DEMULATE_LYNXOS_ON_LINUX
-ccflags-y += -DHARD_FLOAT
 ccflags-y += -mhard-float
 
 obj-m := acdx.o
