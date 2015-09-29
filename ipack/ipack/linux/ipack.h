@@ -13,15 +13,6 @@
 #include <linux/device.h>
 #include <linux/interrupt.h>
 
-#define IPACK_ANY_FORMAT 0xff
-#define IPACK_ANY_ID (~0)
-struct ipack_device_id {
-        __u8  format;                   /* Format version or IPACK_ANY_ID */
-        __u32 vendor;                   /* Vendor ID or IPACK_ANY_ID */
-        __u32 device;                   /* Device ID or IPACK_ANY_ID */
-};
-
-
 #define IPACK_IDPROM_OFFSET_I			0x01
 #define IPACK_IDPROM_OFFSET_P			0x03
 #define IPACK_IDPROM_OFFSET_A			0x05

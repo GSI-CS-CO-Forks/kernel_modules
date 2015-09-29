@@ -13,7 +13,15 @@
 #include <linux/slab.h>
 #include <linux/idr.h>
 #include <linux/io.h>
+#include <linux/version.h>
 #include "linux/ipack.h"
+
+/* ipack driver is present in the kernel source since about 3.7.
+ * This file cannot be included after ipack is merged, since it will result in
+ * conflicts. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
+#include "mod_dev_table.h"
+#endif
 
 #define to_ipack_dev(device) container_of(device, struct ipack_device, dev)
 #define to_ipack_driver(drv) container_of(drv, struct ipack_driver, driver)
