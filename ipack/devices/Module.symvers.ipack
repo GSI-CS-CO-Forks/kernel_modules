@@ -1,0 +1,6 @@
+0x3deed259	ipack_device_register	ipack	EXPORT_SYMBOL_GPL
+0xa2c6c4c3	ipack_bus_register	ipack	EXPORT_SYMBOL_GPL
+0x2e48e6fd	ipack_bus_unregister	ipack	EXPORT_SYMBOL_GPL
+0x3fbafeb6	ipack_device_unregister	ipack	EXPORT_SYMBOL_GPL
+0x5ddbef65	ipack_driver_register	ipack	EXPORT_SYMBOL_GPL
+0x5b686c22	ipack_driver_unregister	ipack	EXPORT_SYMBOL_GPL
