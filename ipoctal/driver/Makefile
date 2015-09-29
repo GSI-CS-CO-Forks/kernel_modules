@@ -4,6 +4,7 @@ include /acc/src/dsc/co/Make.auto
 
 all: modules
 modules:
+	$(CP) Module.symvers.tpci200 Module.symvers
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
