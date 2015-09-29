@@ -233,7 +233,11 @@ int ipoctal_open(struct tty_struct *tty, struct file *file)
 	}
 
 	ipoctal_installed[index].tty[channel] = tty;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+	memcpy(&ipoctal_installed[index].oldtermios[channel], &tty->termios, sizeof(struct ktermios));
+#else
 	memcpy(&ipoctal_installed[index].oldtermios[channel], tty->termios, sizeof(struct ktermios));
+#endif
 	ipoctal_write_io_reg(
 		&ipoctal_installed[index], 
 		&ipoctal_installed[index].chan_regs[channel].u.w.cr, 
@@ -667,8 +671,14 @@ static int ipoctal_irq_handler(void *arg)
 		/* RX data */
 		if (isrRxRdy && (sr & SR_RX_READY) && (ipoctal->chan_status[channel] == CHAN_READ)) {
 			value = ipoctal_read_io_reg(ipoctal, &ipoctal->chan_regs[channel].u.r.rhr);
+#if  LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0)
+			tty_insert_flip_char(ipoctal->tty[channel]->port, value, TTY_NORMAL);
+			tty_flip_buffer_push(ipoctal->tty[channel]->port);
+#else
 			tty_insert_flip_char(ipoctal->tty[channel], value, TTY_NORMAL);
 			tty_flip_buffer_push(ipoctal->tty[channel]);
+#endif
+			//tty_flip_buffer_push(ipoctal->tty[channel]);
 		}
 
 		/* TX of each character */
@@ -774,12 +784,19 @@ void ipoctal_set_termios(struct tty_struct *tty, struct ktermios *old_termios)
  	int block = channel / 2;
 
 	ipoctal = &ipoctal_installed[index];
-
+#if  LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+	cflag = tty->termios.c_cflag;
+#else
 	cflag = tty->termios->c_cflag;
+#endif
 
 	if (old_termios) {
 		if((cflag == old_termios->c_cflag) &&
+#if  LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0)
+				(RELEVANT_IFLAG(tty->termios.c_iflag) ==
+#else
 				(RELEVANT_IFLAG(tty->termios->c_iflag) ==
+#endif
 				 RELEVANT_IFLAG(old_termios->c_iflag)))
 			return;
 	}
