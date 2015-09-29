@@ -1,0 +1,9 @@
+CPU?=L866
+include $(M)/../../common.mk
+# Uncomment line below when build env supports it
+#include /acc/dsc/src/co/Make.auto
+
+ccflags-y += -DDEBUG
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
+obj-m := ipack.o
