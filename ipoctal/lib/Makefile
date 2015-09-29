@@ -1,14 +1,17 @@
-CPU=L865
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
-all: libipoctal
+all: libipoctal.$(CPU).a
+
 
 CFLAGS=-g -Wall
 
-HEADERS := ./ 
-
-libipoctal: 
-	$(CC) $(CFLAGS) -c -I$(HEADERS) libipoctal.c -o libipoctal.o
-	ar rcs libipoctal.a libipoctal.o
+libipoctal.$(CPU).a: libipoctal.$(CPU).o
+	$(AR) $(ARFLAGS) $@ $^
 
 clean:
-	rm -rf *.o libipoctal.a 
+	$(RM) libipoctal.$(CPU).{o,a}
+
+cleanall:
+	$(RM) libipoctal.{$(ALL_CPUS_COMMAS)}.{o,a}
