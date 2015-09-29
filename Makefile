@@ -14,6 +14,7 @@ DIRS = \
     msatt \
     tpci200 \
     tvme200 \
+    ipack \
 
 .PHONY: all clean cleanall $(DIRS)
 
