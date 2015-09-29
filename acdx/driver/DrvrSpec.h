@@ -6,8 +6,8 @@
 #ifndef DRVR_SPEC_H
 #define DRVR_SPEC_H
 
-#include <acdxdrvr.h>
-#include <acdxdrvrP.h>
+#include "acdxdrvr.h"
+#include "acdxdrvrP.h"
 
 /* Linux Module exported symbols */
 #define LynxOsMAJOR_NAME "acdx"

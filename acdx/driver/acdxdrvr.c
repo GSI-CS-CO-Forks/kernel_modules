@@ -13,8 +13,8 @@
 /*                                                            */
 /* ********************************************************** */
 
-#include <EmulateLynxOs.h>
-#include <DrvrSpec.h>
+#include "EmulateLynxOs.h"
+#include "DrvrSpec.h"
 
 /* These next defines are needed just here for the emulation */
 
@@ -22,8 +22,8 @@
 #define sel LynxSel
 #define enable restore
 
-#include <acdxdrvr.h>   /* Public driver interface            */
-#include <acdxdrvrP.h>  /* Private driver structures          */
+#include "acdxdrvr.h"   /* Public driver interface            */
+#include "acdxdrvrP.h"  /* Private driver structures          */
 
 #ifndef COMPILE_TIME
 #define COMPILE_TIME 0

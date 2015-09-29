@@ -4,7 +4,7 @@
 /* Julian Lewis AB/CO/HT 15th July 2008                                                          */
 /* ********************************************************************************************* */
 
-#include <acdxdrvr.h>
+#include "acdxdrvr.h"
 
 #ifndef ACDX_PRIVATE
 #define ACDX_PRIVATE
