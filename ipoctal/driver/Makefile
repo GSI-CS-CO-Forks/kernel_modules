@@ -1,9 +1,16 @@
-CPU=L865
-KVER=2.6.24.7-rt27
-KERNELPATH=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)/
-GIT_VERSION = $(shell git describe --dirty --tags --always --long)
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
+all: modules
 modules:
-	make -C $(KERNELPATH) M=$(PWD) GIT_VERSION=$(GIT_VERSION) modules
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv *.o *.ko $(CPU)/$(KVER)
+
 clean:
-	make -C $(KERNELPATH) M=$(PWD) clean
+	$(RM) -r $(CPU)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
+
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)
