@@ -1,19 +1,21 @@
 #================================================================
 # Makefile to produce standard CTR-P test program
 #================================================================
-
-CPU=L865
-include /acc/dsc/src/co/Make.auto
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
 DDIR = acdx
 
-PWD:=$(shell pwd)
-
-COMPILE_TIME:=$(shell $(PWD)/gettime)
+COMPILE_TIME:=$(shell date +%s)
 
 ACCS=oplhc
 
-CFLAGS= -g -Wall -I. -I../driver -I../linux -DCOMPILE_TIME=$(COMPILE_TIME)
+CFLAGS= -g -Wall 
+CFLAGS+= -I.
+CFLAGS+= -I../driver
+CFLAGS+= -I../linux
+CFLAGS+= -DCOMPILE_TIME=$(COMPILE_TIME)
 
 LDLIBS = -lm
 
@@ -28,7 +30,13 @@ TEST = acdxtest.c AcdxCmds.c AcdxOpen.c DoCmd.c GetAtoms.c Cmds.c
 all: $(ALL)
 
 clean:
-	$(RM) $(ALL) $(BAKS)
+	$(RM) acdxtest.$(CPU)
+	$(RM) acdxtest.$(CPU).o
+
+cleanall:
+	$(RM) acdxtest.{$(ALL_CPUS_COMMAS)}
+	$(RM) acdxtest.{$(ALL_CPUS_COMMAS)}.o
+
 
 # Run on Workstation only
 
