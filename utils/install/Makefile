@@ -26,8 +26,6 @@ instprog.$(CPU): instprog.$(CPU).o libutils.$(CPU).a
 
 libutils.$(CPU).a: $(CPU_OBJECTS) libinst.$(CPU).o inst-utils.$(CPU).o
 	$(AR) r $@ $^
-	$(MKDIR) -p $(OBJECTDIR)
-	ln -sf $(PWD)/$@ $(OBJECTDIR)
 
 clean:
 	$(RM) -r $(OBJECTDIR)
