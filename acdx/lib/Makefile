@@ -6,7 +6,6 @@ include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 CFLAGS= -g -Wall
-CFLAGS+= -I.
 CFLAGS+= -I/acc/local/$(CPU)/include
 CFLAGS+= -I/acc/src/dsc/drivers/coht/acdx/driver
 

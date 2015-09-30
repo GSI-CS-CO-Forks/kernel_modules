@@ -22,8 +22,8 @@
 #include <time.h>
 #include <sys/sem.h>
 
-#include <libamp.h>
-#include <libampP.h>
+#include "libamp.h"
+#include "libampP.h"
 
 static int amp = 0;
 

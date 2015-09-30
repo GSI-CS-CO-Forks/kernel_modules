@@ -23,7 +23,7 @@
 #include <acdxdrvr.h>
 #include <acdxdrvrP.h>
 
-#include <libacdx.h>
+#include "libacdx.h"
 
 #include "/acc/src/dsc/drivers/coht/acdx/test/AcdxCmds.h"
 
