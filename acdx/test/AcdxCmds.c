@@ -174,12 +174,12 @@ char sys[128], npt[128];
 static int yesno=1;
 
 static int YesNo(char *question, char *name) {
-int yn, c;
+int yn;
 
    if (yesno == 0) return 1;
 
    printf("%s: %s\n",question,name);
-   printf("Continue (Y/N):"); yn = getchar(); c = getchar();
+   printf("Continue (Y/N):"); yn = getchar(); getchar();
    if ((yn != (int) 'y') && (yn != 'Y')) return 0;
    return 1;
 }
@@ -1736,7 +1736,7 @@ AtomType  at;
 FILE *fp;
 unsigned int f1, f2;
 AcdxFunctionParams *par1, *par2;
-double zeta, phse, omega, freq, lfreq, hfreq, gain, hgain, lgain;
+double zeta, phse, omega, freq, lfreq, hfreq, gain, hgain;
 
    arg++;
    v = &(vals[arg]);
@@ -1792,7 +1792,7 @@ double zeta, phse, omega, freq, lfreq, hfreq, gain, hgain, lgain;
    }
 
    while (!feof(fp)){
-      lfreq = hfreq; lgain = hgain;
+      lfreq = hfreq;
       fscanf(fp,"%lf %lf\n", &hfreq, &hgain);
       if ((freq >= lfreq) && (freq <= hfreq)) break;
    }
