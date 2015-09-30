@@ -6,8 +6,7 @@ include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 CFLAGS= -g -Wall
-CFLAGS+= -I/acc/local/$(CPU)/include
-CFLAGS+= -I/acc/src/dsc/drivers/coht/acdx/driver
+CFLAGS+= -I../driver
 
 INSTFILES=libacdx.$(CPU).a libacdx.h ../driver/acdxdrvr.h ../driver/acdxdrvrP.h libamp.$(CPU).a libamp.h
 
