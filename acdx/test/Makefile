@@ -11,10 +11,8 @@ COMPILE_TIME:=$(shell date +%s)
 
 ACCS=oplhc
 
-CFLAGS= -g -Wall 
-CFLAGS+= -I.
+CFLAGS= -g -Wall
 CFLAGS+= -I../driver
-CFLAGS+= -I../linux
 CFLAGS+= -DCOMPILE_TIME=$(COMPILE_TIME)
 
 LDLIBS = -lm

@@ -7,7 +7,7 @@
 #include <sys/stat.h>
 #include <math.h>
 #include <time.h>   /* ctime */
-#include <AcdxCmds.h>
+#include "AcdxCmds.h"
 
 #ifndef COMPILE_TIME
 #define COMPILE_TIME 0
