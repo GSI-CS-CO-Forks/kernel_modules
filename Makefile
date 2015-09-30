@@ -16,6 +16,7 @@ DIRS = \
     tvme200 \
     ipack \
     rawio \
+    acdx \
 
 .PHONY: all clean cleanall $(DIRS)
 
