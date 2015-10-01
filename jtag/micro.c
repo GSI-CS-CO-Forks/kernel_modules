@@ -52,9 +52,9 @@
     #include <time.h>
 #endif  /* DEBUG_MODE */
 
-#include <micro.h>
-#include <lenval.h>
-#include <ports.h>
+#include "micro.h"
+#include "lenval.h"
+#include "ports.h"
 
 /*============================================================================
 * XSVF #define

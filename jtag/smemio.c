@@ -2,9 +2,12 @@
 /* Map the JTAG physical VME adderss onto a virtual memory address */
 /* using a sharded memory segment.                                 */
 
+#include <stdio.h>
+#include <string.h>
 #include <libvmebus.h>
+#include "jtag.h"
 
-static short *GetJtagPort(unsigned short *vmeAddress) { /* VME address */
+short *GetJtagPort(unsigned short *vmeAddress) { /* VME address */
 
 struct pdparam_master param; /* For CES PowerPC */
 
