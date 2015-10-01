@@ -37,7 +37,7 @@ unsigned long addr;          /* VME base address */
 				       2,                       /* Size is D16 */
 				       &param);                 /* Parameter block */
       if (jtagAddr == (void *)(-1)) {
-	 printf("GetJtagPort: find_controller: ERROR: JTAG Addr:%x\n",(int) vmeAddress);
+	 printf("GetJtagPort: find_controller: ERROR: JTAG Addr:%x\n", vmeAddress);
 	 jtagAddr = NULL;
       }
    }

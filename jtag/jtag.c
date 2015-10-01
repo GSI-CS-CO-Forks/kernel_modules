@@ -48,7 +48,7 @@ int cc;
 
    printf("VHDL-Compiled BitStream Filename: %s VMEAddress: 0x%X DebugLevel: %d \n",
 	  fname,
-	  (int) vmeAddress,
+	  vmeAddress,
 	  (int) xsvf_iDebugLevel);
 
    printf("Continue (Y/N):"); yn = getchar();
