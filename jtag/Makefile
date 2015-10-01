@@ -2,7 +2,7 @@ CPU ?= L866
 include ../common.mk
 include /acc/src/dsc/co/Make.auto
 
-CFLAGS = -g -I. -I../vmebridge/include
+CFLAGS = -g -I../vmebridge/include
 LDLIBS = -lvmebus.$(CPU)
 LDFLAGS = -L../vmebridge/lib
 ALL  = jtag.$(CPU)
@@ -13,11 +13,7 @@ HDRS = lenval.h micro.h ports.h
 
 all: $(ALL)
 
-# Run on Workstation only
-
-jtag.$(CPU).o: $(SRCS) $(HDRS)
-
-jtag.$(CPU): jtag.$(CPU).o ../vmebridge/lib/libvmebus.$(CPU).a
+jtag.$(CPU): $(SRCS:.c=.$(CPU).o) ../vmebridge/lib/libvmebus.$(CPU).a
 
 ../vmebridge/lib/libvmebus.$(CPU).a:
 	$(MAKE) -C ../vmebridge/lib
@@ -29,9 +25,9 @@ vmebus_cleanall:
 	$(MAKE) -C ../vmebridge/lib cleanall
 
 clean: vmebus_clean
-	$(RM) jtag.$(CPU)
-	$(RM) jtag.$(CPU).o
+	$(RM) *.$(CPU)
+	$(RM) *.$(CPU).o
 
 cleanall: vmebus_cleanall
-	$(RM) jtag.{$(ALL_CPUS_COMMAS)}
-	$(RM) jtag.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
