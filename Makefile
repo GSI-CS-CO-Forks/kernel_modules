@@ -17,6 +17,7 @@ DIRS = \
     ipack \
     rawio \
     acdx \
+    jtag \
 
 .PHONY: all clean cleanall $(DIRS)
 
