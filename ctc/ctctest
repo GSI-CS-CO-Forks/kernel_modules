@@ -12,6 +12,7 @@ import re
 import cmd
 import struct
 import csv
+import errno
 
 class ctc_cfg_reg_t(Structure):
     _fields_ = [
@@ -98,10 +99,9 @@ class TestProgram(cmd.Cmd):
             print 'invalid lun argument: ', e.args[0]
             return
         self.fd = lctc.ctc_open(lun)
-        if not self.fd:
+        if self.fd < 0:
             print 'cannot open CTC number', lun
             return
-        self.fd = self.h.contents.fd
         self.device = 'CTC'
         self.devname = '/dev/ctc.%d' % lun
         self.lun = lun
@@ -117,14 +117,14 @@ class TestProgram(cmd.Cmd):
 
     def do_version(self, arg):
         """get hardware version"""
-        version = 0
+        version = c_int(0)
         lctc.ctc_get_hw_version(self.fd, byref(version))
-        print('0x%x' % version)
+        print('0x%x' % version.value)
 
     def do_channel_status(self, arg):
-        """FIXME: I stopped here"""
-        status = 0
-        lctc.ctc_chan_get_status(self.fd, byref(status))
+        """display channel status"""
+
+        status = c_uint(0)
         try:
             if not arg:
                 channel = range(1, 9)
@@ -133,72 +133,39 @@ class TestProgram(cmd.Cmd):
         except ValueError, e:
             print 'invalid arguments: ', e.args[0]
             return
-    def do_display(self, arg):
-        pass
-
-    def do_set_input(self, arg):
-        """set_input channel ext_start"""
-
-        try:
-            channel, ext_start = map(int, arg.split())
-        except ValueError, e:
-            print 'invalid arguments: ', e.args[0]
-            return
-        lctc.ctc_setInputChan(self.h, channel, ext_start)
-
-    def do_get_channel_config(self, arg):
-        """get_channel_config [channel...]"""
-
-        try:
-            channels = arg.split()
-            if len(channels) == 0:
-                channels = range(1,9)
+        for ch in channel:
+            cc = lctc.ctc_chan_get_status(self.fd, ch, byref(status))
+            if cc < 0:
+                print 'could not get status for lun:ch %d:%d' % (
+                    self.lun, ch)
+                return
+            print 'ch%d: %d'  % (ch, status.value),
+            if status.value == 1:
+                print ' enabled'
             else:
-                channels = map(int, channels)
-        except ValueError, e:
-            print 'invalid arguments: ', e.args[0]
+                print ' disabled'
+            
+    def do_set_ext_start(self, arg):
+        """set_input channel [1-8] ext_start [1-40]"""
+
+        if arg == '':
+            self.do_help('set_ext_start')
             return
-
-        for channel in channels:
-            conf = lctc.ctc_getChanConf(self.h, channel)
-            if not conf:
-                print 'could not get channel %d config' % channel
-            conf = cast(conf, POINTER(ctc_cfg_reg_t))
-            print 'ch%d:' % channel,
-            print 'ext_start %d' % conf.contents.ext_start,
-            print 'clk1 %d' % conf.contents.clk1,
-            print 'clk2 %d' % conf.contents.clk2,
-            print 'mode %d' % conf.contents.mode,
-            print 'direction %d' % conf.contents.direction,
-            print
-
-    def do_get_clocks(self, arg):
-        """get_clocks channel"""
-
         try:
-            channels = arg.split()
-            if len(channels) == 0:
-                channels = range(1,9)
-            else:
-                channels = map(int, channels)
+            ch, ext_start = map(int, arg.split())
         except ValueError, e:
             print 'invalid arguments: ', e.args[0]
             return
-        clk1 = c_int(-1)
-        clk2 = c_int(-1)
-        for channel in channels:
-            ret1 = lctc.ctc_getClock1(self.h, channel, byref(clk1))
-            ret2 = lctc.ctc_getClock2(self.h, channel, byref(clk2))
-            if ret1 or ret2:
-                print 'invalid channel', channel
-                continue
-            print 'ch%d' % channel,
-            print 'clk1: %d' % clk1.value,
-            print 'clk2: %d' % clk2.value
+        cc = lctc.ctc_chan_set_ext_start(self.fd, ch, ext_start);
+        print cc
+    do_set_input = do_set_ext_start
 
     def do_set_clock(self, arg):
-        """set_clock clock [1-2] channel [1-40] ext_clock [1-6]"""
+        """set_clock clock [1-2] channel [1-8] ext_clock [1-6]"""
 
+        if arg == '':
+            self.do_help('set_clock')
+            return
         try:
             clock, channel, ext_clock = map(int, arg.split())
             if not clock in range(1, 3):
@@ -211,42 +178,21 @@ class TestProgram(cmd.Cmd):
             print 'invalid arguments:', e.args[0]
             return
         if clock == 1:
-            ret = lctc.ctc_setClock1(self.h, channel, ext_clock)
+            ret = lctc.ctc_chan_set_clk_counter1(self.fd, channel, ext_clock)
         else:
-            ret = lctc.ctc_setClock2(self.h, channel, ext_clock)
+            ret = lctc.ctc_chan_set_clk_counter2(self.fd, channel, ext_clock)
         if ret:
             print ret
             print 'could not set clock %d for channel %d to %d' % (
                 clock, channel, ext_clock)
             return
 
-    def do_get_clock_ticks(self, arg):
-        """get_clock_ticks channel"""
+    def do_set_delay_counter(self, arg):
+        """set_delay_counter clock [1-2] channel [1-8] ticks"""
 
-        try:
-            if not arg:
-                channels = range(1, 9)
-            else:
-                channels = map(int, arg.split())
-        except ValueError, e:
-            print 'invalid arguments:', e.args[0]
+        if arg == '':
+            self.do_help('set_delay_counter')
             return
-
-        clk1 = c_int(-1)
-        clk2 = c_int(-1)
-        for channel in channels:
-            ret1 = lctc.ctc_getClock1Tick(self.h, channel, byref(clk1))
-            ret2 = lctc.ctc_getClock2Tick(self.h, channel, byref(clk2))
-            if ret1 or ret2:
-                print 'invalid channel', channel
-                continue
-            print 'ch%d:' % channel,
-            print 'clk1ticks: %6d' % clk1.value,
-            print 'clk2ticks: %6d' % clk2.value
-
-    def do_set_clock_ticks(self, arg):
-        """set_clock clock [1-2] channel [1-8] ticks"""
-
         try:
             clock, channel, ticks = map(lambda x: int(x, 0), arg.split())
             if not clock in range(1, 3):
@@ -257,64 +203,17 @@ class TestProgram(cmd.Cmd):
             print 'invalid arguments:', e.args[0]
             return
         if clock == 1:
-            ret = lctc.ctc_setClock1Tick(self.h, channel, ticks)
+            ret = lctc.ctc_chan_set_delay_counter1(self.fd, channel, ticks)
         else:
-            ret = lctc.ctc_setClock2Tick(self.h, channel, ticks)
+            ret = lctc.ctc_chan_set_delay_counter2(self.fd, channel, ticks)
         if ret:
             print ret
             print 'could not set clock %d for channel %d to %d' % (
-                clock, channel, ext_clock)
+                clock, channel, ticks)
             return
-
-    def do_get_output_counter(self, arg):
-        """get_output_counter channel"""
-
-        try:
-            if not arg:
-                channels = range(1,9)
-            else:
-                channels = map(int, arg.split())
-        except ValueError, e:
-            print 'invalid arguments:', e.args[0]
-            return
-
-        for channel in channels:
-            counter = c_uint(-1)
-            ret = lctc.ctc_getOutPutCounter(self.h, channel, counter)
-            if ret:
-                print 'could not get counter'
-                return
-            print 'ch%d:' % channel,
-            print 'counter 0x%08x (%d)' % (counter.value, counter.value)
-
-    def do_version(self, arg):
-        version = c_uint(-1)
-        ret = lctc.ctc_getModuleStatus(self.h, byref(version))
-        print 'version: 0x%x' % version.value
-
-    def do_get_counters(self, arg):
-
-        try:
-            if not arg:
-                channels = range(1,9)
-            else:
-                channels = map(int, arg.split())
-        except ValueError, e:
-            print 'invalid arguments:', e.args[0]
-            return
-        for channel in channels:
-            cntr1 = c_uint(-1)
-            cntr2 = c_uint(-1)
-            ret1 = lctc.ctc_getCntr1CurVal(self.h, channel, byref(cntr1)) 
-            ret2 = lctc.ctc_getCntr2CurVal(self.h, channel, byref(cntr2)) 
-            if ret1 or ret2:
-                print 'could not get counters for channel', channel
-                continue
-            print 'ch%d:' % channel,
-            print 'counter1: 0x%08x (%d),' % (cntr1.value,cntr1.value),
-            print 'counter2: 0x%08x (%d),' % (cntr2.value,cntr2.value)
 
     def do_enable(self, arg):
+        """enable given channels, or all if no args given"""
 
         try:
             if not arg:
@@ -326,12 +225,13 @@ class TestProgram(cmd.Cmd):
             return
 
         for channel in channels:
-            ret = lctc.ctc_enableChannel(self.h, channel)
+            ret = lctc.ctc_chan_enable(self.fd, channel)
             if ret:
                 print 'could not enable channel', channel
                 continue
 
     def do_disable(self, arg):
+        """disable given channels, or all if no args given"""
 
         try:
             if not arg:
@@ -343,27 +243,56 @@ class TestProgram(cmd.Cmd):
             return
 
         for channel in channels:
-            ret = lctc.ctc_disableChannel(self.h, channel)
+            ret = lctc.ctc_chan_disable(self.fd, channel)
             if ret:
                 print 'could not disable channel', channel
                 continue
 
-    def do_get_channel_status(self, arg):
-
-        status = (8 * c_int)()
-        ret = lctc.ctc_getChannelStatus(self.h, status)
-        if ret:
-            print 'could not get channel status'
-            return
-        for channel in range(1,9):
-            print 'channel %d:' % channel, 
-            s = status[channel-1] 
-            print s or 'disabled'
-
     def do_reset(self, arg):
         """reset module"""
         lctc.ctc_reset(self.fd)
-        
+
+    def do_show_channel(self, arg):
+        """show complete info about a channel"""
+
+        ch = int(arg)
+
+        status = c_int(0)
+        ext_start = c_int(0)
+        clk_counter1 = c_int(0)
+        clk_counter2 = c_int(0)
+        delay_counter1 = c_int(0)
+        delay_counter2 = c_int(0)
+        output_counter = c_int(0)
+        cur_val_counter1 = c_int(0)
+        cur_val_counter2 = c_int(0)
+
+        lctc.ctc_chan_get_status(self.fd, ch, byref(status));
+        lctc.ctc_chan_get_ext_start(self.fd, ch, byref(ext_start));
+        lctc.ctc_chan_get_clk_counter1(self.fd, ch, byref(clk_counter1));
+        lctc.ctc_chan_get_clk_counter2(self.fd, ch, byref(clk_counter2));
+        lctc.ctc_chan_get_delay_counter1(self.fd, ch, byref(delay_counter1));
+        lctc.ctc_chan_get_delay_counter2(self.fd, ch, byref(delay_counter2));
+        lctc.ctc_chan_get_output_counter(self.fd, ch, byref(output_counter));
+        lctc.ctc_chan_get_cur_val_counter1(self.fd, ch, byref(cur_val_counter1));
+        lctc.ctc_chan_get_cur_val_counter2(self.fd, ch, byref(cur_val_counter2));
+
+        print """lun %d channel %d:
+        status:    %d
+        ext_start: %d clk1:%d clk2:%d
+        delay1:    %10d/0x%08x
+        delay2:    %10d/0x%08x
+        output:    %10d/0x%08x
+        current1:  %10d/0x%08x
+        current2:  %10d/0x%08x""" % (
+            self.lun, ch,
+            status.value,
+            ext_start.value, clk_counter1.value, clk_counter2.value,
+            delay_counter1.value, delay_counter1.value, 
+            delay_counter2.value, delay_counter2.value, 
+            output_counter.value, output_counter.value,
+            cur_val_counter1.value, cur_val_counter1.value, 
+            cur_val_counter2.value, cur_val_counter2.value,  )
 
 if __name__ == '__main__':
     tp = TestProgram()

@@ -36,9 +36,12 @@ $(LIBNAME).$(CPU).o: $(SRCS)
 $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-lib$(DRIVER).$(CPU).so: lib$(DRIVER).$(CPU).o
-	$(CC) $(CFLAGS) -shared -o $@ $^
-
 libencore.$(CPU).o: libencore.c libencore.h
 libencore.$(CPU).a: libencore.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
+
+solibs: libencore.$(CPU).so $(LIBNAME).$(CPU).so
+$(LIBNAME).$(CPU).so: $(MODLIBOBJS)
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
+libencore.$(CPU).so: libencore.$(CPU).o
+	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
