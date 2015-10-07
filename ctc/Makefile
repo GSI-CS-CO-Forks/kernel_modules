@@ -45,3 +45,11 @@ $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
 libencore.$(CPU).so: libencore.$(CPU).o
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+ACC = lab
+install-test: solibs
+	mkdir -p /acc/local/$(CPU)/drv/ctc/tools
+	dsc_install libencore.$(CPU).so $(LIBNAME).$(CPU).so \
+		/acc/local/$(CPU)/drv/ctc/tools
+	install -b -m 755 ctctest
+	ln -sf /acc/local/$(CPU)/drv/ctc/tools/ctctest /acc/dsc/$(ACC)/$(CPU)/bin
