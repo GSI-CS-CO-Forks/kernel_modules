@@ -18,12 +18,11 @@ GIT_VERSION = $(shell git describe --tags --dirty --long --always)
 
 MODLIBS = $(LIBNAME).$(CPU).a 
 MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
-ENCORELIBS = libencore.$(CPU).a
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
 all: modules libs
-libs: $(MODLIBS) $(ENCORELIBS)
+libs: $(MODLIBS)
 modules:
 	cp Module.symvers.vmebus Module.symvers
 	make -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' modules
@@ -36,20 +35,14 @@ $(LIBNAME).$(CPU).o: $(SRCS)
 $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 	$(AR) $(ARFLAGS) $@ $^
 
-libencore.$(CPU).o: libencore.c libencore.h
-libencore.$(CPU).a: libencore.$(CPU).o
-	$(AR) $(ARFLAGS) $@ $^
-
-solibs: libencore.$(CPU).so $(LIBNAME).$(CPU).so
+solibs: $(LIBNAME).$(CPU).so
 $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
-	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
-libencore.$(CPU).so: libencore.$(CPU).o
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 ACC = lab
+TOOLSDIR = /acc/local/$(CPU)/drv/ctc/tools
 install-test: solibs
-	mkdir -p /acc/local/$(CPU)/drv/ctc/tools
-	dsc_install libencore.$(CPU).so $(LIBNAME).$(CPU).so \
-		/acc/local/$(CPU)/drv/ctc/tools
-	install -b -m 755 ctctest
-	ln -sf /acc/local/$(CPU)/drv/ctc/tools/ctctest /acc/dsc/$(ACC)/$(CPU)/bin
+	mkdir -p $(TOOLSDIR)
+	dsc_install $(LIBNAME).$(CPU).so $(TOOLSDIR)
+	install -b -m 755 ctctest $(TOOLSDIR)
+	ln -sf $(TOOLSDIR)/ctctest /acc/dsc/$(ACC)/$(CPU)/bin
