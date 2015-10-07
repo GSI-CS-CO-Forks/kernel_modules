@@ -18,6 +18,7 @@ DIRS = \
     rawio \
     acdx \
     jtag \
+    pciioconfig \
 
 .PHONY: all clean cleanall $(DIRS)
 
