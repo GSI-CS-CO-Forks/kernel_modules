@@ -14,34 +14,12 @@ import struct
 import csv
 import errno
 
-class ctc_cfg_reg_t(Structure):
-    _fields_ = [
-        ('ext_start',	c_int),
-        ('clk1',	c_int),
-        ('clk2',	c_int),
-        ('mode',	c_int),
-        ('direction',	c_int),
-    ]
-
 progpath      = os.path.realpath(sys.argv[0])
 basepath      = os.path.dirname(progpath)
 libctcpath    = os.path.join(basepath, 'libctc.so')
 
 libc = CDLL('libc.so.6')
 lctc = CDLL(libctcpath)
-# encore = CDLL(libencorepath)
-
-data_width_format = {
-    32 : 'I',
-    16 : 'H',
-     8 : 'B',
-}
-
-wordsize_to_data_width = {
-    'char'  :  8,
-    'short' : 16,
-    'long'  : 32,
-}
 
 class TestProgram(cmd.Cmd):
 
@@ -213,7 +191,7 @@ class TestProgram(cmd.Cmd):
             return
 
     def do_enable(self, arg):
-        """enable given channels, or all if no args given"""
+        """enable given channel(s) [1-8], or enable all if no args given"""
 
         try:
             if not arg:
@@ -231,7 +209,7 @@ class TestProgram(cmd.Cmd):
                 continue
 
     def do_disable(self, arg):
-        """disable given channels, or all if no args given"""
+        """disable given channel(s), or disable all if no args given"""
 
         try:
             if not arg:
@@ -308,30 +286,3 @@ if __name__ == '__main__':
         except:
             print 'usage: %s [LUN]' % sys.argv[0]
     tp.cmdloop()
-
-"""
-int ctc_open(int lun);
-int ctc_close(int fd);
-void ctc_reset(int fd);
-int ctc_get_hw_version(int fd, int *hw_version);
-int ctc_chan_get_status(int fd, int chan, int *status);
-int ctc_chan_enable(int fd, int chan);
-int ctc_chan_disable(int fd, int chan);
-int ctc_chan_set_ext_start(int fd, int chan, int ext_start);
-int ctc_chan_get_ext_start(int fd, int chan, int *ext_start);
-int ctc_chan_set_clk_counter1(int fd, int chan, int clk);
-int ctc_chan_get_clk_counter1(int fd, int chan, int *clk);
-int ctc_chan_set_clk_counter2(int fd, int chan, int clk);
-int ctc_chan_get_clk_counter2(int fd, int chan, int *clk);
-  \param mode		variable to indicate the mode used. Please use enum ctc_mode values.
-  \param direction	variable to indicate the direction used. Please use enum ctc_mode values.
-int ctc_chan_set_mode(int fd, int chan, int mode, int direction);
-int ctc_chan_get_mode(int fd, int chan, int *mode, int *direction);
-int ctc_chan_set_delay_counter1(int fd, int chan, int delay);
-int ctc_chan_get_delay_counter1(int fd, int chan, int *delay);
-int ctc_chan_set_delay_counter2(int fd, int chan, int delay);
-int ctc_chan_get_delay_counter2(int fd, int chan, int *delay);
-int ctc_chan_get_output_counter(int fd, int chan, int *value);
-int ctc_chan_get_cur_val_counter1(int fd, int chan, int *value);
-int ctc_chan_get_cur_val_counter2(int fd, int chan, int *value);
-"""
