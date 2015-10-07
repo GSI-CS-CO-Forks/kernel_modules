@@ -255,7 +255,11 @@ class TestProgram(cmd.Cmd):
     def do_show_channel(self, arg):
         """show complete info about a channel"""
 
-        ch = int(arg)
+        try:
+            ch = int(arg)
+        except ValueError:
+            print "show_channel channel[1-8]"
+            return
 
         status = c_int(0)
         ext_start = c_int(0)
