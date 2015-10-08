@@ -5,6 +5,8 @@ include /acc/dsc/src/co/Make.auto
 all: modules
 
 modules:
+	$(CP) Module.symvers.ipack Module.symvers
+	cat Module.symvers.vmebus >> Module.symvers
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
