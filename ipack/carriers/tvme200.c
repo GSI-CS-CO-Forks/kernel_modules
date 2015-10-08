@@ -17,7 +17,7 @@
 #include <linux/export.h>
 #include <linux/slab.h>
 
-#include "vmebus.h"
+#include <vmebus.h>
 #include "tvme200.h"
 
 #define MAX_CARRIER 16

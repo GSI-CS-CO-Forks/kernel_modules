@@ -7,8 +7,8 @@
 #include <linux/swab.h>
 #include <linux/interrupt.h>
 #include <asm/io.h>
-#include "linux/ipack.h"
-#include "vmebus.h"
+#include "../ipack/linux/ipack.h"
+#include <vmebus.h>
 
 
 #define TVME200_LONGNAME "TEWS Technologies - VME TVME200 Carrier"
