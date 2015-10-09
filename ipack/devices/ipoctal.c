@@ -173,7 +173,11 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 			if (sr & SR_OVERRUN_ERROR) {
 				channel->stats.overrun_err++;
 				/* Overrun doesn't affect the current character*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+				tty_insert_flip_char(port, 0, TTY_OVERRUN);
+#else
 				tty_insert_flip_char(port->tty, 0, TTY_OVERRUN);
+#endif
 			}
 			if (sr & SR_PARITY_ERROR) {
 				channel->stats.parity_err++;
@@ -188,7 +192,11 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 				flag = TTY_BREAK;
 			}
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+		tty_insert_flip_char(port, value, flag);
+#else
 		tty_insert_flip_char(port->tty, value, flag);
+#endif
 
 		/* Check if there are more characters in RX FIFO
 		 * If there are more, the isr register for this channel
@@ -197,8 +205,11 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 		isr = ioread8(&channel->block_regs->r.isr);
 		sr = ioread8(&channel->regs->r.sr);
 	} while (isr & channel->isr_rx_rdy_mask);
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+	tty_flip_buffer_push(port);
+#else
 	tty_flip_buffer_push(port->tty);
+#endif
 }
 
 static void ipoctal_irq_tx(struct ipoctal_channel *channel)
@@ -531,8 +542,13 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	struct ipoctal_channel *channel = tty->driver_data;
 	speed_t baud;
 
-	cflag = tty->termios->c_cflag;
-
+	tcflag_t *cflag_p;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)
+	cflag_p = &tty->termios.c_cflag;
+#else
+	cflag_p = &tty->termios->c_cflag;
+#endif
+	cflag = *cflag_p;
 	/* Disable and reset everything before change the setup */
 	ipoctal_reset_channel(channel);
 	ipoctal_set_test_mode(channel, BRG_OFF);
@@ -549,7 +565,7 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	default:
 		mr1 |= MR1_CHRL_8_BITS;
 		/* By default, select CS8 */
-		tty->termios->c_cflag = (cflag & ~CSIZE) | CS8;
+		*cflag_p = (cflag & ~CSIZE) | CS8;
 		break;
 	}
 
@@ -563,7 +579,7 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 		mr1 |= MR1_PARITY_OFF;
 
 	/* Mark or space parity is not supported */
-	tty->termios->c_cflag &= ~CMSPAR;
+	*cflag_p &= ~CMSPAR;
 
 	/* Set stop bits */
 	if (cflag & CSTOPB)
@@ -596,7 +612,6 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	}
 
 	baud = tty_get_baud_rate(tty);
-	tty_termios_encode_baud_rate(tty->termios, baud, baud);
 
 	/* Set baud rate */
 	switch (baud) {
@@ -646,9 +661,15 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	default:
 		csr |= TX_CLK_38400 | RX_CLK_38400;
 		/* In case of default, we establish 38400 bps */
-		tty_termios_encode_baud_rate(tty->termios, 38400, 38400);
+		baud = 38400;
 		break;
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+	tty_termios_encode_baud_rate(&tty->termios, baud, baud);
+#else
+	tty_termios_encode_baud_rate(tty->termios, baud, baud);
+#endif
 
 	mr1 |= MR1_ERROR_CHAR;
 	mr1 |= MR1_RxINT_RxRDY;
