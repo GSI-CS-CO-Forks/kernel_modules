@@ -21,8 +21,14 @@
 #include <linux/tty_flip.h>
 #include <linux/slab.h>
 #include <linux/io.h>
+#include <linux/version.h>
+/* Use local ipack.h */
 #include "../ipack/linux/ipack.h"
+/* For kernels before ~3.7 content of ../ipack/mod_dev_table.h was not present
+ * in kernel's mod_devicetable.h */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,7,0)
 #include "../ipack/mod_dev_table.h"
+#endif
 #include "ipoctal.h"
 #include "scc2698.h"
 
