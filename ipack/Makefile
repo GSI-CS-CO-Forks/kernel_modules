@@ -1,5 +1,7 @@
 DIRS = \
+    devices \
     ipack \
+    carriers \
 
 .PHONY: all clean cleanall $(DIRS)
 
