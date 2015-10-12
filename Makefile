@@ -13,7 +13,6 @@ DIRS = \
     vmod \
     icv196 \
     msatt \
-    tpci200 \
     tvme200 \
     ipack \
     rawio \
