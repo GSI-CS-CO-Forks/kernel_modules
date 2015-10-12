@@ -1,6 +1,5 @@
 DIRS = \
     driver \
-    lib \
 
 .PHONY: all clean cleanall $(DIRS)
 

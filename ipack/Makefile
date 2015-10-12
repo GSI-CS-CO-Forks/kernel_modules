@@ -2,6 +2,7 @@ DIRS = \
     devices \
     ipack \
     carriers \
+    lib \
 
 .PHONY: all clean cleanall $(DIRS)
 
