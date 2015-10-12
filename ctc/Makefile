@@ -18,7 +18,7 @@ MODLIBOBJS = $(LIBNAME).$(CPU).o
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
-all: modules libs
+all: modules libs examples
 libs: $(MODLIBS)
 modules:
 	$(CP) Module.symvers.vmebus Module.symvers
@@ -33,10 +33,12 @@ clean:
 	$(RM) -r $(CPU)
 	$(RM) $(DRIVER_NAME).ko;
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean;
+	$(MAKE) -C test CPU=$(CPU) clean
 
 cleanall: clean
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
 	$(RM) -r {$(ALL_CPUS_COMMAS)}
+	$(MAKE) -C test CPU=$(CPU) cleanall
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
@@ -46,6 +48,9 @@ $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 solibs: $(LIBNAME).$(CPU).so
 $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+examples: libs
+	$(MAKE) -C test CPU=$(CPU)
 
 ACC = lab
 TOOLSDIR = /acc/local/$(CPU)/drv/ctc/tools
