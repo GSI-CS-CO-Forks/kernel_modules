@@ -18,7 +18,7 @@ vmeheaders:
 	$(MAKE) -C ../include
 
 mymodules: vmedriver
-	$(MAKE) -C $(KERNELSRC) M=`pwd` modules
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CROSS_COMPILE=$(TOOLS) modules
 	mkdir -p $(OUTPUTDIR)
 	mv *.o *.ko $(OUTPUTDIR)
 

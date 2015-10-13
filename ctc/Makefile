@@ -22,7 +22,7 @@ all: modules libs examples
 libs: $(MODLIBS)
 modules:
 	$(CP) Module.symvers.vmebus Module.symvers
-	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' modules;
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' CROSS_COMPILE=$(TOOLS) modules;
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv $(DRIVER_OBJ) $(CPU)/$(KVER)
 	mv *.ko $(CPU)/$(KVER)

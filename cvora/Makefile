@@ -9,7 +9,7 @@ DRIVER_OBJ=cvora.o cvora.mod.o
 
 modules:
 	$(CP) Module.symvers.vmebus Module.symvers
-	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) modules;
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules;
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv $(DRIVER_OBJ) $(CPU)/$(KVER)
 	mv *.ko $(CPU)/$(KVER)

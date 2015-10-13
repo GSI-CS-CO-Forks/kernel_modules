@@ -1,8 +1,3 @@
-CPU?=L866
-include $(M)/../../common.mk
-# Uncomment line below when build env supports it
-#include /acc/src/dsc/co/Make.auto
-
 obj-m += ctr_pps_irq.o
 obj-m += ctr_multi_irq.o
 obj-m += loopirq.o
