@@ -9,7 +9,7 @@ DRIVER_OBJ=cvora.o cvora.mod.o
 
 modules:
 	$(CP) Module.symvers.vmebus Module.symvers
-	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules;
+	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules;
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv $(DRIVER_OBJ) $(CPU)/$(KVER)
 	mv *.ko $(CPU)/$(KVER)
@@ -20,12 +20,10 @@ clean:
 	$(RM) -r $(CPU)
 	$(RM) cvora.ko;
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean;
-#	$(MAKE) -C test CPU=$(CPU) clean
 
 cleanall: clean
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
 	$(RM) -r {$(ALL_CPUS_COMMAS)}
-#	$(MAKE) -C test CPU=$(CPU) cleanall
 	$(MAKE) -C doc clean
 
 docs:
