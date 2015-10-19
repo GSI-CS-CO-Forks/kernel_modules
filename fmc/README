@@ -1,0 +1,19 @@
+
+This is a container for all fmc-related developments. The point
+of the package is collecting a known-good set of versions for
+all the submodules.
+
+Unfortunately, each package includes submodules on its own; for
+example most include fmc-bus. This choice is meant to help our
+external users, who often run a single FMC device within a SPEC
+carrier.  The code, however, is designed to pick headers from
+../fmc-bus (and so on) if both it and fmc-bus are submodules of
+something else.
+
+By default, running "make" builds all packages, but you can use
+
+   make CONFIG_SVEC=n
+
+if you want to skip svec-sw (I do it, for example, because svec-sw
+depends on header files and pathnames I miss).  Same applies for
+other packages, please check the toplevel Makefile for exact names.

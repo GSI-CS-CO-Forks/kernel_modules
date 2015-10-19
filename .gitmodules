@@ -7,3 +7,27 @@
 [submodule "encore"]
 	path = encore
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/encore.git
+[submodule "fmc/zio"]
+	path = fmc/zio
+	url = git@ohwr.org:misc/zio.git
+[submodule "fmc/fmc-bus"]
+	path = fmc/fmc-bus
+	url = git@ohwr.org:fmc-projects/fmc-bus.git
+[submodule "fmc/spec-sw"]
+	path = fmc/spec-sw
+	url = git@ohwr.org:fmc-projects/spec/spec-sw.git
+[submodule "fmc/svec-sw"]
+	path = fmc/svec-sw
+	url = git@ohwr.org:fmc-projects/svec/svec-sw.git
+[submodule "fmc/fine-delay-sw"]
+	path = fmc/fine-delay-sw
+	url = git@ohwr.org:fmc-projects/fmc-delay-1ns-8cha/fine-delay-sw.git
+[submodule "fmc/fmc-adc-100m14b4cha-sw"]
+	path = fmc/fmc-adc-100m14b4cha-sw
+	url = git@ohwr.org:fmc-projects/fmc-adc-100m14b4cha/fmc-adc-100m14b4cha-sw.git
+[submodule "fmc/fmc-tdc-sw"]
+	path = fmc/fmc-tdc-sw
+	url = git@ohwr.org:fmc-projects/fmc-tdc/fmc-tdc-sw.git
+[submodule "fmc/obsbox"]
+	path = fmc/obsbox
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/obsbox.git
