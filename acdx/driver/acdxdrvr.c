@@ -13,8 +13,8 @@
 /*                                                            */
 /* ********************************************************** */
 
-#include <EmulateLynxOs.h>
-#include <DrvrSpec.h>
+#include "EmulateLynxOs.h"
+#include "DrvrSpec.h"
 
 /* These next defines are needed just here for the emulation */
 
@@ -22,8 +22,8 @@
 #define sel LynxSel
 #define enable restore
 
-#include <acdxdrvr.h>   /* Public driver interface            */
-#include <acdxdrvrP.h>  /* Private driver structures          */
+#include "acdxdrvr.h"   /* Public driver interface            */
+#include "acdxdrvrP.h"  /* Private driver structures          */
 
 #ifndef COMPILE_TIME
 #define COMPILE_TIME 0
@@ -236,8 +236,8 @@ char                      *iod;
    } else {
       disable(ps);
 
-      kkprintf("AcdxDrvr: BUS-ERROR: Module:%d Addr:%x Dir:%s Data:%d\n",
-	       (int) mcon->ModuleIndex+1,(int) &(mmap[j]),iod,(int) uary[i]);
+      kkprintf("AcdxDrvr: BUS-ERROR: Module:%d Addr:%p Dir:%s Data:%d\n",
+	       (int) mcon->ModuleIndex+1, &(mmap[j]),iod,(int) uary[i]);
 
       pseterr(ENXIO);        /* No such device or address */
       rval = SYSERR;
@@ -447,7 +447,7 @@ int cmd;
       cmd |= 2;
       drm_device_write(handle, PCI_RESID_REGS, 1, 0, &cmd);
 
-      vadr = (int) NULL;
+      vadr = (unsigned long) NULL;
       cc = drm_map_resource(handle,PCI_RESID_BAR0,&vadr);
       if ((cc) || (!vadr)) {
 	 cprintf("AcdxDrvrInstall: Can't map memory (BAR0) for ACDX module: %d\n",modix+1);
@@ -456,7 +456,7 @@ int cmd;
       mcon->Local = (unsigned long *) vadr;
       cprintf("AcdxDrvrInstall: BAR0 is mapped to address: 0x%08X\n",(int) vadr);
 
-      vadr = (int) NULL;
+      vadr = (unsigned long) NULL;
       cc = drm_map_resource(handle,PCI_RESID_BAR1,&vadr);
       if ((cc) || (!vadr)) {
 	 cprintf("AcdxDrvrInstall: Can't map memory (BAR1) for ACDX module: %d\n",modix+1);
@@ -533,12 +533,12 @@ int rcnt, wcnt;           /* Readable, Writable byte counts at arg address */
    /* can be read or written to without error. */
 
    if (arg != NULL) {
-      rcnt = rbounds((int)arg);       /* Number of readable bytes without error */
-      wcnt = wbounds((int)arg);       /* Number of writable bytes without error */
+      rcnt = rbounds((unsigned long)arg);       /* Number of readable bytes without error */
+      wcnt = wbounds((unsigned long)arg);       /* Number of writable bytes without error */
       if (rcnt < sizeof(long)) {      /* We at least need to read one long */
 	 pid = getpid();
-	 cprintf("AcdxDrvrIoctl:Illegal arg-pntr:0x%X ReadCnt:%d(%d) Pid:%d Cmd:%d\n",
-		 (int) arg,rcnt,sizeof(long),pid,(int) cm);
+	 cprintf("AcdxDrvrIoctl:Illegal arg-pntr:0x%p ReadCnt:%d(%zu) Pid:%d Cmd:%d\n",
+		 arg,rcnt,sizeof(long),pid,(int) cm);
 	 pseterr(EINVAL);        /* Invalid argument */
 	 return SYSERR;
       }

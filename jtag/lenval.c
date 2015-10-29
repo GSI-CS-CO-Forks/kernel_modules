@@ -3,8 +3,8 @@
 /* abstract:  This file contains routines for using    */
 /*            the lenVal data structure.               */
 /*******************************************************/
-#include <lenval.h>
-#include <ports.h>
+#include "lenval.h"
+#include "ports.h"
 
 /*****************************************************************************
 * Function:     value

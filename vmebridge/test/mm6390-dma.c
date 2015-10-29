@@ -6,6 +6,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -118,8 +119,10 @@ int main(int argc, char **argv)
 
 	dma_desc.dir = VME_DMA_TO_DEVICE;
 
-	dma_desc.src.addru = 0;
-	dma_desc.src.addrl = (unsigned int)wr_buf;
+	/* strange casting to keep compiler quiet */
+	dma_desc.src.addru = (unsigned int)
+				(((unsigned long long)(uintptr_t)rd_buf)>>32);
+	dma_desc.src.addrl = (unsigned int)(uintptr_t)wr_buf;
 
 	dma_desc.dst.data_width = MEM_DBW;
 	dma_desc.dst.am = MEM_AM;
@@ -153,8 +156,10 @@ int main(int argc, char **argv)
 	dma_desc.src.addru = 0;
 	dma_desc.src.addrl = MEM_BASE;
 
-	dma_desc.dst.addru = 0;
-	dma_desc.dst.addrl = (unsigned int)rd_buf;
+	/* strange casting to keep compiler quiet */
+	dma_desc.dst.addru = (unsigned int)
+				(((unsigned long long)(uintptr_t)rd_buf)>>32);
+	dma_desc.dst.addrl = (unsigned int)(uintptr_t)rd_buf;
 
 	dma_desc.length = MEM_SIZE;
 

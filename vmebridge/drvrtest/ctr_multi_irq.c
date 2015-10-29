@@ -2,6 +2,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <asm-generic/iomap.h>
+#include <linux/delay.h>
 
 #include "../include/vmebus.h"
 #include "ctrhard.h"

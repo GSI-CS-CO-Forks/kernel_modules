@@ -37,6 +37,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #ifdef ppc4
 	#include "libvmodttl2dioaio.h"
@@ -49,7 +50,7 @@ int device;
 /* Thread for incomming messages */
 void * wait_for_msg(void *data)
 {
-        int             fd = (int)data;
+        int             fd = (int)(uintptr_t)data;
         int             i;
         unsigned char   buf[2];
         int             n;
@@ -199,7 +200,7 @@ int main (int argc, char *argv[])
 		fprintf(stderr, "Error opening lun %d: %s\n", device, strerror(errno));
 		return -1;
 	}	
-	pthread_create( &thread, NULL, wait_for_msg, (void *)device );
+	pthread_create( &thread, NULL, wait_for_msg, (void *)(uintptr_t)device );
 
 	//sleep(60);
 	while(1){};

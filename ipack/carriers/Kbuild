@@ -1,0 +1,5 @@
+ccflags-y += -DDEBUG
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+ccflags-y += -I$(src)/../../vmebridge/include/
+
+obj-m := tpci200.o tvme200.o

@@ -1,17 +1,16 @@
-CPU=L865
-CFLAGS=-g -Wall
-HEADERS=../lib -I../driver
-LDFLAGS += -L/acc/local/$(CPU)/drv/msatt/1.0/lib
-TARGET=msattntst
-
+CPU ?= L866
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
-all: $(TARGET).$(CPU)
+CFLAGS=-g -Wall
+CFLAGS+=-I../lib -I../driver
+LDFLAGS += -L../lib
+LDLIBS += -lmsatt.$(CPU)
 
-$(TARGET).$(CPU):
-	mkdir -p obj/
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) $(TARGET).c -o ./obj/$(TARGET).o
-	$(LINK.c) -o./obj/$@ ./obj/$(TARGET).o $(LDFLAGS) $^ -lmsatt -lm -L../lib/
+all: msattntst.$(CPU)
 
 clean:
-	rm -rf ./obj/ 
+	$(RM) *.$(CPU)
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}

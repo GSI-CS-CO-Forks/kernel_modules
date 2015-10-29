@@ -1,0 +1,80 @@
+This documents the so-called standard paths for deployment of binaries
+and ancillary files
+
+* variables typically used in makefiles and conventionally understood
+  by everybody:
+
+      ACC = lab oper oplhc opctf	# boot servers
+      CPU = ppc4 L865 L866 L867		# architectures (distros, actually)
+      KVER = kernel version		# e.g. 3.2.43-rt63
+
+* supported kernel sources are available under
+     LINUX = /acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+
+* drivers and installation programs are deployed in 
+
+    /acc/dsc/$(ACC)/$(CPU)/$(KVER)/$(DRIVER_NAME)/
+
+* libraries and headers are deployed in
+
+    /acc/local/$(CPU)/drv/$(DRIVER_NAME)/$(VERSION)/lib
+    /acc/local/$(CPU)/drv/$(DRIVER_NAME)/$(VERSION)/include/$(DRIVER_NAME)/
+
+* as a corollary, makefile flags become routinely
+
+    # use BE/CO conventional PROJECT/PRODUCT/VERSION triad
+    PROJECT = drv
+    PRODUCT = $(DRIVER_NAME)
+    VERSIONED_PRODUCT_PATH = /acc/local/$(CPU)/$(PROJECT)/$(PRODUCT)/$(VERSION) 
+
+    CFLAGS += -I $(VERSIONED_PRODUCT_PATH)/include/
+    LDFLAGS += -I $(VERSIONED_PRODUCT_PATH)/lib/
+
+    headers are included in this fashion:
+
+	#include <product/header.h>
+
+    and libraries linked by means of
+
+	-lproduct
+
+* VERSION names typically obey the semantic versioning conventions. It
+  is highly encouraged to use a semantic versioning triple x.y.z for the
+  actual directory containing the deployed libraries, while all
+  references to libraries be made in the form of a pair x.y, where x.y
+  symlinks to the latest x.y.* library, e.g.
+
+    $ ls /acc/local/L866/drv/sis33/ -l
+    total 4
+    lrwxrwxrwx 1 arruat dscdev    7 Apr 10  2014 1.0 -> ./1.0.0
+    drwxrwsr-x 4 arruat dscdev 4096 Apr 28  2014 1.0.0
+    lrwxrwxrwx 1 arruat dscdev   20 Apr 28  2014 libsis33.a -> 1.0.0/lib/libsis33.a
+    lrwxrwxrwx 1 arruat dscdev   30 Apr 28  2014 libsis33.h -> 1.0.0/include/sis33/libsis33.h
+    lrwxrwxrwx 1 arruat dscdev   27 Apr 28  2014 sis33.h -> 1.0.0/include/sis33/sis33.h
+
+  Note the presence of symlinks to the (one and only) current version of
+  this product, for backward compatibility with version-unaware clients
+
+* The triad $(PROJECT)/$(PRODUCT)/$(VERSION) is conventionally enforced by
+  BE/CO policy. Other users (particularly eqp. groups) may be alien to
+  this particular convention and will require clarification on this
+  point.
+
+* Test programs and ancillary user space utilities should not depend on
+  the presence of a boot server and can be safely deployed under
+  /acc/local. It is recommended to provide a directory for them under
+
+    /acc/local/$(CPU)/$(PROJECT)/$(PRODUCT)/$(VERSION)/tools
+
+  and appropriately symlink where convenient.
+
+* Documentation of library APIs (the usual doxygen documentation pointed
+  at from the HT wiki and reachable at
+
+      http://cs-ccr-www3/private/coht/doxy/$(PRODUCT)
+
+  can be deployed directly via NFS, at the path
+
+      /acc/doc/html/private/coht/doxy/$(PRODUCT)
+
+

@@ -1,8 +1,5 @@
-# generated automatically by encore, date 2012-02-15 10:29:49.901731
-
-CPU=L865
-KVER=2.6.24.7-rt27
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
+CPU?=L866
+include ../common.mk
 include /acc/dsc/src/co/Make.auto
 
 DRIVER = ctc
@@ -10,25 +7,38 @@ DRIVER_NAME = "$(DRIVER)"
 LIBNAME = lib$(DRIVER)
 
 COMPILE_TIME = $(shell date +%s)
-CFLAGS= -g -Wall -I. -I ../../driver
-CFLAGS += -I /acc/local/$(CPU)/include/
-CFLAGS += -DCOMPILE_TIME=$(COMPILE_TIME) -g -Wall -fPIC
+CFLAGS= -g -Wall -fPIC
+CFLAGS+=-I../vmebridge/include
 
-GIT_VERSION = $(shell git describe --tags --dirty --long --always)
+#used for mv
+DRIVER_OBJ=ctc.o ctc.mod.o
 
-MODLIBS = $(LIBNAME).$(CPU).a 
-MODLIBOBJS = $(LIBNAME).$(CPU).o $(DRIVER)_regs.$(CPU).o
+MODLIBS = $(LIBNAME).$(CPU).a $(LIBNAME).$(CPU).so
+MODLIBOBJS = $(LIBNAME).$(CPU).o
 
 SRCS=$(LIBNAME).c $(LIBNAME).h
 
-all: modules libs
+all: modules libs examples
 libs: $(MODLIBS)
 modules:
-	cp Module.symvers.vmebus Module.symvers
-	make -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' modules
+	$(CP) Module.symvers.vmebus Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CPU=$(CPU) GIT_VERSION=$(GIT_VERSION) 'DRIVER_NAME=$(DRIVER_NAME)' CROSS_COMPILE=$(TOOLS) modules;
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv $(DRIVER_OBJ) $(CPU)/$(KVER)
+	mv *.ko $(CPU)/$(KVER)
+	ln -s $(CPU)/$(KVER)/$(DRIVER).ko;
+
 clean:
-	rm -f *.o *.a *.so
-	make -C $(KERNELSRC) M=`pwd` clean
+	$(RM) *.$(CPU).{o,so,a}
+	$(RM) -r $(CPU)
+	$(RM) $(DRIVER_NAME).ko;
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean;
+	$(MAKE) -C test CPU=$(CPU) clean
+
+cleanall: clean
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
+	$(RM) -r {$(ALL_CPUS_COMMAS)}
+	$(MAKE) -C test CPU=$(CPU) cleanall
 
 $(LIBNAME).$(CPU).o: $(SRCS)
 
@@ -38,6 +48,9 @@ $(LIBNAME).$(CPU).a: $(MODLIBOBJS)
 solibs: $(LIBNAME).$(CPU).so
 $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
+
+examples: libs
+	$(MAKE) -C test CPU=$(CPU)
 
 ACC = lab
 TOOLSDIR = /acc/local/$(CPU)/drv/ctc/tools

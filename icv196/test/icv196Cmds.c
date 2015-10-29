@@ -774,7 +774,7 @@ int get_set_byte(int arg)
 			giob.msk = 1 << bnum;
 			giob.val[bnum] = bval;
 
-			err = icv196SetGroups(icv196,&giob);
+			err = icv196SetGroups(icv196,giob);
 			if (err != ICV196_LIB_ERR_SUCCESS) {
 				fprintf(stderr,"%s\n",icv196ErrToStr(err));
 				perror("icv196SetGroups");
@@ -827,7 +827,7 @@ int roll_bits(int arg)
 			giob.val[i] = 1<<j;
 			giob.msk = 1<<i;
 
-			err = icv196SetGroups(icv196,&giob);
+			err = icv196SetGroups(icv196,giob);
 			if (err != ICV196_LIB_ERR_SUCCESS) {
 				fprintf(stderr,"%s\n",icv196ErrToStr(err));
 				perror("icv196SetGroups");

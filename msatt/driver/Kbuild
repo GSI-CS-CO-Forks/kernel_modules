@@ -1,4 +1,3 @@
-obj-m := msatt.o
+ccflags-y += -g -Wall
 
-test: test.o
-	gcc -o test_msatt test.c
+obj-m := msatt.o

@@ -1,7 +1,7 @@
 /*
  * vme_bridge.c - PCI-VME bridge driver
  *
- * Copyright (c) 2009 Sébastien Dugué
+ * Copyright (c) 2009 Sebastien Dugue
  *
  * This program is free software; you can redistribute  it and/or modify it
  * under  the terms of  the GNU General  Public License as published by the
@@ -19,11 +19,13 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/interrupt.h>
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
 #include <linux/pci.h>
 
 #include "vme_bridge.h"
 
-static char version[] __devinitdata =
+static char version[] =
 	"PCI-VME bridge: V" DRV_MODULE_VERSION " (" DRV_MODULE_RELDATE ")";
 
 /* Module parameters */
@@ -53,20 +55,20 @@ static unsigned int dma_ok;
 
 static struct class *vme_class;
 
-static __devinitdata struct pci_device_id tsi148_ids[] = {
+static struct pci_device_id tsi148_ids[] = {
     { PCI_DEVICE(PCI_VENDOR_ID_TUNDRA, PCI_DEVICE_ID_TUNDRA_TSI148) },
     { 0, },
 };
 
-static int __devinit vme_bridge_init(struct pci_dev *pdev,
+static int vme_bridge_init(struct pci_dev *pdev,
 				     const struct pci_device_id *id);
-static void __devexit vme_bridge_remove(struct pci_dev *pdev);
+static void vme_bridge_remove(struct pci_dev *pdev);
 
 static struct pci_driver vme_bridge_driver = {
 	.name = "vme_bridge",
 	.id_table = tsi148_ids,
 	.probe = vme_bridge_init,
-	.remove = __devexit_p(vme_bridge_remove),
+	.remove = vme_bridge_remove,
 };
 
 
@@ -76,30 +78,35 @@ struct proc_dir_entry *vme_root;
 /*
  * Procfs stuff
  */
-static int vme_info_proc_show(char *page, char **start, off_t off, int count,
-			int *eof, void *data)
+static int vme_info_proc_show(struct seq_file *m, void *data)
 {
-    char *p = page;
-
-    p += sprintf(p, "PCI-VME driver v%s (%s)\n\n",
+    seq_printf(m, "PCI-VME driver v%s (%s)\n\n",
 		 DRV_MODULE_VERSION, DRV_MODULE_RELDATE);
 
-    p += sprintf(p, "chip revision:     %08X\n", vme_bridge->rev);
-    p += sprintf(p, "chip IRQ:          %d\n", vme_bridge->irq);
-    p += sprintf(p, "VME slot:          %d\n", vme_bridge->slot);
-    p += sprintf(p, "VME SysCon:        %s\n",
+    seq_printf(m, "chip revision:     %08X\n", vme_bridge->rev);
+    seq_printf(m, "chip IRQ:          %d\n", vme_bridge->irq);
+    seq_printf(m, "VME slot:          %d\n", vme_bridge->slot);
+    seq_printf(m, "VME SysCon:        %s\n",
 		 vme_bridge->syscon ? "Yes" : "No");
-    p += sprintf(p, "chip registers at: 0x%p\n", vme_bridge->regs);
-
-    p += sprintf(p, "\n");
-
-    *eof = 1;
-    return p - page;
+    seq_printf(m, "chip registers at: 0x%p\n", vme_bridge->regs);
+    seq_printf(m, "\n");
+    return 0;
 }
 
+static int vme_info_proc_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, vme_info_proc_show, NULL);
+}
+
+static const struct file_operations vme_info_proc_ops = {
+        .open           = vme_info_proc_open,
+        .read           = seq_read,
+        .llseek         = seq_lseek,
+        .release        = single_release,
+};
 
 
-void __devinit vme_procfs_register(void)
+void vme_procfs_register(void)
 {
 	struct proc_dir_entry *entry;
 
@@ -107,43 +114,30 @@ void __devinit vme_procfs_register(void)
 	vme_root = proc_mkdir("vme", NULL);
 
 	/* Create /proc/vme/info file */
-	entry = create_proc_entry("info", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("info", S_IFREG | S_IRUGO, vme_root, &vme_info_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc info node\n");
 
-	entry->read_proc = vme_info_proc_show;
-
 	/* Create /proc/vme/windows file */
-	entry = create_proc_entry("windows", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("windows", S_IFREG | S_IRUGO, vme_root, &vme_window_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc windows node\n");
 
-	entry->read_proc = vme_window_proc_show;
-
 	/* Create /proc/vme/interrupts file */
-	entry = create_proc_entry("interrupts", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("interrupts", S_IFREG | S_IRUGO, vme_root, &vme_interrupts_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX
 		       "Failed to create proc interrupts node\n");
-
-	entry->read_proc = vme_interrupts_proc_show;
-
 	/* Create /proc/vme/irq file */
-	entry = create_proc_entry("irq", S_IFREG | S_IRUGO, vme_root);
-
+	entry = proc_create("irq", S_IFREG | S_IRUGO, vme_root, &vme_irq_proc_ops);
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc irq node\n");
-
-	entry->read_proc = vme_irq_proc_show;
 
 	/* Create specific TSI148 proc entries */
 	tsi148_procfs_register(vme_root);
 }
 
-void __devexit vme_procfs_unregister(void)
+void vme_procfs_unregister(void)
 {
 
 	tsi148_procfs_unregister(vme_root);
@@ -154,8 +148,8 @@ void __devexit vme_procfs_unregister(void)
 	remove_proc_entry("vme", NULL);
 }
 #else /* !CONFIG_PROC_FS */
-void __devinit vme_procfs_register(void) {}
-void __devexit vme_procfs_unregister(void) {}
+void vme_procfs_register(void) {}
+void vme_procfs_unregister(void) {}
 #endif /* CONFIG_PROC_FS */
 
 /*
@@ -368,7 +362,7 @@ static int vme_mmap(struct file *file, struct vm_area_struct *vma)
  *
  * Returns 0 on success, or a standard kernel error.
  */
-static int __devinit vme_bridge_create_devices(void)
+static int vme_bridge_create_devices(void)
 {
 	int i;
 	int rc;
@@ -428,7 +422,7 @@ static void vme_bridge_remove_devices(void)
  *
  * RETURNS: zero on success or -ERRNO value
  */
-static int __devinit vme_bridge_map_regs(struct pci_dev *pdev)
+static int vme_bridge_map_regs(struct pci_dev *pdev)
 {
 	unsigned int tmp;
 	unsigned int vid, did;
@@ -471,7 +465,7 @@ static int __devinit vme_bridge_map_regs(struct pci_dev *pdev)
  *
  *
  */
-static int __devinit vme_bridge_map_crg(void)
+static int vme_bridge_map_crg(void)
 {
 	int rc;
 	unsigned int tmp;
@@ -549,7 +543,7 @@ static int vme_bridge_unmap_crg(void)
  * vme_bridge_init_interrupts() - Initialize the bridge interrupts
  *
  */
-static int __devinit vme_bridge_init_interrupts(void)
+static int vme_bridge_init_interrupts(void)
 {
 	int rc;
 	unsigned int intmask;
@@ -597,6 +591,55 @@ static inline void vme_bus_error_init(struct vme_verr *verr)
 }
 
 /**
+ * Linux kernel's function pci_find_parent_resource has changed in commit:
+ * f44116ae PCI: Remove pci_find_parent_resource() use for allocation
+ * This commit changed functionality of this function in a way that it cannot
+ * be used anymore. Due to this there is a local copy of old version of the
+ * function.
+ *
+ * Function vme_bridge_init uses pci_find_parent_resource to find PCI bridge's
+ * resource with flag IORESOURCE_MEM. By not specifying range of resource, old
+ * version of the function returns a range of allocated region. However, new
+ * function expects the range of resource to contain subrange of PCI bridge.
+ * The problem is that PCI bridge resource mapping is not known at this point.
+ * Even more this is the information that we're looking for.
+ */
+/**
+ * pci_find_parent_resource - return resource region of parent bus of given region
+ * @dev: PCI device structure contains resources to be searched
+ * @res: child resource record for which parent is sought
+ *
+ *  For given resource region of given device, return the resource
+ *  region of parent bus the given region is contained in or where
+ *  it should be allocated from.
+ */
+static struct resource *
+pci_find_parent_resource_local(const struct pci_dev *dev, struct resource *res)
+{
+	const struct pci_bus *bus = dev->bus;
+	int i;
+	struct resource *best = NULL, *r;
+
+	pci_bus_for_each_resource(bus, r, i) {
+		if (!r)
+			continue;
+		if (res->start && !(res->start >= r->start && res->end <= r->end))
+			continue;	/* Not contained */
+		if ((res->flags ^ r->flags) & (IORESOURCE_IO | IORESOURCE_MEM))
+			continue;	/* Wrong type */
+		if (!((res->flags ^ r->flags) & IORESOURCE_PREFETCH))
+			return r;	/* Exact match */
+		/* We can't insert a non-prefetch resource inside a prefetchable parent .. */
+		if (r->flags & IORESOURCE_PREFETCH)
+			continue;
+		/* .. but we can put a prefetchable resource inside a non-prefetchable one */
+		if (!best)
+			best = r;
+	}
+	return best;
+}
+
+/**
  * vme_bridge_init() - Initialize the device
  * @dev: PCI device to register
  * @id: Entry in piix_pci_tbl matching with @pdev
@@ -607,7 +650,7 @@ static inline void vme_bus_error_init(struct vme_verr *verr)
  * RETURNS:
  * Zero on success, or -ERRNO value.
  */
-static int __devinit vme_bridge_init(struct pci_dev *pdev,
+static int vme_bridge_init(struct pci_dev *pdev,
 				     const struct pci_device_id *id)
 {
 	int rc;
@@ -670,7 +713,7 @@ static int __devinit vme_bridge_init(struct pci_dev *pdev,
 	memset(&res, 0, sizeof(res));
 	res.flags = IORESOURCE_MEM;
 
-	parent_rsrc = pci_find_parent_resource(pdev, &res);
+	parent_rsrc = pci_find_parent_resource_local(pdev, &res);
 
 	if (parent_rsrc == 0) {
 		printk(KERN_ERR PFX
@@ -774,7 +817,7 @@ out_err:
  * @dev: PCI device to unregister
  *
  */
-static void __devexit vme_bridge_remove(struct pci_dev *pdev)
+static void vme_bridge_remove(struct pci_dev *pdev)
 {
 	/* First quiesce the bridge */
 	tsi148_quiesce(vme_bridge->regs);

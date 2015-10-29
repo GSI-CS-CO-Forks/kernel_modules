@@ -21,7 +21,14 @@
 #include <linux/tty_flip.h>
 #include <linux/slab.h>
 #include <linux/io.h>
+#include <linux/version.h>
+/* Use local ipack.h */
 #include "../ipack/linux/ipack.h"
+/* For kernels before ~3.7 content of ../ipack/mod_dev_table.h was not present
+ * in kernel's mod_devicetable.h */
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(3,7,0)
+#include "../ipack/mod_dev_table.h"
+#endif
 #include "ipoctal.h"
 #include "scc2698.h"
 
@@ -57,6 +64,22 @@ struct ipoctal {
 	u8				test_mode;
 };
 
+static inline struct ipoctal *chan_to_ipoctal(struct ipoctal_channel *chan,
+					      unsigned int index)
+{
+	return container_of(chan, struct ipoctal, channel[index]);
+}
+
+static void ipoctal_reset_channel(struct ipoctal_channel *channel)
+{
+	iowrite8(CR_DISABLE_RX | CR_DISABLE_TX, &channel->regs->w.cr);
+	channel->rx_enable = 0;
+	iowrite8(CR_CMD_RESET_RX, &channel->regs->w.cr);
+	iowrite8(CR_CMD_RESET_TX, &channel->regs->w.cr);
+	iowrite8(CR_CMD_RESET_ERR_STATUS, &channel->regs->w.cr);
+	iowrite8(CR_CMD_RESET_MR, &channel->regs->w.cr);
+}
+
 static int ipoctal_port_activate(struct tty_port *port, struct tty_struct *tty)
 {
 	struct ipoctal_channel *channel;
@@ -74,12 +97,20 @@ static int ipoctal_port_activate(struct tty_port *port, struct tty_struct *tty)
 
 static int ipoctal_open(struct tty_struct *tty, struct file *file)
 {
-	struct ipoctal_channel *channel;
+	struct ipoctal_channel *channel = dev_get_drvdata(tty->dev);
+	struct ipoctal *ipoctal = chan_to_ipoctal(channel, tty->index);
+	int err;
 
-	channel = dev_get_drvdata(tty->dev);
 	tty->driver_data = channel;
 
-	return tty_port_open(&channel->tty_port, tty, file);
+	if (!ipack_get_carrier(ipoctal->dev))
+		return -EBUSY;
+
+	err = tty_port_open(&channel->tty_port, tty, file);
+	if (err)
+		ipack_put_carrier(ipoctal->dev);
+
+	return err;
 }
 
 static void ipoctal_reset_stats(struct ipoctal_stats *stats)
@@ -142,7 +173,11 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 			if (sr & SR_OVERRUN_ERROR) {
 				channel->stats.overrun_err++;
 				/* Overrun doesn't affect the current character*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+				tty_insert_flip_char(port, 0, TTY_OVERRUN);
+#else
 				tty_insert_flip_char(port->tty, 0, TTY_OVERRUN);
+#endif
 			}
 			if (sr & SR_PARITY_ERROR) {
 				channel->stats.parity_err++;
@@ -153,12 +188,15 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 				flag = TTY_FRAME;
 			}
 			if (sr & SR_RECEIVED_BREAK) {
-				iowrite8(CR_CMD_RESET_BREAK_CHANGE, &channel->regs->w.cr);
 				channel->stats.rcv_break++;
 				flag = TTY_BREAK;
 			}
 		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+		tty_insert_flip_char(port, value, flag);
+#else
 		tty_insert_flip_char(port->tty, value, flag);
+#endif
 
 		/* Check if there are more characters in RX FIFO
 		 * If there are more, the isr register for this channel
@@ -167,8 +205,11 @@ static void ipoctal_irq_rx(struct ipoctal_channel *channel, u8 sr)
 		isr = ioread8(&channel->block_regs->r.isr);
 		sr = ioread8(&channel->regs->r.sr);
 	} while (isr & channel->isr_rx_rdy_mask);
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+	tty_flip_buffer_push(port);
+#else
 	tty_flip_buffer_push(port->tty);
+#endif
 }
 
 static void ipoctal_irq_tx(struct ipoctal_channel *channel)
@@ -197,6 +238,9 @@ static void ipoctal_irq_channel(struct ipoctal_channel *channel)
 	 * to read from */
 	isr = ioread8(&channel->block_regs->r.isr);
 	sr = ioread8(&channel->regs->r.sr);
+
+	if (isr & (IMR_DELTA_BREAK_A | IMR_DELTA_BREAK_B))
+		iowrite8(CR_CMD_RESET_BREAK_CHANGE, &channel->regs->w.cr);
 
 	if ((sr & SR_TX_EMPTY) && (channel->nb_bytes == 0)) {
 		iowrite8(CR_DISABLE_TX, &channel->regs->w.cr);
@@ -324,10 +368,7 @@ static int ipoctal_inst_slot(struct ipoctal *ipoctal, unsigned int bus_nr,
 			channel->isr_rx_rdy_mask = ISR_RxRDY_FFULL_A;
 		}
 
-		iowrite8(CR_DISABLE_RX | CR_DISABLE_TX, &channel->regs->w.cr);
-		channel->rx_enable = 0;
-		iowrite8(CR_CMD_RESET_RX, &channel->regs->w.cr);
-		iowrite8(CR_CMD_RESET_TX, &channel->regs->w.cr);
+		ipoctal_reset_channel(channel);
 		iowrite8(MR1_CHRL_8_BITS | MR1_ERROR_CHAR | MR1_RxINT_RxRDY,
 			 &channel->regs->w.mr); /* mr1 */
 		iowrite8(0, &channel->regs->w.mr); /* mr2 */
@@ -501,14 +542,15 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	struct ipoctal_channel *channel = tty->driver_data;
 	speed_t baud;
 
-	cflag = tty->termios->c_cflag;
-
+	tcflag_t *cflag_p;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0)
+	cflag_p = &tty->termios.c_cflag;
+#else
+	cflag_p = &tty->termios->c_cflag;
+#endif
+	cflag = *cflag_p;
 	/* Disable and reset everything before change the setup */
-	iowrite8(CR_DISABLE_RX | CR_DISABLE_TX, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_RX, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_TX, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_ERR_STATUS, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_MR, &channel->regs->w.cr);
+	ipoctal_reset_channel(channel);
 	ipoctal_set_test_mode(channel, BRG_OFF);
 
 	/* Set Bits per chars */
@@ -523,7 +565,7 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	default:
 		mr1 |= MR1_CHRL_8_BITS;
 		/* By default, select CS8 */
-		tty->termios->c_cflag = (cflag & ~CSIZE) | CS8;
+		*cflag_p = (cflag & ~CSIZE) | CS8;
 		break;
 	}
 
@@ -537,7 +579,7 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 		mr1 |= MR1_PARITY_OFF;
 
 	/* Mark or space parity is not supported */
-	tty->termios->c_cflag &= ~CMSPAR;
+	*cflag_p &= ~CMSPAR;
 
 	/* Set stop bits */
 	if (cflag & CSTOPB)
@@ -570,7 +612,6 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	}
 
 	baud = tty_get_baud_rate(tty);
-	tty_termios_encode_baud_rate(tty->termios, baud, baud);
 
 	/* Set baud rate */
 	switch (baud) {
@@ -620,9 +661,15 @@ static void ipoctal_set_termios(struct tty_struct *tty,
 	default:
 		csr |= TX_CLK_38400 | RX_CLK_38400;
 		/* In case of default, we establish 38400 bps */
-		tty_termios_encode_baud_rate(tty->termios, 38400, 38400);
+		baud = 38400;
 		break;
 	}
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,9,0)
+	tty_termios_encode_baud_rate(&tty->termios, baud, baud);
+#else
+	tty_termios_encode_baud_rate(tty->termios, baud, baud);
+#endif
 
 	mr1 |= MR1_ERROR_CHAR;
 	mr1 |= MR1_RxINT_RxRDY;
@@ -653,15 +700,19 @@ static void ipoctal_hangup(struct tty_struct *tty)
 
 	tty_port_hangup(&channel->tty_port);
 
-	iowrite8(CR_DISABLE_RX | CR_DISABLE_TX, &channel->regs->w.cr);
-	channel->rx_enable = 0;
-	iowrite8(CR_CMD_RESET_RX, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_TX, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_ERR_STATUS, &channel->regs->w.cr);
-	iowrite8(CR_CMD_RESET_MR, &channel->regs->w.cr);
+	ipoctal_reset_channel(channel);
 
 	clear_bit(ASYNCB_INITIALIZED, &channel->tty_port.flags);
 	wake_up_interruptible(&channel->tty_port.open_wait);
+}
+
+static void ipoctal_cleanup(struct tty_struct *tty)
+{
+	struct ipoctal_channel *channel = tty->driver_data;
+	struct ipoctal *ipoctal = chan_to_ipoctal(channel, tty->index);
+
+	/* release the carrier driver */
+	ipack_put_carrier(ipoctal->dev);
 }
 
 static const struct tty_operations ipoctal_fops = {
@@ -674,6 +725,7 @@ static const struct tty_operations ipoctal_fops = {
 	.chars_in_buffer =	ipoctal_chars_in_buffer,
 	.get_icount =		ipoctal_get_icount,
 	.hangup =		ipoctal_hangup,
+	.cleanup =              ipoctal_cleanup,
 };
 
 static int ipoctal_probe(struct ipack_device *dev)

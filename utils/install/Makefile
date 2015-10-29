@@ -1,7 +1,11 @@
+CPU?=L866
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 OBJECTDIR=object
-CFLAGS += -I. -I/acc/local/$(CPU)/include -I/usr/include/libxml2 -I /acc/src/dsc/drivers/coht/include -I ../include
+CFLAGS += -I.  -I../../include -I/acc/sys/$(CPU)/usr/include/libxml2/
+# needed for L867 at least now, hopefully cross compiling will be fixed one day
+LDFLAGS+=-L/acc/sys/$(CPU)/usr/lib64/
 LDLIBS=-lxml2 -lz
 ifeq ($(CPU),ppc4)
 	LDLIBS += -liberty
@@ -21,10 +25,13 @@ instprog.$(CPU): instprog.$(CPU).o libutils.$(CPU).a
 	$(CC) $(CFLAGS) $^ -o $@ $(LDFLAGS) $(LDLIBS)
 
 libutils.$(CPU).a: $(CPU_OBJECTS) libinst.$(CPU).o inst-utils.$(CPU).o
-	ar r $@ $^
-	mkdir -p $(OBJECTDIR)
-	ln -sf $(PWD)/$@ $(OBJECTDIR)
+	$(AR) r $@ $^
 
 clean:
-	rm -f *.o *.a *.L865 *.ppc4
-	rm -rf $(OBJECTDIR)
+	$(RM) -r $(OBJECTDIR)
+	$(RM) *.$(CPU).{o,a}
+	$(RM) *.$(CPU)
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
+	$(RM) *.{$(ALL_CPUS_COMMAS)}

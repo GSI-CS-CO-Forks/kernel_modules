@@ -1,21 +1,20 @@
-CPU	:= L865
-KVER	:= 3.2.43-rt63
-KERN_DIR:= "/acc/sys/$(CPU)/usr/src/kernels/$(KVER)"
-VME_DIR := "../../vmebridge/driver"
-VME_OBJDIR := "../../vmebridge/driver/$(CPU)/$(KVER)"
+CPU?=L866
+include ../../common.mk
+include /acc/dsc/src/co/Make.auto
 
-GIT_VERSION = $(shell git describe --dirty --tags --always --long)
-
-.PHONY: all clean help
+.PHONY: all clean cleanall
 
 all: modules
 
 modules:
-	cp Module.symvers.vme Module.symvers
-	$(MAKE) -C $(KERN_DIR) M=`pwd` GIT_VERSION=$(GIT_VERSION) modules
+	cp Module.symvers.vmebus Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules
+	$(MKDIR) -p ./$(CPU)/$(KVER)
+	mv *.o *.ko ./$(CPU)/$(KVER)
 
 clean:
-	$(MAKE) -C $(KERN_DIR) M=`pwd` clean
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
+	$(RM) -r $(CPU)
 
-help:
-	$(MAKE) -C $(KERN_DIR) M=`pwd` help
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)

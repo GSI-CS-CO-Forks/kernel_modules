@@ -19,7 +19,7 @@
 #include <errno.h>
 #include <strings.h>
 #include <stdint.h>
-#include <libicv196.h>
+#include "libicv196.h"
 
 /* ==================================================================== */
 /* Open driver handle                                                   */

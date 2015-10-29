@@ -5,6 +5,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -953,7 +954,10 @@ int read_samples_dma(unsigned int first_frame, unsigned int num_frames)
 	/* Read the samples for each channel */
 	for (i = 0; i < CHAN_USED; i++) {
 		/* Setup the DMA descriptor */
-		dma_desc.dst.addrl = (unsigned int)read_buf[i];
+		/* strange casting to keep compiler quiet */
+		dma_desc.dst.addru = (unsigned int)
+			(((unsigned long long)(uintptr_t)read_buf[i])>>32);
+		dma_desc.dst.addrl = (unsigned int)(uintptr_t)read_buf[i];
 
 		/* Select the channel to read from */
 		if ((rc = vd80_cmd_read(i + 1)))

@@ -1,0 +1,7 @@
+potential desiderata for a new build system
+
+single nightly build of the whole codebase, all platforms
+separate binary tree of built binaries
+distributable read-only source tree
+
+binary version tagging/manifesto: what and how?

@@ -1,4 +1,6 @@
-EXTRA_CFLAGS += -g -Wall -I/acc/src/dsc/drivers/vmebridge/driver -I/acc/src/dsc/drivers/cohtdrep/lewis/cvora-drivers/cvora/include
-EXTRA_CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+ccflags-y += -g -Wall
+ccflags-y += -I$(M)/../vmebridge/include
+
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 obj-m:=cvora.o

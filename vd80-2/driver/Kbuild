@@ -1,0 +1,7 @@
+ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
+ccflags-y += -g -Wall
+ccflags-y += -I$(M)/../../vmebridge/include
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
+obj-m = vd80-2.o
+vd80-2-objs += vd80.o

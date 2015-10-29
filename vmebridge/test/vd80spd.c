@@ -12,7 +12,7 @@
 #include <sys/mman.h>
 
 #include <libvmebus.h>
-#include <libvd80.h>
+#include "libvd80.h"
 
 #define CHAN_USED	16
 

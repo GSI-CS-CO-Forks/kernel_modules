@@ -1,20 +1,27 @@
-CPU ?= L865
+CPU?=L866
 
-include /acc/src/dsc/co/Make.auto
+include ../../common.mk
+include /acc/dsc/src/co/Make.auto
 
 VPATH = ../../utils/extest ../lib
 INCDIR := ../include
 CFLAGS := -Wall -g -I$(INCDIR) -I../../include -I../../utils/extest -I../lib \
-	-I../../utils/user -I/acc/local/$(CPU)/include -DDRIVER_NAME=\"sis33\"
+	-I../../utils/user -DDRIVER_NAME=\"sis33\"
 LIBUTILSPATH := ../../utils/user
-LIBUTILS := $(LIBUTILSPATH)/object/libutils.$(CPU).a
-LDLIBS := $(LIBUTILS)
-LDFLAGS := -lxml2 -lz -ltermcap -lreadline -lrt
+LIBUTILS := $(LIBUTILSPATH)/libutils.$(CPU).a
+LDLIBS := -lxml2 -lreadline -lrt
+LDFLAGS := $(LIBUTILS)
+
+#L865 requires tempcap for readline
+ifeq ($(CPU),L865)
+LDFLAGS+=-ltermcap
+endif
+
 HSIS33 := $(INCDIR)/sis33.h
 
 all: sis33test.$(CPU)
 
-.PHONY: all clean
+.PHONY: all clean cleanall
 
 sis33test.$(CPU): sis33test.$(CPU).o sis33acq.$(CPU).o sis33dev.$(CPU).o \
 	extest.$(CPU).o cmd_generic.$(CPU).o $(LIBUTILS)
@@ -28,4 +35,11 @@ $(LIBUTILS):
 	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU)
 
 clean:
-	$(RM) *.$(CPU) *.o *.$(CPU).a $(BAKS)
+	$(RM) *.$(CPU)
+	$(RM) *.$(CPU).{o,a}
+	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU) clean
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
+	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU) cleanall

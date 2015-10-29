@@ -704,7 +704,7 @@ static struct sis33_card_ops sis3300_ops = {
 	.config_init		= sis3300_config_init,
 };
 
-static int __devinit sis3300_match(struct device *devp, unsigned int ndev)
+static int sis3300_match(struct device *devp, unsigned int ndev)
 {
 	if (ndev >= base_num)
 		return 0;
@@ -715,7 +715,7 @@ static int __devinit sis3300_match(struct device *devp, unsigned int ndev)
 	return 1;
 }
 
-static void __devinit sis3300_reset(struct sis3300 *priv)
+static void sis3300_reset(struct sis3300 *priv)
 {
 	sis3300_writew(priv, SIS3300_RESET, 1);
 	udelay(5);
@@ -819,7 +819,7 @@ static void sis3300_irq_work(struct work_struct *work)
 	mutex_unlock(&card->lock);
 }
 
-static int __devinit
+static int
 sis3300_request_irq(struct sis33_card *card, int vector, int level)
 {
 	struct sis3300 *priv = card->private_data;
@@ -850,7 +850,7 @@ sis3300_request_irq(struct sis33_card *card, int vector, int level)
 	return 0;
 }
 
-static int __devinit sis3300_device_init(struct sis33_card *card, int ndev)
+static int sis3300_device_init(struct sis33_card *card, int ndev)
 {
 	struct sis3300 *priv = card->private_data;
 	u32 reg;
@@ -899,7 +899,7 @@ static void sis3300_device_exit(struct sis33_card *card, int ndev)
 	flush_workqueue(sis33_workqueue);
 }
 
-static int __devinit sis3300_probe(struct device *pdev, unsigned int ndev)
+static int sis3300_probe(struct device *pdev, unsigned int ndev)
 {
 	struct sis33_channel *channels;
 	struct sis33_segment *segments;
@@ -987,7 +987,7 @@ static int __devinit sis3300_probe(struct device *pdev, unsigned int ndev)
 	return error;
 }
 
-static int __devexit sis3300_remove(struct device *pdev, unsigned int ndev)
+static int sis3300_remove(struct device *pdev, unsigned int ndev)
 {
 	struct sis33_card *card = dev_get_drvdata(pdev);
 
@@ -1005,7 +1005,7 @@ static int __devexit sis3300_remove(struct device *pdev, unsigned int ndev)
 static struct vme_driver sis3300_driver = {
 	.match		= sis3300_match,
 	.probe		= sis3300_probe,
-	.remove		= __devexit_p(sis3300_remove),
+	.remove		= sis3300_remove,
 	.driver		= {
 		.name	= DRV_NAME,
 	},

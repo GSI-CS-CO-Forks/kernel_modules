@@ -1,7 +1,14 @@
 DIRS = \
     driver \
     lib \
-    test
+    test \
 
-all clean:
-	for d in $(DIRS); do $(MAKE) -C $$d $@ || exit 1; done
+
+.PHONY: all clean cleanall $(DIRS)
+
+all clean cleanall: $(DIRS)
+clean: TARGET = clean
+cleanall: TARGET = cleanall
+
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)

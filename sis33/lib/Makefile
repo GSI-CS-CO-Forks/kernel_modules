@@ -1,9 +1,9 @@
-CPU ?= L865
-
-include /acc/src/dsc/co/Make.auto
+CPU?=L866
+include ../../common.mk
+include /acc/dsc/src/co/Make.auto
 
 INCDIR := ../include
-CFLAGS := -Wall -fPIC -g -I. -I$(INCDIR) -I../../include
+CFLAGS := -Wall -fPIC -g -I$(INCDIR) -I../../include
 LIBSIS33 := libsis33.$(CPU).a 
 HLIBSIS33 := $(INCDIR)/libsis33.h
 HSIS33 := $(INCDIR)/sis33.h
@@ -14,7 +14,7 @@ DOXY_INSTDIR := /acc/doc/html/private/coht/doxy/sis33
 
 all: $(LIBSIS33) examples libsis33.$(CPU).so
 
-.PHONY: all clean examples
+.PHONY: all clean cleanall examples
 
 sis33.$(CPU).o: sis33.c $(HSIS33) $(HLIBSIS33) libinternal.h sis33acq.h sis33dev.h
 
@@ -29,19 +29,23 @@ error.$(CPU).o: error.c libinternal.h
 libsis33.$(CPU).so: sis33.$(CPU).o sis33acq.$(CPU).o sis33dev.$(CPU).o error.$(CPU).o
 	$(CC) -shared -o $@ $^
 
-examples:
+examples: $(LIBSIS33)
 	$(MAKE) -C $(EXAMPLES_DIR) CPU=$(CPU)
 
 clean:
 	$(MAKE) clean -C $(EXAMPLES_DIR) CPU=$(CPU)
-	$(RM) *.a *.o $(BAKS)
-	$(RM) -r doc
+	$(RM) *.$(CPU).{o,so,a}
+
+cleanall: doxy_clean
+	$(MAKE) cleanall -C $(EXAMPLES_DIR)
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
+
 
 doxy: doxy_clean $(DOXY_FILES)
-	../../doxy/doxy.sh -n"libsis33" -o"$(DOXY_DIR)" $(DOXY_FILES)
+	../../doxy/doxy.sh -n"libsis33" -o"$(DOXY_DIR)" $(DOXY_FILES) 2>&1
 
 doxy_clean:
-	rm -rf $(DOXY_DIR)
+	$(RM) -r $(DOXY_DIR)
 
 doxy_install: doxy
 	mkdir -p $(DOXY_INSTDIR)

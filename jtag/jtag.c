@@ -9,9 +9,9 @@
 #include <string.h>
 #include <sys/file.h>
 
-#include <lenval.h>
-#include <micro.h>
-#include <ports.h>
+#include "lenval.h"
+#include "micro.h"
+#include "ports.h"
 
 void setPort(short p,short val);
 void readByte(unsigned char *data);
@@ -20,14 +20,9 @@ void waitTime(long microsec);
 void pulseClock();
 
 static int xsvf_iDebugLevel = 0;
-static FILE *inp = NULL;
-static short *jtagAddr = NULL;
-static unsigned short jtag = 0x0F; /* Keep all jtag bits   */
-
-#include <lenval.c>
-#include <micro.c>
-#include <ports.c>
-#include <smemio.c>
+FILE *inp = NULL;
+short *jtagAddr = NULL;
+unsigned short jtag = 0x0F; /* Keep all jtag bits   */
 
 /* ********************************************* */
 /* Arguments: Filename VME-Address [Debug-Level] */
@@ -53,7 +48,7 @@ int cc;
 
    printf("VHDL-Compiled BitStream Filename: %s VMEAddress: 0x%X DebugLevel: %d \n",
 	  fname,
-	  (int) vmeAddress,
+	  vmeAddress,
 	  (int) xsvf_iDebugLevel);
 
    printf("Continue (Y/N):"); yn = getchar();

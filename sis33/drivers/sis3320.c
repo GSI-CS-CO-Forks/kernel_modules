@@ -428,7 +428,7 @@ static int sis3320_irq(void *arg)
 	return 0;
 }
 
-static void __devinit
+static void
 sis3320_spi_sleep(const struct sis33_card *card, unsigned long vme_spi)
 {
 	u32 val;
@@ -443,7 +443,7 @@ sis3320_spi_sleep(const struct sis33_card *card, unsigned long vme_spi)
 	dev_warn(card->pdev, "SPI interface busy for at least 15us\n");
 }
 
-static void __devinit
+static void
 sis3320_spi_write(const struct sis33_card *card, int group, int adc, int addr, int data)
 {
 	struct sis3320 *priv = card->private_data;
@@ -470,7 +470,7 @@ sis3320_spi_write(const struct sis33_card *card, int group, int adc, int addr, i
 }
 
 /* SPI write for both channels on the same ADC group */
-static void __devinit
+static void
 sis3320_spi_write_both(const struct sis33_card *card, int group, int addr, int data)
 {
 	int adc;
@@ -480,7 +480,7 @@ sis3320_spi_write_both(const struct sis33_card *card, int group, int addr, int d
 }
 
 /* SPI write for all ADC groups */
-static void __devinit
+static void
 sis3320_spi_write_all(const struct sis33_card *card, int addr, int data)
 {
 	int group;
@@ -489,13 +489,13 @@ sis3320_spi_write_all(const struct sis33_card *card, int addr, int data)
 		sis3320_spi_write_both(card, group, addr, data);
 }
 
-static void __devinit sis3320_reset(struct sis3320 *priv)
+static void sis3320_reset(struct sis3320 *priv)
 {
 	sis3320_writew(priv, SIS3320_RESET, 1);
 	udelay(5);
 }
 
-static int __devinit
+static int
 sis3320_request_irq(struct sis33_card *card, int vector, int level)
 {
 	struct sis3320 *priv = card->private_data;
@@ -541,7 +541,7 @@ static void sis3320_free_irq(struct sis33_card *card, int vector, int level)
 		dev_warn(card->pdev, "Cannot free irq %d, err %d\n", vector, ret);
 }
 
-static int __devinit sis3320_device_init(struct sis33_card *card, int ndev)
+static int sis3320_device_init(struct sis33_card *card, int ndev)
 {
 	struct sis3320 *priv = card->private_data;
 	u32 reg;
@@ -599,7 +599,7 @@ static inline void sis3320_device_exit(struct sis33_card *card, int ndev)
 	flush_workqueue(sis33_workqueue);
 }
 
-static int __devinit sis3320_match(struct device *devp, unsigned int ndev)
+static int sis3320_match(struct device *devp, unsigned int ndev)
 {
 	if (ndev >= base_num)
 		return 0;
@@ -1111,7 +1111,7 @@ static struct sis33_card_ops sis3320_ops = {
 	.config_init		= sis3320_config_init,
 };
 
-static int __devinit sis3320_probe(struct device *pdev, unsigned int ndev)
+static int sis3320_probe(struct device *pdev, unsigned int ndev)
 {
 	struct sis33_card *card;
 	struct sis3320 *priv;
@@ -1221,7 +1221,7 @@ static int __devinit sis3320_probe(struct device *pdev, unsigned int ndev)
 	return error;
 }
 
-static int __devexit sis3320_remove(struct device *pdev, unsigned int ndev)
+static int sis3320_remove(struct device *pdev, unsigned int ndev)
 {
 	struct sis33_card *card = dev_get_drvdata(pdev);
 	int i;
@@ -1245,7 +1245,7 @@ static int __devexit sis3320_remove(struct device *pdev, unsigned int ndev)
 static struct vme_driver sis3320_driver = {
 	.match		= sis3320_match,
 	.probe		= sis3320_probe,
-	.remove		= __devexit_p(sis3320_remove),
+	.remove		= sis3320_remove,
 	.driver		= {
 		.name	= DRV_NAME,
 	},

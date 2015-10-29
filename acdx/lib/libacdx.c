@@ -23,9 +23,9 @@
 #include <acdxdrvr.h>
 #include <acdxdrvrP.h>
 
-#include <libacdx.h>
+#include "libacdx.h"
 
-#include "/acc/src/dsc/drivers/coht/acdx/test/AcdxCmds.h"
+#include "../test/AcdxCmds.h"
 
 #ifndef PI
 #define PI M_PI

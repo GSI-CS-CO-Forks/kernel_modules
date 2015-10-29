@@ -13,7 +13,15 @@
 #include <linux/slab.h>
 #include <linux/idr.h>
 #include <linux/io.h>
+#include <linux/version.h>
 #include "linux/ipack.h"
+
+/* ipack driver is present in the kernel source since about 3.7.
+ * This file cannot be included after ipack is merged, since it will result in
+ * conflicts. */
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,7,0)
+#include "mod_dev_table.h"
+#endif
 
 #define to_ipack_dev(device) container_of(device, struct ipack_device, dev)
 #define to_ipack_driver(drv) container_of(drv, struct ipack_driver, driver)
@@ -198,7 +206,8 @@ static struct bus_type ipack_bus_type = {
 };
 
 struct ipack_bus_device *ipack_bus_register(struct device *parent, int slots,
-					    const struct ipack_bus_ops *ops)
+					    const struct ipack_bus_ops *ops,
+					    struct module *owner)
 {
 	int bus_nr;
 	struct ipack_bus_device *bus;
@@ -217,6 +226,7 @@ struct ipack_bus_device *ipack_bus_register(struct device *parent, int slots,
 	bus->parent = parent;
 	bus->slots = slots;
 	bus->ops = ops;
+	bus->owner = owner;
 	return bus;
 }
 EXPORT_SYMBOL_GPL(ipack_bus_register);
@@ -227,7 +237,7 @@ static int ipack_unregister_bus_member(struct device *dev, void *data)
 	struct ipack_bus_device *bus = data;
 
 	if (idev->bus == bus)
-		ipack_device_unregister(idev);
+		ipack_device_del(idev);
 
 	return 0;
 }
@@ -419,7 +429,7 @@ out:
 	return ret;
 }
 
-int ipack_device_register(struct ipack_device *dev)
+int ipack_device_init(struct ipack_device *dev)
 {
 	int ret;
 
@@ -428,6 +438,7 @@ int ipack_device_register(struct ipack_device *dev)
 	dev->dev.parent = dev->bus->parent;
 	dev_set_name(&dev->dev,
 		     "ipack-dev.%u.%u", dev->bus->bus_nr, dev->slot);
+	device_initialize(&dev->dev);
 
 	if (dev->bus->ops->set_clockrate(dev, 8))
 		dev_warn(&dev->dev, "failed to switch to 8 MHz operation for reading of device ID.\n");
@@ -447,19 +458,34 @@ int ipack_device_register(struct ipack_device *dev)
 			dev_err(&dev->dev, "failed to switch to 32 MHz operation.\n");
 	}
 
-	ret = device_register(&dev->dev);
-	if (ret < 0)
-		kfree(dev->id);
-
-	return ret;
+	return 0;
 }
-EXPORT_SYMBOL_GPL(ipack_device_register);
+EXPORT_SYMBOL_GPL(ipack_device_init);
 
-void ipack_device_unregister(struct ipack_device *dev)
+int ipack_device_add(struct ipack_device *dev)
 {
-	device_unregister(&dev->dev);
+	return device_add(&dev->dev);
 }
-EXPORT_SYMBOL_GPL(ipack_device_unregister);
+EXPORT_SYMBOL_GPL(ipack_device_add);
+
+void ipack_device_del(struct ipack_device *dev)
+{
+	device_del(&dev->dev);
+	ipack_put_device(dev);
+}
+EXPORT_SYMBOL_GPL(ipack_device_del);
+
+void ipack_get_device(struct ipack_device *dev)
+{
+	get_device(&dev->dev);
+}
+EXPORT_SYMBOL_GPL(ipack_get_device);
+
+void ipack_put_device(struct ipack_device *dev)
+{
+	put_device(&dev->dev);
+}
+EXPORT_SYMBOL_GPL(ipack_put_device);
 
 static int __init ipack_init(void)
 {

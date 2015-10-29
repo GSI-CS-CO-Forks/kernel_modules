@@ -1,30 +1,19 @@
-CPU=L865
+CPU ?= L866
+include ../../common.mk
+include /acc/src/dsc/co/Make.auto
 
-# KVER=2.6.24.7-rt21
-# KVER=2.6.24.7-rt27
-# KVER=2.6.29.4-rt15
-# KVER=2.6.31.6-rt19
-
-KVER=2.6.24.7-rt27
-
-KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
-OUTPUTDIR=$(PWD)/$(CPU)/$(KVER)
-GIT_VERSION = $(shell git describe --always --tags --dirty --long)
-
-CFLAGS=-g -Wall
-
-all: driver 
+all: driver
 driver: modules
 
-modules: 
-	cp Module.symvers.vme Module.symvers
-	make -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) modules
-	mkdir -p $(OUTPUTDIR)
-	mv *.o *.ko $(OUTPUTDIR)
+modules:
+	$(CP) Module.symvers.vmebus Module.symvers
+	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules
+	$(MKDIR) -p $(CPU)/$(KVER)
+	mv *.o *.ko $(CPU)/$(KVER)
+
 clean:
-	rm -f *.o *.a *.pyc *.so $(TESTS)
-	rm -f *.mod.c
-	rm -rf L865 L864 ppc 
-	make -C $(KERNELSRC) M=`pwd` clean
+	$(RM) -r $(CPU)
+	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
 
-
+cleanall: clean
+	$(RM) -r $(ALL_CPUS)

@@ -6,7 +6,9 @@
 /*            from the prom                            */
 /*                                                     */
 /*******************************************************/
+#include <stdio.h>
 #include "ports.h"
+#include "jtag.h"
 
 #define JTAG_TDO     0x01   /* Data Out */
 #define JTAG_TDO_BAR 0x10

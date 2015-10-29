@@ -1,10 +1,16 @@
-CPU ?= L865
+DIRS = \
+    ad9516 \
+    driver \
+    lib \
+    test
 
-DIRS= \
-	ad9516 \
-	driver \
-	lib \
-	test
+.PHONY: all clean cleanall $(DIRS)
 
-all clean modules:
-	for d in $(DIRS) ; do $(MAKE) -C $$d CPU=$(CPU) $@ || exit 1 ; done
+all clean cleanall: $(DIRS)
+clean: TARGET = clean
+cleanall: TARGET = cleanall
+
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)
+
+test: lib ad9516

@@ -1,26 +1,38 @@
-CPU ?= L865
-
+CPU ?= L866
+include ../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 CFLAGS += -g -Wall -D_GNU_SOURCE
 
-HEADERS := ../include/ -I/acc/local/$(CPU)/include -I/usr/include/libxml2 -I/acc/src/dsc/drivers/coht/include \
-	-I../extest/ -I/usr/include/ -I../lib -I/acc/sys/$(CPU)/usr/include -I../ad9516
+CFLAGS+= -Iextest/ \
+	-I../ad9516 \
+	-I../lib \
+	-I../include/ \
+	-I../../include/
 
-# FIXME: -L /acc/sys/$(CPU)/usr/lib is not needed in a sane environment
-LOADLIBES := -L../lib/ -L../ad9516 -L /acc/sys/$(CPU)/usr/lib
-LDLIBS=-lcvorg.$(CPU) -lreadline -lxml2 -lad9516.$(CPU) -lrt -lm -ltermcap
-all: extest.o cvorgtest.$(CPU) 
+LOADLIBES := -L../lib/ -L../ad9516
+LDLIBS=-lcvorg.$(CPU) -lreadline -lad9516.$(CPU) -lrt -lm
 
-cvorgtest.$(CPU): 
-	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) cvorgtest.c -o ./obj/cvorgtest.o
-	$(CC) $(CFLAGS) -o ./obj/$@ ./obj/cvorgtest.o ./obj/extest.o ./obj/cmd_noskel.o $(LOADLIBES) $(LDLIBS)
+#L865 requires tempcap for readline
+ifeq ($(CPU),L865)
+LDLIBS+=-ltermcap
+endif
 
-extest.o:
-	mkdir -p obj
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) ../extest/cmd_noskel.c -o ./obj/cmd_noskel.o
-	$(CC) $(CFLAGS) -c -D$(CPU) -I$(HEADERS) ../extest/extest.c -o ./obj/extest.o
+.PHONY: clean cleanall all
+
+all: cvorgtest.$(CPU)
+
+cvorgtest.$(CPU): cvorgtest.$(CPU).o extest/libcvorg_extest.$(CPU).a
+
+extest/libcvorg_extest.$(CPU).a:
+	$(MAKE) -C extest CPU=$(CPU)
 
 clean:
-	rm -rf ./obj/ *.o
+	$(RM) *.$(CPU).o
+	$(RM) *.$(CPU)
+	$(MAKE) -C extest CPU=$(CPU) clean
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
+	$(MAKE) -C extest CPU=$(CPU) cleanall

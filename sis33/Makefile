@@ -1,30 +1,15 @@
-SUBDIRS := drivers lib test
+DIRS = \
+    drivers \
+    lib \
+    test
 
-# build for L865 when no CPU is provided or CPU=default
-FILTERED_CPU := $(filter-out default, $(CPU))
-ifeq ($(FILTERED_CPU),)
-  MYCPU := L865
-else
-  MYCPU := $(FILTERED_CPU)
-endif
+.PHONY: all clean cleanall $(DIRS)
 
-# do not compile this for lynx
-MYCPU := $(filter-out ppc4, $(MYCPU))
+all clean cleanall: $(DIRS)
+clean: TARGET = clean
+cleanall: TARGET = cleanall
 
-all:
-	@if [ "$(MYCPU)" != "" ]; then \
-		for dir in $(SUBDIRS); \
-		do \
-			$(MAKE) -C $$dir CPU=$(MYCPU); \
-		done \
-	fi
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)
 
-.PHONY: all clean
-
-clean:
-	@if [ "$(MYCPU)" != "" ]; then \
-		for dir in $(SUBDIRS); \
-		do \
-			$(MAKE) clean -C $$dir CPU=$(MYCPU); \
-		done \
-	fi
+test: lib

@@ -1,0 +1,4 @@
+ccflags-y += -DDEBUG
+ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
+obj-m := ipoctal.o

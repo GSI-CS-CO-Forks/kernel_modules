@@ -17,7 +17,7 @@
 #include <linux/export.h>
 #include <linux/slab.h>
 
-#include "vmebus.h"
+#include <vmebus.h>
 #include "tvme200.h"
 
 #define MAX_CARRIER 16
@@ -477,6 +477,7 @@ static void tvme200_release_device (struct ipack_device *dev)
 
 static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
 {
+	int ret;
 	enum ipack_space space;
 	struct ipack_device *dev =
         	kzalloc(sizeof(struct ipack_device), GFP_KERNEL);
@@ -494,7 +495,17 @@ static int tvme200_create_mezz_device(struct tvme200_board *tvme200, int i)
                      	+ tvme200_space_interval[space] * i;
                  dev->region[space].size = tvme200_space_size[space];
          }
-	return ipack_device_register(dev);
+	ret = ipack_device_init(dev);
+	if (ret < 0) {
+		ipack_put_device(dev);
+		return ret;
+	}
+
+	ret = ipack_device_add(dev);
+	if (ret < 0)
+		ipack_put_device(dev);
+
+	return ret;
 
 }
 
@@ -550,7 +561,8 @@ static int tvme200_probe(struct device *dev, unsigned int ndev)
 	/* Register the carrier in the industry pack bus driver */
 	tvme200->info->ipack_bus = ipack_bus_register(dev,
                                               TVME200_NB_SLOT,
-                                              &tvme200_bus_ops);
+                                              &tvme200_bus_ops,
+                                              THIS_MODULE);
 	if (!tvme200->info->ipack_bus) {
         	dev_err(dev, "error registering the carrier on ipack driver\n");
         	res = -EFAULT;

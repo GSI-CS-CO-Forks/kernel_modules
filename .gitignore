@@ -56,10 +56,12 @@ ncscope.*
 
 # Storage dirs
 *L865/
+*L866/
+*L867/
 *ppc4/
 
 # Executable
-*.L86[456]
+*.L86[4567]
 *.ppc4
 
 # Dont track RCS repos
@@ -80,6 +82,7 @@ vd80/object_vd80/vd80.xml
 
 # Patches
 patch/
+*.patch
 
 # doxygen docs generated with doxy.sh
 doxygen_output

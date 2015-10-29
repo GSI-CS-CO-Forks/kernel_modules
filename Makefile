@@ -1,16 +1,30 @@
-SUBDIRS += \
-	vmebridge \
-	utils \
-	cdcm \
-	lib \
-	icv196 \
-	vmod \
-	vd80 \
-	xmem \
-	mttn \
-	ctr \
-	cvorg \
-	sis33 \
+DIRS = \
+    sis33 \
+    vd80-2 \
+    encore \
+    mil1553 \
+    ctr-2.0 \
+    cvorb \
+    cvorg \
+    vmebridge \
+    ctc \
+    cvora \
+    pickeringmux \
+    vmod \
+    icv196 \
+    msatt \
+    ipack \
+    rawio \
+    acdx \
+    jtag \
+    pciioconfig \
 
+.PHONY: all clean cleanall $(DIRS)
 
-include ./makefiles/Makefile.base
+all clean cleanall: $(DIRS)
+clean: TARGET = clean
+cleanall: TARGET = cleanall
+
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)
+

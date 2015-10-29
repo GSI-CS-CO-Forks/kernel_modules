@@ -43,8 +43,8 @@
 #include <linux/delay.h>
 
 #include <vmebus.h>
-#include <icv196.h>
-#include <icv196P.h>
+#include "icv196.h"
+#include "icv196P.h"
 
 #define ICV196_WINDOW_SIZE 0x100
 #define VME_IRQ_LEVEL 2

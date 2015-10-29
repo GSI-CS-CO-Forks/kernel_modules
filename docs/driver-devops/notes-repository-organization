@@ -1,0 +1,72 @@
+The historical tendency since 2010 has been to host all low-level code
+(drivers, libraries and ancillary support files) in a single non-bare
+git repository at
+
+/acc/src/dsc/drivers/coht/
+
+(hereafter, $COHT).
+
+This tendency has progressively been broken due to the following factors
+
+* inability of developers to stick to a single-repository workflow,
+  mainly for fear of git
+* outsourced developments typically hosted externally (ohwr.org) as
+  per-project git repos
+* projects started as out-of-tree, non-merged code that never integrated
+  properly or were injected into $COHT as submodules
+
+The resulting situation at this date (Aug 2015) is that $COHT contains
+most of the codebase maintained by the drivers team, but with some of
+the projects included as submodules, or as mere subdiretories.
+
+This situation is undesirable and we should aim at two final scenarios
+
+* single-tree repository holding all the code base
+* umbrella repository containing all the projects as submodules and
+  describing their dependencies
+
+The first option has been rendered almost impossible by the practice of
+hosting most FMC developments as separate, OHWR-hosted projects with
+their own presumedly independent git repository.
+
+The word "presumedly" is a fiction: most FMC developments, however
+independently managed as different OHWR projects, are heavily
+interdependent. This has resulted in a maze of submodules devised to
+alleviate this dependency hell, with relative success, we should say.
+
+None of these problems happens in the context of the classical
+development model, where barely *any* dependency occurs despite the fact
+that all different drivers are hosted in the same tree. The only hard
+dependency these modules have in common is on the vmebus driver.
+
+The situation is particularly troublesome with all the FMC-related
+developments, where a proliferation of componentes has organically
+grown into a dependency hell. This well-known concept in software
+engineering describes very well the situation given here: a developer
+wanting to release an application for an end user has to be aware of the
+following (simplified) dependency DAG (firmware dependencies are not
+included):
+
+fmc-fdelay fmc-adc fmc-tdc: fmc-bus sdb zio
+fmc-svec fmc-spec :fmc-bus sdb
+fmc-adc: fmc-adc-vme fmc-adc-pci
+
+This ruleset does not reflect the fact that, in practice, all
+compoenents have evolved in non-backward-compatible ways, so that
+keeping track of the exact dependencies has become a feat well beyond
+the average developer.
+
+The mess can be sorted out in a one off basis for each of the final
+applications (first rule), by dedicated hobbyist that follows the
+documentation carefully. This model does not scale when routine
+deployment of all the components is the rule.
+
+The purported solution for the FMC release conundrum is the so-called
+"CERN super module" (CSM), which is yet another umbrella repository that
+contains logic to keep track of the cross-repository sections that a
+release should contain. It is basically a disguised incarnation of Peter
+Miller's non-recursive make.
+
+It has been proposed that every driver should be a submodule of the CSM,
+making $COHT become the CSM in practice.
+

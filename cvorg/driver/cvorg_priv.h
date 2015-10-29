@@ -12,9 +12,9 @@
 #include <asm-generic/iomap.h>
 
 #include <cvorg.h>
-#include <cvorg_hw.h>
+#include "cvorg_hw.h"
 #include <ad9516.h>
-#include <ad9516_priv.h>
+#include "ad9516_priv.h"
 
 /* define this to debug I/O accesses */
 #define CVORG_MAX_BOARDS 	16

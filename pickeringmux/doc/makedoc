@@ -1,0 +1,46 @@
+#!/bin/sh
+
+doxygen -s -g > /dev/null
+
+patch <<EOFPATCH
+--- Doxyfile	2015-06-30 11:21:28.026262211 +0200
++++ d	2015-06-30 11:20:36.025103487 +0200
+@@ -41,7 +41,7 @@
+ #---------------------------------------------------------------------------
+ # Build related configuration options
+ #---------------------------------------------------------------------------
+-EXTRACT_ALL            = NO
++EXTRACT_ALL            = YES
+ EXTRACT_PRIVATE        = NO
+ EXTRACT_STATIC         = NO
+ EXTRACT_LOCAL_CLASSES  = YES
+@@ -76,7 +76,7 @@
+ #---------------------------------------------------------------------------
+ # configuration options related to warning and progress messages
+ #---------------------------------------------------------------------------
+-QUIET                  = NO
++QUIET                  = YES
+ WARNINGS               = YES
+ WARN_IF_UNDOCUMENTED   = YES
+ WARN_IF_DOC_ERROR      = YES
+@@ -86,7 +86,7 @@
+ #---------------------------------------------------------------------------
+ # configuration options related to the input files
+ #---------------------------------------------------------------------------
+-INPUT                  =
++INPUT                  = ../lib/pickeringmuxlib.c
+ INPUT_ENCODING         = UTF-8
+ FILE_PATTERNS          =
+ RECURSIVE              = NO
+@@ -158,7 +158,7 @@
+ #---------------------------------------------------------------------------
+ # configuration options related to the LaTeX output
+ #---------------------------------------------------------------------------
+-GENERATE_LATEX         = YES
++GENERATE_LATEX         = NO
+ LATEX_OUTPUT           = latex
+ LATEX_CMD_NAME         = latex
+ MAKEINDEX_CMD_NAME     = makeindex
+EOFPATCH
+
+doxygen

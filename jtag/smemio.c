@@ -2,9 +2,12 @@
 /* Map the JTAG physical VME adderss onto a virtual memory address */
 /* using a sharded memory segment.                                 */
 
+#include <stdio.h>
+#include <string.h>
 #include <libvmebus.h>
+#include "jtag.h"
 
-static short *GetJtagPort(unsigned short *vmeAddress) { /* VME address */
+short *GetJtagPort(unsigned short *vmeAddress) { /* VME address */
 
 struct pdparam_master param; /* For CES PowerPC */
 
@@ -34,7 +37,7 @@ unsigned long addr;          /* VME base address */
 				       2,                       /* Size is D16 */
 				       &param);                 /* Parameter block */
       if (jtagAddr == (void *)(-1)) {
-	 printf("GetJtagPort: find_controller: ERROR: JTAG Addr:%x\n",(int) vmeAddress);
+	 printf("GetJtagPort: find_controller: ERROR: JTAG Addr:%x\n", vmeAddress);
 	 jtagAddr = NULL;
       }
    }

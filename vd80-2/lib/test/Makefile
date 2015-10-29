@@ -2,8 +2,8 @@
 # Makefile to produce standard CTX1 test applications
 #================================================================
 
-CPU=L866
-
+CPU?=L866
+include ../../../common.mk
 include /acc/dsc/src/co/Make.auto
 
 COMPILE_TIME:=$(shell date +%s)
@@ -23,9 +23,12 @@ HDRS = Cmds.h $(VD80LB)/libvd80.h $(DRIVER)/vd80.h
 all: $(ALL)
 
 clean:
-	$(RM) $(ALL) $(BAKS) *.o *.L86[456]
+	$(RM) *.$(CPU).o
+	$(RM) *.$(CPU)
 
-# Run on Workstation only
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
 
 vd80test.$(CPU).o: $(SRCS) $(HDRS)
 

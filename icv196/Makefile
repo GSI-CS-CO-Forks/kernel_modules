@@ -1,7 +1,15 @@
-.PHONY: all clean modules install modules_install
-.PHONY: gitmodules prereq prereq_install prereq_install_warn
+DIRS = \
+    driver \
+    lib \
+    test \
 
-DIRS = driver lib test
+.PHONY: all clean cleanall $(DIRS)
 
-all clean modules:
-	for d in $(DIRS); do $(MAKE) -C $$d $@ || exit 1; done
+all clean cleanall: $(DIRS)
+clean: TARGET = clean
+cleanall: TARGET = cleanall
+
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)
+
+test: lib

@@ -1,12 +1,6 @@
-EXTRA_CFLAGS += \
-	-Wno-strict-prototypes \
-	-DCTR_PCI \
-	-DEMULATE_LYNXOS_ON_LINUX \
-	-DHARD_FLOAT \
-	-mhard-float \
-	-I/acc/src/dsc/drivers/coht/acdx/driver
-
+ccflags-y += -Wno-strict-prototypes
+ccflags-y += -DEMULATE_LYNXOS_ON_LINUX
+ccflags-y += -mhard-float
 
 obj-m := acdx.o
 acdx-objs := acdxdrvr.o DrvrSpec.o EmulateLynxOs.o ModuleLynxOs.o
-

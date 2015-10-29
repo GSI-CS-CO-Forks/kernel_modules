@@ -20,8 +20,8 @@
 
 #include <vmebus.h>
 #include <cvorg.h>
-#include <cvorg_priv.h>
-#include <cvorg_hw.h>
+#include "cvorg_priv.h"
+#include "cvorg_hw.h"
 
 #define DRIVER_NAME 	"cvorg"
 #define PFX 		DRIVER_NAME ": "
@@ -376,13 +376,13 @@ static void __cvorg_apply_channel_inpol(struct cvorg_channel *channel)
 	if (channel->inpol == CVORG_NEGATIVE_PULSE)
 		cvorg_ochan(channel, CVORG_CONFIG, CVORG_CONFIG_INPOL);
 	else
-		cvorg_achan(channel, CVORG_CONFIG, ~CVORG_CONFIG_INPOL);
+		cvorg_achan(channel, CVORG_CONFIG, ~(uint32_t)CVORG_CONFIG_INPOL);
 }
 
 static void __cvorg_apply_channel_outoff(struct cvorg_channel *channel)
 {
 	if (channel->outoff == CVORG_OUT_OFFSET_0V)
-		cvorg_achan(channel, CVORG_CONFIG, ~CVORG_CONFIG_OUT_OFFSET);
+		cvorg_achan(channel, CVORG_CONFIG, ~(uint32_t)CVORG_CONFIG_OUT_OFFSET);
 	else
 		cvorg_ochan(channel, CVORG_CONFIG, CVORG_CONFIG_OUT_OFFSET);
 }
@@ -400,7 +400,7 @@ static void __cvorg_apply_channel_out_enable(struct cvorg_channel *channel)
 	if (channel->out_enabled)
 		cvorg_ochan(channel, CVORG_CONFIG, CVORG_CONFIG_OUT_ENABLE);
 	else
-		cvorg_achan(channel, CVORG_CONFIG, ~CVORG_CONFIG_OUT_ENABLE);
+		cvorg_achan(channel, CVORG_CONFIG, ~(uint32_t)CVORG_CONFIG_OUT_ENABLE);
 }
 
 static void __cvorg_apply_channel_cfg(struct cvorg_channel *channel)
@@ -810,7 +810,7 @@ int cvorg_module_install(struct device *pdev, uint32_t lun, unsigned long base_a
 static void cvorg_quiesce_channel(struct cvorg_channel *channel)
 {
 	/* disable waveform playing */
-	cvorg_achan(channel, CVORG_CONFIG, ~CVORG_CONFIG_SEQREADY);
+	cvorg_achan(channel, CVORG_CONFIG, ~(uint32_t)CVORG_CONFIG_SEQREADY);
 
 	/* make sure there's nothing being played right now */
 	cvorg_wchan(channel, CVORG_CTL, CVORG_CTL_CHAN_STOP);
@@ -1074,7 +1074,7 @@ cvorg_wv_gain_store(struct cvorg_channel *channel, unsigned int block,
 	unsigned int val;
 
 	/* set to the default gain (unset the CONF_GAIN bit) */
-	cvorg_achan(channel, offset, ~CVORG_WFNEXTBLK_CONF_GAIN);
+	cvorg_achan(channel, offset, ~(uint32_t)CVORG_WFNEXTBLK_CONF_GAIN);
 
 	/* exit if the user didn't explicitly set the gain */
 	if (!wv->dynamic_gain)

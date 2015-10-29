@@ -1,7 +1,9 @@
+CPU?=L866
+include ../../../common.mk
 include /acc/src/dsc/co/Make.auto
 
 INCDIR := ../../include
-CFLAGS := -Wall -D_GNU_SOURCE -g -I. -I$(INCDIR)
+CFLAGS := -Wall -g -I$(INCDIR)
 LDLIBS := -lm
 LIBCVORG := ../libcvorg.$(CPU).a
 
@@ -21,7 +23,7 @@ OBJS := $(SRCS:.c=.$(CPU))
 
 all : $(LIBCVORG) $(OBJS)
 
-.PHONY : all clean
+.PHONY : all clean cleanall
 
 waveform.$(CPU):	$(@:.$(CPU)=.$c) $(LIBCVORG)
 status.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
@@ -35,4 +37,9 @@ dac.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
 pcb.$(CPU):		$(@:.$(CPU)=.$c) $(LIBCVORG)
 
 clean:
-	$(RM) *.$(CPU) *.o $(BAKS)
+	$(RM) *.$(CPU).o
+	$(RM) *.$(CPU)
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
