@@ -9,6 +9,7 @@ CONFIG_cvora ?= y
 CONFIG_cvorb ?= y
 CONFIG_cvorg ?= y
 CONFIG_encore ?= y
+CONFIG_fmc ?= y
 CONFIG_icv196 ?= y
 CONFIG_ipack ?= y
 CONFIG_jtag ?= y

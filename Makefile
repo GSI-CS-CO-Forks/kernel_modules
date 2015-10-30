@@ -9,6 +9,7 @@ DIRS-$(CONFIG_cvora) += cvora
 DIRS-$(CONFIG_cvorb) += cvorb
 DIRS-$(CONFIG_cvorg) += cvorg
 DIRS-$(CONFIG_encore) += encore
+DIRS-$(CONFIG_fmc) += fmc
 DIRS-$(CONFIG_icv196) += icv196
 DIRS-$(CONFIG_ipack) += ipack
 DIRS-$(CONFIG_jtag) += jtag
