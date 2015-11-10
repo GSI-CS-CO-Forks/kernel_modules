@@ -31,3 +31,6 @@
 [submodule "fmc/obsbox"]
 	path = fmc/obsbox
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/obsbox.git
+[submodule "ipack"]
+	path = ipack
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/ipack.git
