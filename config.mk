@@ -15,6 +15,7 @@ CONFIG_ipack ?= y
 CONFIG_jtag ?= y
 CONFIG_mil1553 ?= y
 CONFIG_msatt ?= y
+CONFIG_mtt ?= y
 CONFIG_pciioconfig ?= y
 CONFIG_pickeringmux ?= y
 CONFIG_rawio ?= y

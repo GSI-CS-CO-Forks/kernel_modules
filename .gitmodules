@@ -34,3 +34,6 @@
 [submodule "ipack"]
 	path = ipack
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/ipack.git
+[submodule "mtt"]
+	path = mtt
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/mtt.git
