@@ -1,4 +1,3 @@
-include /acc/src/dsc/co/Make.auto
 
 all: doc
 
@@ -8,7 +7,7 @@ doc:
 	sh makedoc
 
 doc-clean:
-	$(RM) -r html Doxyfile*
+	rm -rf html Doxyfile*
 
 install: doc
 	rsync -av html/ /acc/doc/html/private/coht/doxy/pickeringmux

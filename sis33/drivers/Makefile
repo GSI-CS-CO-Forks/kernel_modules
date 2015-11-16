@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
 
 .PHONY: all clean cleanall
 

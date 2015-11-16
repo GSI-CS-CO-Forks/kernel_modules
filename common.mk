@@ -1,5 +1,7 @@
 CPU ?= L866
 
+include /acc/dsc/src/co/Make.auto
+
 # ALL_CPUS has to be at least two elements due to brace expansion
 ALL_CPUS=L865 L866 L867
 

@@ -1,6 +1,7 @@
 CPU?=L866
+# include build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
+
 CFLAGS=-g -Wall
 
 CFLAGS += -I../

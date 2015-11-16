@@ -1,7 +1,6 @@
 CPU?=L866
 REPO_PARENT ?= $(shell pwd)
 include $(REPO_PARENT)/../common.mk
-include /acc/dsc/src/co/Make.auto
 
 #overwrite rules from Make.auto
 %: %.o

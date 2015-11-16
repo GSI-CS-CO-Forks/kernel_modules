@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
 
 CFLAGS := -Wall -g -I../include
 LIBCVORB := libcvorb.$(CPU).a

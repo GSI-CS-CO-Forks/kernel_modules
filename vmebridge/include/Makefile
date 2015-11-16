@@ -1,8 +1,8 @@
 CPU?=L866
 DRVR := vmebus
 INSTDIR ?= "/acc/local/$(CPU)/$(DRVR)"
+# include the build environment
 include ../../common.mk
-include /acc/src/dsc/co/Make.auto
 
 all:
 

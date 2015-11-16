@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
 
 INCDIR := ../include
 CFLAGS := -Wall -fPIC -g -I$(INCDIR) -I../../include

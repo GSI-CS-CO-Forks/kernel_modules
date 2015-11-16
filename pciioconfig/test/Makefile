@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
 
 # Flags to compile test program and lib
 CFLAGS=-Wall -g

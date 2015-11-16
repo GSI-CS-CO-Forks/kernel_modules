@@ -1,6 +1,6 @@
 CPU ?= L866
+# include the build environment
 include ../common.mk
-include /acc/src/dsc/co/Make.auto
 
 CFLAGS = -g -I../vmebridge/include
 LDLIBS = -lvmebus.$(CPU)

@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/src/dsc/co/Make.auto
 
 OBJECTDIR=object
 CFLAGS += -I.  -I../../include -I/acc/sys/$(CPU)/usr/include/libxml2/

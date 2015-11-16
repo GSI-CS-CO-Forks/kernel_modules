@@ -1,6 +1,6 @@
 CPU?=L866
+# include the build environment
 include ../../common.mk
-include /acc/dsc/src/co/Make.auto
 
 CFLAGS= -g -Wall -I../driver -fPIC -DCOMPILE_TIME=$(shell date +%s)
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
