@@ -1,5 +1,6 @@
 CPU ?= L866
 
+# ALL_CPUS has to be at least two elements due to brace expansion
 ALL_CPUS=L865 L866 L867
 
 ifeq ($(CPU),L865)
@@ -24,3 +25,6 @@ empty:=
 space:= $(empty) $(empty)
 #used for removals
 ALL_CPUS_COMMAS=$(subst $(space),$(comma),$(ALL_CPUS))
+
+# use bash due to brace expansion
+SHELL=/bin/bash
