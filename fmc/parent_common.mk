@@ -1,4 +1,3 @@
-CPU?=L866
 REPO_PARENT ?= $(shell pwd)
 include $(REPO_PARENT)/../common.mk
 

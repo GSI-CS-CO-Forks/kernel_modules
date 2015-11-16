@@ -1,4 +1,3 @@
-CPU?=L866
 # include the build environment
 include ../../../common.mk
 

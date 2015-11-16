@@ -1,4 +1,3 @@
-CPU?=L866
 DRVR := vmebus
 INSTDIR ?= "/acc/local/$(CPU)/$(DRVR)"
 # include the build environment
