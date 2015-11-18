@@ -27,6 +27,7 @@
 *.gz
 !.gitignore
 !.gitmodules
+*.tmp
 
 #
 # Top-level generic files
