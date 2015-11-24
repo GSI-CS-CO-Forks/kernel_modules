@@ -21,6 +21,8 @@
 #include <stdint.h>
 #include "libicv196.h"
 
+const char * const libicv196_version_s = "libicv196 version: " GIT_VERSION;
+
 /* ==================================================================== */
 /* Open driver handle                                                   */
 

@@ -13,6 +13,8 @@
 #include "msatt.h"
 #include "libmsatt.h"
 
+const char * const libmsatt_version_s = "libmsatt version: " GIT_VERSION;
+
 int msatt_open(int lun)
 {
 	const int filename_sz = 256;

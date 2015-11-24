@@ -25,3 +25,6 @@ AcdxLibCompletion  AcdxAmpOn();   /* Set AmpOn status bit to ON */
 AcdxLibCompletion  AcdxAmpOff();  /* Set AmpOn status bit to OFF */
 
 int AcdxAmpIsOn();                /* Returns value of AmpOn status bit */
+
+/* libacdx version string */
+extern const char * const libacdx_version_s;

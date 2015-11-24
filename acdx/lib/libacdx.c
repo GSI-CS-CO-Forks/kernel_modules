@@ -31,6 +31,8 @@
 #define PI M_PI
 #endif
 
+const char * const libacdx_version_s = "libacdx version: " GIT_VERSION;
+
 double round(double x);
 
 static short    func[TOTAL_POINTS];

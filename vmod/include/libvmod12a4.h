@@ -18,6 +18,8 @@
 #ifndef _LIBVMOD12A4_H_
 #define _LIBVMOD12A4_H_
 
+#include "libvmod.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif

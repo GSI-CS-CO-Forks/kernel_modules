@@ -24,7 +24,7 @@
 #include <vd80hard.h>
 #include "libvd80.h"
 
-static __attribute__((unused)) char version[] = "version: " GIT_VERSION;
+const char * const libvd80_version_s = "libvd80 version: " GIT_VERSION;
 
 /* ==================================================================== */
 

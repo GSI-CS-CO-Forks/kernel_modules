@@ -3,6 +3,7 @@
 
 #include <ad9516.h>
 
+const char * const libad9516_version_s = "libad9516 version: " GIT_VERSION;
 /*
  * given a desired output frequency and constant f_vco, check if just playing
  * with the output dividers can suffice. If it does, then return 0. Otherwise,

@@ -255,6 +255,8 @@ int vmodttl_read_config(int lun, struct vmodttl_config *conf);
 */
 int vmodttl_read_device(int lun, unsigned char buffer[2]);
 
+//! libvmodttl version string
+extern const char * const libvmodttl_version_s;
 #ifdef __cplusplus
 }
 #endif

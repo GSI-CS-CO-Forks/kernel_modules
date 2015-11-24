@@ -14,6 +14,8 @@ extern "C" {
 int getPCIPosition(int slot, int *bus, int *device);
 int getSlot(int bus, int device, int *slot);
 
+/* libpciioconfig version strting */
+extern const char * const libpciioconfig_version_s;
 #ifdef __cplusplus
 }
 #endif

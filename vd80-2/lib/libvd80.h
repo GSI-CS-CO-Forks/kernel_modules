@@ -182,6 +182,9 @@ char *vd80ErrToStr(vd80_err_t error);
 
 vd80_err_t vd80RawIo(int fd, struct vd80_riob_s *rio, int io_dir);
 
+/* libvd80 version string */
+extern const char * const libvd80_version_s;
+
 #ifdef __cplusplus
 }
 #endif

@@ -90,6 +90,8 @@ int msatt_set_relay(int fd, int channel, enum msatt_value_enum val);
  */
 int msatt_get_nchannels(int fd);
 
+/* libmsatt version string */
+extern const char * const libmsatt_version_s;
 #ifdef __cplusplus
 }
 #endif

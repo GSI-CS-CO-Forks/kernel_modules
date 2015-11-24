@@ -7,3 +7,6 @@
 int AmpIsOn();                  /* Returns value of Amp-On status */
 
 int AmpIsConfigured();          /* Returns value of Amp-Configured status */
+
+/* libamp version string */
+extern const char * const libamp_version_s;

@@ -4,6 +4,7 @@ include ../../common.mk
 CFLAGS= -g -Wall -fPIC
 CFLAGS+= -I../driver
 CFLAGS+=-DCOMPILE_TIME=$(shell date +%s)
+CFLAGS+=-DGIT_VERSION=\"$(GIT_VERSION)\"
 
 SRCS = libicv196.c libicv196.h
 

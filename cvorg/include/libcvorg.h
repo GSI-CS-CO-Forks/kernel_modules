@@ -66,6 +66,9 @@ int cvorg_channel_enable_output(cvorg_t *device);
 int cvorg_dac_get_conf(cvorg_t *device, struct cvorg_dac *conf);
 int cvorg_dac_set_conf(cvorg_t *device, struct cvorg_dac conf);
 
+/* libcvorg version string */
+extern const char * const libcvorg_version_s;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

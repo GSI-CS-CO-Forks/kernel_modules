@@ -2,6 +2,7 @@
 include ../../common.mk
 
 CFLAGS := -Wall -g -I../include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBCVORB := libcvorb.$(CPU).a
 HLIBCVORB := ../include/libcvorb.h
 HCVORB := ../include/cvorb.h

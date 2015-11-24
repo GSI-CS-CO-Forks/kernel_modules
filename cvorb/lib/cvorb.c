@@ -24,6 +24,8 @@
 #include "cvorbdev.h"
 #include "libinternal.h"
 
+const char * const libcvorb_version_s = "libcvorb version: " GIT_VERSION;
+
 #define LIBCVORB_VERSION        "1.0"
 #define USE_DMA                 0
 /** useful macro to check input parameter against a valid range */

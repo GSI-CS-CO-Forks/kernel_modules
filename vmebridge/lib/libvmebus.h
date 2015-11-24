@@ -69,6 +69,9 @@ extern int vme_unmap(struct vme_mapping *, int);
 extern int vme_dma_read(struct vme_dma *);
 extern int vme_dma_write(struct vme_dma *);
 
+/* libvmebus version string */
+extern const char * const libvmebus_version_s;
+
 #ifdef __cplusplus
 }
 #endif

@@ -10,8 +10,7 @@
 #include "cvora.h"
 #include "libcvora.h"
 
-static char __attribute__((unused)) lib_version[] =
-				__FILE__ " version: " GIT_VERSION;
+const char * const libcvora_version_s = "libcvora version: " GIT_VERSION;
 
 int cvora_init(int lun)
 {

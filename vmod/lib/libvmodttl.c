@@ -39,6 +39,8 @@
 #include  "vmodttl.h"
 #include "libvmodttl.h"
 
+const char * const libvmodttl_version_s = "libvmodttl version: " GIT_VERSION;
+
 #define DEV_NAME 20
 
 static int luns_to_fd [VMODTTL_MAX_BOARDS];

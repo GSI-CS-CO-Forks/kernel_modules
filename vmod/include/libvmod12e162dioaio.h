@@ -18,6 +18,8 @@
 #ifndef _LIBVMOD12E16_H_
 #define _LIBVMOD12E16_H_
 
+#include "libvmod.h"
+
 /**
  * @brief Symbolic constants for amplification factors
  * 

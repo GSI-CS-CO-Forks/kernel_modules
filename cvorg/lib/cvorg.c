@@ -35,6 +35,8 @@
  */
 const char *libcvorg_version = LIBCVORG_VERSION;
 
+const char * const libcvorg_version_s = "libcvorg version: " GIT_VERSION;
+
 int __cvorg_init;
 static struct cvorg_calib __cvorg_calib = {
 	.devicenr_list = NULL,

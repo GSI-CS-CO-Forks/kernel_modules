@@ -4,10 +4,11 @@ include ../../common.mk
 all: lib
 
 LIBS=libvmod.$(CPU).a libvmodttl.$(CPU).a libvmoddor.$(CPU).a
-OBJS=libvmod12a2.$(CPU).o libvmod12a4.$(CPU).o libvmod16a2.$(CPU).o libvmod12e16.$(CPU).o
+OBJS=libvmod12a2.$(CPU).o libvmod12a4.$(CPU).o libvmod16a2.$(CPU).o libvmod12e16.$(CPU).o libvmod.$(CPU).o
 
 CFLAGS=-g -Wall -fPIC
 CFLAGS += -I ../include -I../driver
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 lib: $(LIBS)
 shlib: $(LIBS:.a=.so)

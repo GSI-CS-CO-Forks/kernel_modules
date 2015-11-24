@@ -2,6 +2,7 @@
 include ../../common.mk
 
 CFLAGS := -Wall -g -D_GNU_SOURCE -I../include -I../../include -I../ad9516
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBCVORG := libcvorg.$(CPU).a 
 HLIBCVORG := ../include/libcvorg.h
 HCVORG := ../include/cvorg.h

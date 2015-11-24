@@ -83,4 +83,7 @@ extern int vd80_map();
 extern int vd80_init();
 extern int vd80_exit();
 
+/* libvd80 in the vmebridge version string */
+extern const char * const libvd80vmebridge_version_s;
+
 #endif /* _LIBVD80_H */

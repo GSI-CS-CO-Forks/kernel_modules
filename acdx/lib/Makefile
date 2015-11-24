@@ -7,6 +7,7 @@ include ../../common.mk
 
 CFLAGS= -g -Wall
 CFLAGS+= -I../driver
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 INSTFILES=libacdx.$(CPU).a libacdx.h ../driver/acdxdrvr.h ../driver/acdxdrvrP.h libamp.$(CPU).a libamp.h
 

@@ -30,6 +30,8 @@
  */
 const char *libsis33_version = LIBSIS33_VERSION;
 
+const char * const libsis33_version_s = "libsis33 version: " GIT_VERSION;
+
 int __sis33_init;
 
 static void __sis33_initialize(void)

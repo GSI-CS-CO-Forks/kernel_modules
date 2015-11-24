@@ -18,6 +18,8 @@
 #ifndef _LIBVMOD12A2_H_
 #define _LIBVMOD12A2_H_
 
+#include "libvmod.h"
+
 /**
  * @brief Get a handle for a vmod12a2 device and channel
  *

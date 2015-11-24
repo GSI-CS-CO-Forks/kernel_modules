@@ -25,6 +25,8 @@
 #include "libamp.h"
 #include "libampP.h"
 
+const char * const libamp_version_s = "libamp version: " GIT_VERSION;
+
 static int amp = 0;
 
 // ------------------------

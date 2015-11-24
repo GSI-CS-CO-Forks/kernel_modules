@@ -36,6 +36,8 @@
 #include "ctc_regs.h"
 #include "libctc.h"
 
+const char * const libctc_version_s = "libctc version: " GIT_VERSION;
+
 #define MAX_DEVNAME	256
 
 int ctc_open(int lun)

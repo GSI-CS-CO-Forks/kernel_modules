@@ -2,6 +2,7 @@
 include ../../common.mk
 
 CFLAGS+= -I../include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 all: libvmebus.$(CPU).a
 

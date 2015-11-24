@@ -29,6 +29,8 @@
 
 #include <vmebus.h>
 
+const char * const libvmebus_version_s = "libvmebus version: " GIT_VERSION;
+
 /** \brief VME address space mapping device */
 #define VME_MWINDOW_DEV "/dev/vme_mwindow"
 /** \brief VME DMA device */

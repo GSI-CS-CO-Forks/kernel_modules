@@ -327,7 +327,8 @@ int ctc_chan_get_cur_val_counter1(int fd, int chan, int *value);
 */
 int ctc_chan_get_cur_val_counter2(int fd, int chan, int *value);
 
-
+//! libctc version string
+extern const char * const libctc_version_s;
 #ifdef __cplusplus
 }
 #endif

@@ -74,6 +74,9 @@ int cvorb_errno(void);
 char *cvorb_strerror(int errnum);
 void cvorb_perror(const char *string);
 
+/* libcvorb version string */
+extern const char * const libcvorb_version_s;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

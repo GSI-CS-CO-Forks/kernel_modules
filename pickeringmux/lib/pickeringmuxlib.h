@@ -24,6 +24,8 @@ extern "C" {
   int  pickeringMuxReset(int aSlot);
   int  pickeringMuxWidth(int aSlot);
   int  pickeringAttn(int aSlot, int aChannel, int anAttn);
+  /* libpickeringmux version string */
+  extern const char * const libpickeringmux_version_s;
 #ifdef __cplusplus
 }
 #endif

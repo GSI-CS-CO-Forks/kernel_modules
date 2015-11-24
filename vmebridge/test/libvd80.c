@@ -24,6 +24,8 @@
 #include <libvmebus.h>
 #include "libvd80.h"
 
+const char * const libvd80vmebridge_version_s = "libvd80(vmebridge) version: " GIT_VERSION;
+
 unsigned int *regs;
 struct vme_mapping regs_desc;
 

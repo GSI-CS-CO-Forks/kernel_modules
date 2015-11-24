@@ -3,6 +3,7 @@ include ../../common.mk
 
 # Flags to compile test program and lib
 CFLAGS=-Wall -g
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 # Lib src
 LIBSRCS=crateconfig.c

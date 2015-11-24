@@ -272,6 +272,8 @@ int cvora_get_channels_mask(int fd, unsigned int *chans);
  */
 int cvora_set_channels_mask(int fd, unsigned int chans);
 
+/* libcvora version string */
+extern const char * const libcvora_version_s;
 
 #ifdef __cplusplus
 }

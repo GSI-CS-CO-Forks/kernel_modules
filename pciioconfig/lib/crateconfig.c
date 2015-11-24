@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include "crateconfig.h"
 
+const char * const libpciioconfig_version_s = "libpciioconfig version: " GIT_VERSION;
+
 #define PCI_2_SLOT_FILE "/dsc/local/etc/crateconfig"
 
 typedef struct

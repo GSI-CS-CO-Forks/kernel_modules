@@ -108,6 +108,9 @@ int sis33_get_internal_trigger_setup(sis33_t *device, unsigned int channel,
 
 int sis33_reset_internal_trigger_all(sis33_t *device);
 
+/* libsis33 version string */
+extern const char * const libsis33_version_s;
+
 #ifdef __cplusplus
 }
 #endif /* __cplusplus */

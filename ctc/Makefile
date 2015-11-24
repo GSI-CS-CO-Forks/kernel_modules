@@ -8,6 +8,7 @@ LIBNAME = lib$(DRIVER)
 COMPILE_TIME = $(shell date +%s)
 CFLAGS= -g -Wall -fPIC
 CFLAGS+=-I../vmebridge/include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 #used for mv
 DRIVER_OBJ=ctc.o ctc.mod.o

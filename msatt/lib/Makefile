@@ -6,6 +6,7 @@ OBJS=libmsatt.$(CPU).o
 
 CFLAGS=-g -Wall -fPIC
 CFLAGS+=-I../driver
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 all: lib
 

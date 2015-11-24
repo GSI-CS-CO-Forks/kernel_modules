@@ -3,6 +3,7 @@ include ../../common.mk
 
 INCDIR := ../include
 CFLAGS := -Wall -fPIC -g -I$(INCDIR) -I../../include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBSIS33 := libsis33.$(CPU).a 
 HLIBSIS33 := $(INCDIR)/libsis33.h
 HSIS33 := $(INCDIR)/sis33.h

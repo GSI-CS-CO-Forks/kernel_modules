@@ -4,6 +4,7 @@ include ../../common.mk
 INCDIR := ../include
 
 CFLAGS= -Wall -g -I$(INCDIR)
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 LIBAD9516 = libad9516.$(CPU).a
 

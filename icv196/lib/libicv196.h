@@ -236,6 +236,11 @@ icv196_err_t icv196RawIo(int fd, struct icv196_riob_s *riob, int io_dir);
 
 char *icv196ErrToStr(icv196_err_t error);
 
+/**
+ * libicv196 version string
+ */
+extern const char * const libicv196_version_s;
+
 #ifdef __cplusplus
 }
 #endif
