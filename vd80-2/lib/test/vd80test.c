@@ -16,8 +16,10 @@
 #include <stdint.h>
 #include <sys/mman.h>
 
-#include <vd80.h>
-#include <libvd80.h>
+#include "vd80.h"
+#include "libvd80.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 #define NEWS 1
 #define HISTORIES 24
@@ -48,7 +50,9 @@ int main(int argc,char *argv[])
 	char tmpb[CMD_BUF_SIZE];
 
 	pname = argv[0];
-	printf("%s: Compiled %s %s\n",pname,__DATE__,__TIME__);
+	printf("%s: Compiled %s %s\n", pname,__DATE__,__TIME__);
+	printf("%s: %s\n", pname, git_version);
+	printf("%s\n", libvd80_version_s);
 
 	if (argc > 1)
 		dev = strtoul(argv[1],&cp,0);

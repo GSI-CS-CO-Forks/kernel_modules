@@ -2,6 +2,8 @@
 include ../common.mk
 
 CFLAGS+=-I../vmebridge/include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
 all: vmeio.$(CPU)
 
 clean:

@@ -15,6 +15,8 @@
 
 #include <vmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 char *prgname;
 int force_create = -1;
 int force_destroy = -1;
@@ -29,6 +31,7 @@ void usage()
 	printf(" -c:    Set or clear force create flag\n");
 	printf(" -d:    Set or clear force destroy flag\n");
 	printf(" -s:    Show the current flags status\n");
+	printf("\n%s\n", git_version);
 	printf("\n");
 }
 

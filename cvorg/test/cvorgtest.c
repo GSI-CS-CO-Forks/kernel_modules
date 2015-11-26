@@ -23,6 +23,8 @@
 #include "libinternal.h"
 #include "libad9516.h"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* this compilation flag enables printing the test waveform before it's sent */
 /* #define DEBUG_CVORG_WVSHAPES */
 
@@ -1453,6 +1455,12 @@ int h_hw_version(struct cmd_desc *cmdd, struct atom *atoms)
 	printf("%s\n", hw_version);
 
 	return 1;
+}
+
+void print_version(void)
+{
+	printf("%s\n", git_version);
+	printf("%s\n", libcvorg_version_s);
 }
 
 

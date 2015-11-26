@@ -14,6 +14,8 @@
 #include <libvmebus.h>
 #include "libvd80.h"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 #define CHAN_USED	16
 
 unsigned int shot_samples;
@@ -165,6 +167,10 @@ out_free:
 int main(int argc, char **argv)
 {
 	int rc = 0;
+
+	printf("%s: %s\n", argv[0], git_version);
+	printf("%s\n", libvmebus_version_s);
+	printf("%s\n\n", libvd80vmebridge_version_s);
 
 	if (vd80_map())
 		exit(1);

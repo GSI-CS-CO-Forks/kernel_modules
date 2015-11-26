@@ -15,6 +15,8 @@
 
 #include <vmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 int window_num;
 
 #define VME_MWINDOW_DEV "/dev/vme_mwindow"
@@ -23,6 +25,7 @@ void usage(char * prgname)
 {
 	printf("Usage: %s winnum\n", prgname);
 	printf(" window:         0..7\n");
+	printf("\n%s\n", git_version);
 }
 
 void parse_args(int argc, char **argv)

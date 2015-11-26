@@ -57,6 +57,8 @@
 
 #include <vmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 #define VME_MWINDOW_DEV "/dev/vme_mwindow"
 
 #define MODULE_AM	VME_A24_USER_DATA_SCT
@@ -83,6 +85,8 @@ int main(int argc, char **argv)
 	int i;
 	unsigned int test;
 	int bus_err;
+
+	printf("%s: %s\n\n", argv[0], git_version);
 
 	/* Setup the mapping descriptor */
 	memset(&desc, 0, sizeof(struct vme_mapping));

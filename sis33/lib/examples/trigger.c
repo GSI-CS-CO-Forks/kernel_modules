@@ -9,8 +9,10 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include <libsis33.h>
+#include "libsis33.h"
 #include "my_stringify.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 #define PROGNAME	"trigger"
 
@@ -24,7 +26,7 @@ extern char *optarg;
 
 static const char usage_string[] =
 	"configure and send triggers on an sis33 device.\n"
-	" " PROGNAME " [-e<BOOL>] [-h] [-m<LUN>] [-s<TRIGGER>]";
+	" " PROGNAME " [-e<BOOL>] [-h] [-v] [-m<LUN>] [-s<TRIGGER>]";
 
 static const char commands_string[] =
 	"options:\n"
@@ -32,7 +34,8 @@ static const char commands_string[] =
 	" -d = delay\n"
 	" -h = show this help text\n"
 	" -m = Module number (default: " my_stringify(MODULE_NR) ")\n"
-	" -s = Send trigger (valid: \"start\" and \"stop\")";
+	" -s = Send trigger (valid: \"start\" and \"stop\")\n"
+	" -v = version";
 
 static void usage_complete(void)
 {
@@ -40,12 +43,18 @@ static void usage_complete(void)
 	printf("%s\n", commands_string);
 }
 
+static void print_version(void)
+{
+	printf("%s\n", git_version);
+	printf("%s\n", libsis33_version_s);
+}
+
 static void parse_args(int argc, char *argv[])
 {
 	int c;
 
 	for (;;) {
-		c = getopt(argc, argv, "e:hm:s:");
+		c = getopt(argc, argv, "e:hvm:s:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -54,6 +63,9 @@ static void parse_args(int argc, char *argv[])
 			break;
 		case 'h':
 			usage_complete();
+			exit(EXIT_SUCCESS);
+		case 'v':
+			print_version();
 			exit(EXIT_SUCCESS);
 		case 'm':
 			module_nr = strtol(optarg, NULL, 0);

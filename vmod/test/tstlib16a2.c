@@ -11,6 +11,8 @@
 	#include "libvmod16a2.h"
 #endif
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* VMOD 16A2 precision */
 #define VMOD_DAC_INPUT_RANGE (1<<16)
 
@@ -26,7 +28,9 @@ int volts2digital(float volts)
 
 void usage(void)
 {
-	fprintf(stderr, "usage: pp lun channel volts\n");
+	fprintf(stderr, "usage: pp lun channel volts\n\n");
+	fprintf(stderr, "%s\n", git_version);
+	fprintf(stderr, "%s\n", libvmod_version_s);
 }
 
 int main(int argc, char *argv[])

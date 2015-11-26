@@ -16,6 +16,8 @@
 #include "sis33acq.h"
 #include "sis33dev.h"
 
+static char git_version[] = "sis33test version: " GIT_VERSION;
+
 #define SIS33T_MAX_NR_SEGMENTS	8
 
 int use_builtin_cmds = 0;
@@ -1057,6 +1059,7 @@ int main(int argc, char *argv[], char *envp[])
 	int *indexes;
 	int ndevs;
 
+	printf("%s\n", git_version);
 	/* try to control the first device */
 	ndevs = sis33dev_get_nr_devices();
 	if (!ndevs)

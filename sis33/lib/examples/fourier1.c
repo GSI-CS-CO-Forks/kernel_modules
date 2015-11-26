@@ -18,6 +18,8 @@
 #include <stdio.h>
 #include <math.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 #define PROGNAME	"fourier1"
 
 static double origfreq;
@@ -27,14 +29,15 @@ static float *buf;
 
 static const char usage_string[] =
 	"Calculate the first pair of Fourier Coefficients of an acquisition data set\n"
-	" " PROGNAME " [-f<file>] [-h] [-o<ORIGFREQ>] [-s<SAMPFREQ>]";
+	" " PROGNAME " [-f<file>] [-h][-v] [-o<ORIGFREQ>] [-s<SAMPFREQ>]";
 
 static const char commands_string[] =
 	"options:\n"
 	" -f = path to acquisition data file (default: stdin)\n"
 	" -h = show this help text\n"
 	" -o = Original waveform's frequency (MHz)\n"
-	" -s = Sampling frequency (MHz)";
+	" -s = Sampling frequency (MHz)\n"
+	" -v = version";
 
 static void usage_complete(void)
 {
@@ -42,12 +45,17 @@ static void usage_complete(void)
 	printf("%s\n", commands_string);
 }
 
+static void print_version(void)
+{
+	printf("%s\n", git_version);
+}
+
 static void parse_args(int argc, char *argv[])
 {
 	int c;
 
 	for (;;) {
-		c = getopt(argc, argv, "f:ho:s:");
+		c = getopt(argc, argv, "f:hvo:s:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -57,6 +65,9 @@ static void parse_args(int argc, char *argv[])
 			break;
 		case 'h':
 			usage_complete();
+			exit(EXIT_SUCCESS);
+		case 'v':
+			print_version();
 			exit(EXIT_SUCCESS);
 		case 'o':
 			origfreq = strtod(optarg, NULL);

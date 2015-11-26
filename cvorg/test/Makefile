@@ -8,6 +8,7 @@ CFLAGS+= -Iextest/ \
 	-I../lib \
 	-I../include/ \
 	-I../../include/
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 LOADLIBES := -L../lib/ -L../ad9516
 LDLIBS=-lcvorg.$(CPU) -lreadline -lad9516.$(CPU) -lrt -lm

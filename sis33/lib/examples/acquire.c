@@ -9,8 +9,10 @@
 #include <stdio.h>
 #include <inttypes.h>
 
-#include <libsis33.h>
+#include "libsis33.h"
 #include "my_stringify.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 #define MODULE_NR	0
 #define SEGMENT_NR	0
@@ -33,7 +35,7 @@ extern char *optarg;
 
 static const char usage_string[] =
 	"Sample from two sis33 segments\n"
-	" " PROGNAME "[-a] [-c<CHANNEL>] [-e<EVENTS>] [-f] [-h] [-l<LENGTH>] [-m<LUN>] [-n] [-s<SEGMENT>] [-t]";
+	" " PROGNAME "[-a] [-c<CHANNEL>] [-e<EVENTS>] [-f] [-h] [-v] [-l<LENGTH>] [-m<LUN>] [-n] [-s<SEGMENT>] [-t]";
 
 static const char commands_string[] =
 	"options:\n"
@@ -47,7 +49,8 @@ static const char commands_string[] =
 	" -m = Module. Default: " my_stringify(MODULE_NR) "\n"
 	" -n = No wait\n"
 	" -s = segment. Default: " my_stringify(SEGMENT_NR) "\n"
-	" -t = Fetch and only print timestamps (if supported)";
+	" -t = Fetch and only print timestamps (if supported)\n"
+	" -v = version";
 
 static void usage_complete(void)
 {
@@ -55,12 +58,18 @@ static void usage_complete(void)
 	printf("%s\n", commands_string);
 }
 
+static void print_version(void)
+{
+	printf("%s\n", git_version);
+	printf("%s\n", libsis33_version_s);
+}
+
 static void parse_args(int argc, char *argv[])
 {
 	int c;
 
 	for (;;) {
-		c = getopt(argc, argv, "ac:e:fhl:m:ns:t");
+		c = getopt(argc, argv, "ac:e:fhvl:m:ns:t");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -80,6 +89,9 @@ static void parse_args(int argc, char *argv[])
 			break;
 		case 'h':
 			usage_complete();
+			exit(EXIT_SUCCESS);
+		case 'v':
+			print_version();
 			exit(EXIT_SUCCESS);
 		case 'l':
 			ev_length = strtoul(optarg, NULL, 0);

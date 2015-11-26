@@ -14,6 +14,8 @@
 #include "msatt.h"
 #include "libmsatt.h"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 int device;
 int selected_channel;
 int relay_register;
@@ -115,6 +117,12 @@ void change_channel ()
 	}
 }
 
+static void print_version(char *pname)
+{
+	printf("%s %s\n", pname, git_version);
+	printf("%s\n", libmsatt_version_s);
+}
+
 int main (int argc, char *argv[])
 {
 	int fd;
@@ -122,21 +130,26 @@ int main (int argc, char *argv[])
 
 	selected_channel = 1;
 
-	if (argc == 2)
-	{
-		device = atoi(argv[1]);
-	}
-	else
+	if (argc != 2)
 	{
 		printf("Insufficient number of arguments\n");
 		printf("\nPlease use: %s <lun_of_the_device>\n", argv[0]);
+		printf("or: %s -v for version info\n", argv[0]);
 		exit(-1);
-	}	
+	}
+	if(!strcmp("-v", argv[1])) {
+		print_version(argv[0]);
+		exit(0);
+	}
+	else
+	{
+		device = atoi(argv[1]);
+	}
 
 	if ((fd = msatt_open(device)) < 0) {
 		perror ("open failed\n");
 		return -1;
-	}	
+	}
 
 	/* Check for channel count*/
 	num_channels = msatt_get_nchannels(fd);

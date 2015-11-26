@@ -3,6 +3,7 @@ include ../../common.mk
 
 CFLAGS=-g -Wall
 CFLAGS+=-I../lib -I../driver
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDFLAGS += -L../lib
 LDLIBS += -lmsatt.$(CPU)
 

@@ -726,6 +726,8 @@ static void usage_error()
 	printf("Try '%s -h' for more information.\n", __progname);
 }
 
+extern void print_version(void);
+
 static void usage()
 {
 	usage_short();
@@ -734,6 +736,7 @@ static void usage()
 		" (default: '" DRIVER_NAME "')\n");
 	printf( " -h               display this help message\n\n");
 	printf( "[ %s: Compiled on %s %s ]\n\n", __progname, __DATE__, __TIME__);
+	print_version();
 }
 
 /**

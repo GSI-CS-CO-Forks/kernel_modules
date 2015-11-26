@@ -16,6 +16,7 @@
 
 #include <vmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
 char *prgname;
 struct vme_mapping mapping;
 int am = -1;
@@ -40,6 +41,7 @@ void usage()
 	printf(" -w dwidth:      Data width 16 or 32\n");
 	printf(" -a vmeaddr:     VME start address (in hex)\n");
 	printf(" -s size:        mapping size (in hex)\n");
+	printf("\n%s\n", git_version);
 	printf("\n");
 }
 

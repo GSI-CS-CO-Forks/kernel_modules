@@ -14,6 +14,7 @@ ACCS=oplhc
 CFLAGS= -g -Wall
 CFLAGS+= -I../driver
 CFLAGS+= -DCOMPILE_TIME=$(COMPILE_TIME)
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 LDLIBS = -lm
 

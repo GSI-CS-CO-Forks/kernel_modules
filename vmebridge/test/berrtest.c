@@ -12,6 +12,8 @@
 
 #include <libvmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* Number of (faulty) accesses to be done */
 #define ACCESSES	4
 
@@ -27,6 +29,9 @@ int main(int argc, char *argv[])
 	uint32_t *virt;
 	int berr;
 	int i;
+
+	printf("%s: %s\n", argv[0], git_version);
+	printf("%s\n", libvmebus_version_s);
 
 	memset(&mapping, 0, sizeof(struct vme_mapping));
 

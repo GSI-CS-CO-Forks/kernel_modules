@@ -5,6 +5,7 @@ VPATH = ../../utils/extest ../lib
 INCDIR := ../include
 CFLAGS := -Wall -g -I$(INCDIR) -I../../include -I../../utils/extest -I../lib \
 	-I../../utils/user -DDRIVER_NAME=\"sis33\"
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBUTILSPATH := ../../utils/user
 LIBUTILS := $(LIBUTILSPATH)/libutils.$(CPU).a
 LDLIBS := -lxml2 -lreadline -lrt

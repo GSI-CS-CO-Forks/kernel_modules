@@ -11,6 +11,7 @@ DRIVER = $(VD80LB)/../driver
 
 
 CFLAGS = -g -Wall -I $(VD80LB) -I $(DRIVER) -DCOMPILE_TIME=$(COMPILE_TIME)
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 LDLIBS = $(VD80LB)/libvd80.$(CPU).a
 

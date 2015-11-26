@@ -4,6 +4,7 @@ include ../../common.mk
 # Flags to compile test program and lib
 CFLAGS=-Wall -g
 CFLAGS+=-I../lib
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDFLAGS+=-L../lib
 LDLIBS+=-lpciioconfig.$(CPU)
 

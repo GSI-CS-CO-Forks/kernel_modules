@@ -14,6 +14,8 @@
 #include <libvmebus.h>
 #include "vd80.h"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 #define VD80_SETUP_BASE	0x580000
 #define VD80_SETUP_SIZE	0x80000
 #define VD80_SETUP_AM	VME_CR_CSR
@@ -990,6 +992,9 @@ out_free:
 int main(int argc, char **argv)
 {
 	int rc = 0;
+
+	printf("%s: %s\n", argv[0], git_version);
+	printf("%s\n\n", libvmebus_version_s);
 
 	if (vd80_map())
 		exit(1);

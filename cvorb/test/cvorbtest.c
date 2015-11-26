@@ -29,6 +29,8 @@
 #include "time_stamp_counter.h"
 #endif
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* mandatory external global variables */
 int use_builtin_cmds = 0;
 char xmlfile[128] = "cvorb.xml";
@@ -1126,6 +1128,11 @@ int h_load_and_play(struct cmd_desc *cmdd, struct atom *atoms)
 
 int main(int argc, char *argv[], char *envp[])
 {
+	char *pname;
+	pname = argv[0];
+	printf("%s: Compiled %s %s\n", pname,__DATE__,__TIME__);
+	printf("%s: %s\n", pname, git_version);
+	printf("%s\n", libvd80_version_s);
 #if __CVORB_DEBUG__
 	ts_calibrateCountPeriod(50, 10);
 #endif

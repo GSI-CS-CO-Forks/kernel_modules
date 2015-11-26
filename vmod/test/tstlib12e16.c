@@ -7,6 +7,7 @@
 	#include "libvmod12e16.h"
 #endif
 
+static char git_version[] = "git_version: " GIT_VERSION;
 
 int main(int argc, char *argv[])
 {
@@ -15,7 +16,9 @@ int main(int argc, char *argv[])
 	float decimal;
 
 	if (argc != 4) {
-		fprintf(stderr, "usage: %s lun channel ampli\n", argv[0]);
+		fprintf(stderr, "usage: %s lun channel ampli\n\n", argv[0]);
+		fprintf(stderr, "%s\n", git_version);
+		fprintf(stderr, "%s\n", libvmod_version_s);
 		return 1;
 	}
 

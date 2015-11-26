@@ -42,6 +42,8 @@
 	#include "libvmodttl.h"
 #endif
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 int device;
 
 void write_channel(int pd)
@@ -87,7 +89,9 @@ int main (int argc, char *argv[])
 	printf(" | Created by: Samuel I. Gonsalvez      | \n");
 	printf(" | Email: siglesia@cern.ch              | \n");
 	printf(" |______________________________________| \n");
-
+	printf("\n");
+	printf("%s\n", git_version);
+	printf("%s\n", libvmodttl_version_s);
 	if (argc == 2)
 	{
 		device = atoi(argv[1]);

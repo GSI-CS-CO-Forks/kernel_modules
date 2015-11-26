@@ -15,6 +15,8 @@
 
 #include <libvmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* Registers address space */
 #define REGS_BASE	0
 #define REGS_OFFSET	0xbe00
@@ -56,6 +58,9 @@ int main(int argc, char **argv)
 	unsigned long long delta_ns;
 	double delta;
 	double throughput;
+
+	printf("%s %s\n", argv[0], git_version);
+	printf("%s\n", libvmebus_version_s);
 
 	/* Open a mapping for the CSR register */
 	memset(&regs_desc, 0, sizeof(struct vme_mapping));

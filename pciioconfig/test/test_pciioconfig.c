@@ -1,13 +1,18 @@
 #include <stdio.h>
 #include "crateconfig.h"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 int main(int argc, char *argv[])
 {
   int slot;
   int bus;
   int device;
   int rc;
-  
+
+  printf("%s: %s\n", argv[0], git_version);
+  printf("%s\n", libpciioconfig_version_s);
+  printf("\n");
   printf("Testing slot -> bus-device\n");
   for(slot = 1; slot <= CPCI_CRATE_MAX_SLOT; slot++)
   {

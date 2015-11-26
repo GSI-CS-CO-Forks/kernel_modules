@@ -29,6 +29,8 @@
 #define HSM_AM		VME_A32_USER_BLT
 #define HSM_DW		VME_D32
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 struct stats {
 	int	cycles;
 	double	delta;
@@ -225,6 +227,8 @@ int main(int argc, char *argv[])
 			"     default: 0 (loop forever.)\n"
 			"This program can be interrupted anytime with the "
 			"TERM or INT signals\n");
+		printf("\n%s\n", git_version);
+		printf("%s\n", libvmebus_version_s);
 		exit(EXIT_FAILURE);
 	}
 	sscanf(argv[1], "%d", &duration);

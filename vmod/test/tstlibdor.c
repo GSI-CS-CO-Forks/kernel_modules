@@ -13,6 +13,8 @@
 	#include "libvmoddor.h"
 #endif
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 int main (int argc, char *argv[])
 {
 	int lun = -1;
@@ -25,7 +27,8 @@ int main (int argc, char *argv[])
 			"<offset>	value of the offset (first channel) applied.\n"
 			"<size>		size of the data (4, 8, 16 channels).\n"
 			"<value>	integer value to be written (dec, hex and oct accepted).\n");
-
+		printf("\n%s\n", git_version);
+		printf("%s\n", libvmoddor_version_s);
 		exit(-1);
 	} 
 	else

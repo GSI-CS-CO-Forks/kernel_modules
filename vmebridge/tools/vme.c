@@ -6,8 +6,13 @@
 #include <arpa/inet.h>
 #include <libvmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
+void print_version(void);
+
 void usage(char *prog)
 {
+
 	fprintf(stderr,
 		"usage: %s [-v vme_address][options]\n\n", prog);
 	fprintf(stderr,
@@ -36,6 +41,8 @@ void usage(char *prog)
 		"  -H         : hide the address\n");
 	fprintf(stderr,
 		"  -h         : print this help\n");
+	fprintf(stderr,
+		"  -V         : version\n");
 	fprintf(stderr, "\n");
 	fprintf(stderr,
 		"Data Width\n");
@@ -51,7 +58,14 @@ void usage(char *prog)
 	fprintf(stderr, "  0x29 A16 user data\n");
 	fprintf(stderr, "  0x39 A24 user data\n");
 	fprintf(stderr, "\n");
+	print_version();
 	exit(1);
+}
+
+void print_version(void)
+{
+	fprintf(stderr, "%s\n", git_version);
+	fprintf(stderr, "%s\n", libvmebus_version_s);
 }
 
 int is_invalid_width(int data_width)
@@ -113,7 +127,7 @@ int main(int argc, char *argv[])
 	offsets_on = 1;
 	offset = 0;
 	length = 0x80000;
-	while ((c = getopt(argc, argv, "Hv:s:D:d:a:n:w:l:h")) != -1) {
+	while ((c = getopt(argc, argv, "Hv:s:D:d:a:n:w:l:hV")) != -1) {
 		switch (c) {
 		case 'H':
 			offsets_on = 0;
@@ -153,6 +167,9 @@ int main(int argc, char *argv[])
 		case 'h':
 			usage(argv[0]);
 			break;
+		case 'V':
+			print_version();
+			exit(1);
 		default:
 			break;
 		}

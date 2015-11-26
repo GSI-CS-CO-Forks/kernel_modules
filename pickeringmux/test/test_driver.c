@@ -1,6 +1,3 @@
-
-static __attribute__((unused)) char test_version[] = "version: " GIT_VERSION;
-
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -11,7 +8,9 @@ static __attribute__((unused)) char test_version[] = "version: " GIT_VERSION;
 #include <fcntl.h>
 #include <time.h>
 #include "pickeringmuxdrv.h"
-#include "pciioconfig/crateconfig.h"
+#include "crateconfig.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 static void printUsage(char *basename);
 static void printStatus(int *status, int size);
@@ -27,6 +26,11 @@ static int resetMode;
 static int closeMode;
 static int openMode;
 
+static void print_version(void)
+{
+	printf("%s\n", git_version);
+	printf("%s\n", libpciioconfig_version_s);
+}
 
 int main(int argc, char *argv[])
 {
@@ -48,7 +52,13 @@ int main(int argc, char *argv[])
     printUsage(argv[0]);    
     exit(0);
   }
-  
+  /* print version */
+  if(!strcmp(argv[1], "-v"))
+  {
+    print_version();
+    exit(0);
+  }
+
   rc = sscanf(argv[1], "%d\n", &slot);
   if(rc != 1) /* We should decode just one character */
   {
@@ -353,6 +363,7 @@ static void printUsage(char *basename)
   printf("the -c  <input> <output> option closes the <input> on <output>\n");
   printf("the -o  <output> option opens the <output>\n");
   printf("the -a  <ch> <attn> option sets the <attn> attenuation on channel <ch>\n");
+  printf("the -v  version info\n");
 }
 
 /******************************************************************************

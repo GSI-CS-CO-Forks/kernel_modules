@@ -52,6 +52,7 @@
 
 #include <libvmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
 
 #define MODULE_AM	VME_A24_USER_DATA_SCT
 #define MODULE_DW	VME_D32
@@ -66,6 +67,9 @@ int main(int argc, char **argv)
 	int i;
 	unsigned int val;
 	unsigned int saved;
+
+	printf("%s: %s\n", argv[0], git_version);
+	printf("%s\n\n", libvmebus_version_s);
 
 	memset(&param, 0, sizeof(struct pdparam_master));
 

@@ -2,6 +2,7 @@
 include ../common.mk
 
 CFLAGS = -g -I../vmebridge/include
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDLIBS = -lvmebus.$(CPU)
 LDFLAGS = -L../vmebridge/lib
 ALL  = jtag.$(CPU)

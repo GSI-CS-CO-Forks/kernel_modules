@@ -8,10 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
+#include <libvmebus.h>
 
 #include "lenval.h"
 #include "micro.h"
 #include "ports.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 void setPort(short p,short val);
 void readByte(unsigned char *data);
@@ -38,6 +41,8 @@ int cc;
       printf("Examples:\n");
       printf("         nouchi.xsvf 0x1000\n");
       printf("         nouchi.xsvf 0x1000 4\n");
+      printf("\n%s\n", git_version);
+      printf("%s\n", libvmebus_version_s);
       exit(0);
    }
 

@@ -26,6 +26,8 @@
 #include <sys/stat.h>
 #include <vmebus.h>
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 /* error handling */
 #define TSI148_LCSR_DSTA_VBE           (1<<28)  /* Error */
 #define TSI148_LCSR_DSTA_ABT           (1<<27)  /* Abort */
@@ -474,8 +476,16 @@ int main(int argc, char *argv[], char *envp[])
 		exit(1);
 	}
 
+	if (argc<2) {
+		printf("Not enough parameters\n");
+		exit(EXIT_FAILURE);
+	}
 
 	sscanf(argv[1], "%c", &op);
+
+	if (op=='-') {
+		sscanf(argv[1]+1, "%c", &op);
+	}
 
 	switch (op) {
 	case 'r':
@@ -484,8 +494,16 @@ int main(int argc, char *argv[], char *envp[])
 	case 'w':
 		do_write(argc, argv, envp);
 		break;
+	case 'v':
+		printf("%s\n", git_version);
+		exit(EXIT_SUCCESS);
 	default:
 		printf("Wrong optype (%c)\n", op);
+	case 'h':
+		printf("Use:\n", op);
+		printf("  r - read\n", op);
+		printf("  w - write\n", op);
+		printf("  v - version\n", op);
 		exit(EXIT_FAILURE);
 	}
 

@@ -2,6 +2,7 @@
 include ../../common.mk
 
 CFLAGS = -Wall -I../include $(EXTRACFLAGS)
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDFLAGS = -L../lib
 LDLIBS = -lvmebus.$(CPU)
 

@@ -23,6 +23,8 @@
 #define HISTORIES 24
 #define CMD_BUF_SIZE 128
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 static char history[HISTORIES][CMD_BUF_SIZE];
 static char *cmdbuf = &(history[0][0]);
 static int  cmdindx = 0;
@@ -49,6 +51,8 @@ int main(int argc,char *argv[])
 
 	pname = argv[0];
 	printf("%s: Compiled %s %s\n",pname,__DATE__,__TIME__);
+	printf("%s: %s\n", pname, git_version);
+	printf("%s\n", libicv196_version_s);
 
 	if (argc > 1)
 		dev = strtoul(argv[1],&cp,0);

@@ -22,6 +22,8 @@ int am, dsize, vmeaddr, length;
 
 #define VME_MWINDOW_DEV "/dev/vme_mwindow"
 
+static char git_version[] = "git_version: " GIT_VERSION;
+
 void usage(char * prgname)
 {
 	printf("Usage: %s winnum am dwidth vmeaddr size\n", prgname);
@@ -30,6 +32,7 @@ void usage(char * prgname)
 	printf(" data width:     16 or 32\n");
 	printf(" VME address:    VME start address\n");
 	printf(" size:           window size\n");
+	printf("\n%s\n", git_version);
 }
 
 void parse_args(int argc, char **argv)

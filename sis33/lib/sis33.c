@@ -18,7 +18,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 
-#include <libsis33.h>
+#include "libsis33.h"
 #include "sis33acq.h"
 #include "sis33dev.h"
 #include "libinternal.h"

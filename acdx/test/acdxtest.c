@@ -45,6 +45,7 @@ static int  acdx;
 #include "AcdxOpen.c"
 #include "AcdxCmds.c"
 
+static char git_version[] = "git_version: " GIT_VERSION;
 /**************************************************************************/
 /* Prompt and do commands in a loop                                       */
 /**************************************************************************/
@@ -60,6 +61,7 @@ char tmpb[CMD_BUF_SIZE];
 
    pname = argv[0];
    printf("%s: Compiled %s %s\n",pname,__DATE__,__TIME__);
+   printf("%s: %s\n",pname, git_version);
 
    acdx = AcdxOpen();
    if (acdx == 0) {

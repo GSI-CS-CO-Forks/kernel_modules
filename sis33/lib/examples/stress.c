@@ -10,8 +10,10 @@
 #include <unistd.h>
 #include <stdio.h>
 
-#include <libsis33.h>
+#include "libsis33.h"
 #include "my_stringify.h"
+
+static char git_version[] = "git_version: " GIT_VERSION;
 
 #define MODULE_NR	0
 #define SEGMENT_NR	0
@@ -33,7 +35,7 @@ extern char *optarg;
 
 static const char usage_string[] =
 	"Fetch samples until a timeout expires or a signal arrives\n"
-	" " PROGNAME " [e<EVENTS>] [-h] [-l<LENGTH>] [-m<LUN>] [-s<SEGMENT>] [-t<TIMEOUT>]";
+	" " PROGNAME " [e<EVENTS>] [-h] [-v] [-l<LENGTH>] [-m<LUN>] [-s<SEGMENT>] [-t<TIMEOUT>]";
 
 static const char commands_string[] =
 	"options:\n"
@@ -43,7 +45,8 @@ static const char commands_string[] =
 	my_stringify(EV_LENGTH) "\n"
 	" -m = Module. Default: " my_stringify(MODULE_NR) "\n"
 	" -s = segment. Default: " my_stringify(SEGMENT_NR) "\n"
-	" -t = timeout (duration). 0 (default) to acquire forever\n";
+	" -t = timeout (duration). 0 (default) to acquire forever\n"
+	" -v = version";
 
 static void usage_complete(void)
 {
@@ -51,12 +54,18 @@ static void usage_complete(void)
 	printf("%s\n", commands_string);
 }
 
+static void print_version(void)
+{
+	printf("%s\n", git_version);
+	printf("%s\n", libsis33_version_s);
+}
+
 static void parse_args(int argc, char *argv[])
 {
 	int c;
 
 	for (;;) {
-		c = getopt(argc, argv, "e:hl:m:s:t:");
+		c = getopt(argc, argv, "e:hvl:m:s:t:");
 		if (c < 0)
 			break;
 		switch (c) {
@@ -65,6 +74,9 @@ static void parse_args(int argc, char *argv[])
 			break;
 		case 'h':
 			usage_complete();
+			exit(EXIT_SUCCESS);
+		case 'v':
+			print_version();
 			exit(EXIT_SUCCESS);
 		case 'l':
 			ev_length = strtoul(optarg, NULL, 0);
