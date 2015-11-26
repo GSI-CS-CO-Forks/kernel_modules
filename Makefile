@@ -33,7 +33,8 @@ cleanall: TARGET = cleanall
 $(DIRS-y):
 	$(MAKE) -C $@ $(TARGET)
 
-
+# dependencies
+pickeringmux: pciioconfig
 
 
 # init_submodules rule is used by CI machines (or by any other user) to be able
