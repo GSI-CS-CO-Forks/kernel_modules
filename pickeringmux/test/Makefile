@@ -3,8 +3,10 @@ include ../../common.mk
 
 CFLAGS += -g -Wall
 CFLAGS += -I../driver
+CFLAGS += -I../../pciioconfig/lib
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
-LDLIBS += -lpciioconfig
+LDFLAGS+= -L../../pciioconfig/lib
+LDLIBS += -lpciioconfig.$(CPU)
 
 all: test_driver.$(CPU)
 
