@@ -4,7 +4,7 @@ include ../../common.mk
 all: modules
 
 modules:
-	$(MAKE) -C $(KERNELSRC) M=`pwd` CROSS_COMPILE=$(TOOLS) modules
+	$(MAKE) -C $(KERNELSRC) M=`pwd` CROSS_COMPILE=$(CROSS_COMPILE) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
 

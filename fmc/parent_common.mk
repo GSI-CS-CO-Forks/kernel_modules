@@ -12,7 +12,6 @@ include $(REPO_PARENT)/../common.mk
 	$(LINK.c) $^  $(LOADLIBES) $(LDLIBS) -o $@
 
 LINUX=$(KERNELSRC)
-CROSS_COMPILE=$(TOOLS)
 export LINUX
 export CC
 export LD

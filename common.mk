@@ -21,6 +21,8 @@ GIT_VERSION = $(shell git describe --dirty --long --tags --always)
 
 KERNELSRC=/acc/sys/$(CPU)/usr/src/kernels/$(KVER)
 
+CROSS_COMPILE=$(TOOLS)
+
 # used to convert list separated with spaces into list separated with commas
 comma:= ,
 empty:=

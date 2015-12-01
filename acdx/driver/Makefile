@@ -7,7 +7,7 @@ all: driver
 driver: modules
 
 modules: 
-	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(TOOLS) modules
+	$(MAKE) -C $(KERNELSRC) M=`pwd` GIT_VERSION=$(GIT_VERSION) CROSS_COMPILE=$(CROSS_COMPILE) modules
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
 
