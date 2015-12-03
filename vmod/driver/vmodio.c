@@ -79,7 +79,7 @@ static struct vmodio *lun_to_dev(int lun)
 {
 	int i = 0;
 
-	for (i = 0; i < devices; i++) {
+	for (i = 0; i < MAX_DEVICES; i++) {
 		struct vmodio *dev = &device_table[i];
 		if (dev->lun == lun)
 			return dev;
