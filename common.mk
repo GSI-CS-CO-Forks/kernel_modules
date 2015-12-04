@@ -1,5 +1,8 @@
 CPU ?= L866
 
+# by default run all rule
+all:
+
 include /acc/dsc/src/co/Make.auto
 
 # ALL_CPUS has to be at least two elements due to brace expansion
