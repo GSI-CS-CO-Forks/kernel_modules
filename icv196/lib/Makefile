@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS= -g -Wall -fPIC
 CFLAGS+= -I../driver
 CFLAGS+=-DCOMPILE_TIME=$(shell date +%s)
@@ -37,5 +40,12 @@ docs_clean:
 	$(RM) -r html
 	$(RM) t
 
-install:
-	dsc_install libicv196.$(CPU).a /acc/local/$(CPU)/drv/icv196vme/
+LIBS_LIST=libicv196.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
+
+HEADERS_LIST=libicv196.h
+
+# use default instalation rule for headers
+install: install_headers_global

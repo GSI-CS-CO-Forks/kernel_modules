@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 all: modules
 modules:
 	$(CP) Module.symvers.vmebus Module.symvers
@@ -15,16 +18,14 @@ clean:
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
 
-install: ./$(CPU)/$(KVER)/icv196.ko
-	@echo "please specify one of {install-lab|install-oper|install-lhc|install-all}"
+DRIVERS_DEPLOY=icv196.ko
 
-install-all: install-lab install-oper install-oplhc
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
 
-install-lab: ./$(CPU)/$(KVER)/icv196.ko
-	dsc_install ./$(CPU)/$(KVER)/icv196.ko /acc/dsc/lab/$(CPU)/$(KVER)/icv196;
+install: install_drivers_global
 
-install-oper: ./$(CPU)/$(KVER)/icv196.ko
-	dsc_install ./$(CPU)/$(KVER)/icv196.ko /acc/dsc/oper/$(CPU)/$(KVER)/icv196;
+HEADERS_LIST=icv196.h
 
-install-oplhc: ./$(CPU)/$(KVER)/icv196.ko
-	dsc_install ./$(CPU)/$(KVER)/icv196.ko /acc/dsc/oplhc/$(CPU)/$(KVER)/icv196;
+# use default instalation rule for headers
+install: install_headers_global
