@@ -27,3 +27,6 @@ help:
 clean cleanall:
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
 	rm -rf $(ALL_CPUS)
+
+# no install rule
+install:
