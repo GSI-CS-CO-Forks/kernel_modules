@@ -1,8 +1,8 @@
 .PHONY: all clean
 .SUFFIXES: .pdf .tex
 .tex.pdf:
-	pdflatex $*.tex
-	pdflatex $*.tex
+	pdflatex $*.tex &>/dev/null
+	pdflatex $*.tex &>/dev/null
 
 all: user_req.pdf sines.pdf
 clean:
