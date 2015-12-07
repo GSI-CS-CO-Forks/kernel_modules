@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 all: driver
 driver: modules
 
@@ -17,3 +20,15 @@ clean:
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
 
+
+DRIVERS_DEPLOY=vmebus.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
+
+HEADERS_LIST=vmebus.h
+
+# use default instalation rule for headers
+install: install_headers_global

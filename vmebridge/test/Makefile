@@ -12,7 +12,8 @@ LIBVMEBUS	= ../lib/libvmebus.$(CPU).a
 LIBVD80		= libvd80.$(CPU).a
 LDLIBS		= -lrt
 
-all: $(SRCS:.c=.$(CPU))
+ALL=$(SRCS:.c=.$(CPU))
+all: $(ALL)
 
 .PHONY: all sources doc clean libvd80doc
 
@@ -50,3 +51,6 @@ clean:
 cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)} *.o *.{$(ALL_CPUS_COMMAS)}.a
 	$(RM) -r doc
+
+# empty install rule
+install:
