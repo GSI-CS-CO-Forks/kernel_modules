@@ -5,15 +5,16 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS= -g -Wall
 CFLAGS+= -I../driver
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
-INSTFILES=libacdx.$(CPU).a libacdx.h ../driver/acdxdrvr.h ../driver/acdxdrvrP.h libamp.$(CPU).a libamp.h
+LIBS=libacdx.$(CPU).a libamp.$(CPU).a
 
-ACCS=
-
-all:$(INSTFILES)
+all:$(LIBS)
 
 libacdx.$(CPU).a: libacdx.$(CPU).o
 	$(AR) $(ARFLAGS) $@ $^
@@ -31,16 +32,12 @@ cleanall:
 	$(RM) libacdx.{$(ALL_CPUS_COMMAS)}.{o,a}
 	$(RM) libamp.{$(ALL_CPUS_COMMAS)}.{o,a}
 
-install: $(INSTFILES)
-	cp libacdx.$(CPU).a /acc/local/$(CPU)/acdx/libacdx.a
-	cp libamp.$(CPU).a /acc/local/$(CPU)/acdx/libamp.a
-	rm -f /acc/local/$(CPU)/acdx/acdxdrvr.h
-	rm -f /acc/local/$(CPU)/acdx/acdxdrvrP.h
-	rm -f /acc/local/$(CPU)/acdx/libacdx.h
-	rm -f /acc/local/$(CPU)/acdx/libamp.h
-	rm -f /acc/local/$(CPU)/acdx/libampP.h
-	cp ../driver/acdxdrvr.h /acc/local/$(CPU)/acdx
-	cp ../driver/acdxdrvrP.h /acc/local/$(CPU)/acdx
-	cp libamp.h /acc/local/$(CPU)/acdx
-	cp libampP.h /acc/local/$(CPU)/acdx
-	cp libacdx.h /acc/local/$(CPU)/acdx
+LIBS_LIST=$(LIBS)
+
+# use default instalation rule for libs
+install: install_libs_global
+
+HEADERS_LIST=libamp.h libampP.h libacdx.h
+
+# use default instalation rule for headers
+install: install_headers_global

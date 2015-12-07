@@ -1,9 +1,12 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS=-g -Wall
 
-all: driver 
+all: driver
 driver: modules
 
 modules: 
@@ -17,3 +20,15 @@ clean:
 
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
+
+DRIVERS_DEPLOY=acdx.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
+
+HEADERS_LIST=acdxdrvr.h acdxdrvrP.h
+
+# use default instalation rule for headers
+install: install_headers_global

@@ -5,11 +5,10 @@
 # include the build environment
 include ../../common.mk
 
-DDIR = acdx
+#include version information
+include ../versions.mk
 
 COMPILE_TIME:=$(shell date +%s)
-
-ACCS=oplhc
 
 CFLAGS= -g -Wall
 CFLAGS+= -I../driver
@@ -19,8 +18,6 @@ CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDLIBS = -lm
 
 ALL  = acdxtest.$(CPU) acdxtest.$(CPU).o
-
-SRCS = acdxtest.c AcdxCmds.c AcdxOpen.c DoCmd.c GetAtoms.c Cmds.c
 
 HDRS = Cmds.h
 
@@ -41,5 +38,6 @@ cleanall:
 
 acdxtest.$(CPU).o: $(TEST) $(HDRS)
 
-install: acdxtest.$(CPU)
+PROGS_LIST=acdxtest.$(CPU)
 
+install: install_prog_global
