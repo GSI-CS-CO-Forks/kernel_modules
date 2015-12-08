@@ -7,3 +7,6 @@ docs: Doxyfile.patch
 
 clean cleanall:
 	rm -rf html Doxyfile
+
+# empty install rule
+install:
