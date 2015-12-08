@@ -43,3 +43,5 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
 
+# empty install rule
+install:
