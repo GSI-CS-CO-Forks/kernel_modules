@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 VPATH = ../../utils/extest ../lib
 INCDIR := ../include
 CFLAGS := -Wall -g -I$(INCDIR) -I../../include -I../../utils/extest -I../lib \
@@ -42,3 +45,7 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
 	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU) cleanall
+
+PROGS_LIST=sis33test.$(CPU)
+
+install: install_prog_global

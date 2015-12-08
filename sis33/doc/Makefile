@@ -8,3 +8,6 @@ ALL=user_req.pdf sines.pdf
 all: $(ALL)
 clean cleanall:
 	rm -f *.aux *.out *.log .log $(ALL)
+
+# empty install rule
+install:
