@@ -36,6 +36,7 @@ $(DIRS-y):
 # dependencies
 pickeringmux: pciioconfig
 
+jtag: vmebridge
 
 # init_submodules rule is used by CI machines (or by any other user) to be able
 # to clone submodules from ohwr.org on machines without internet connecton.
