@@ -13,9 +13,6 @@ all: vmedriver vmeheaders mymodules
 vmedriver:
 	cp ../driver/$(CPU)/$(KVER)/Module.symvers .
 
-vmeheaders:
-	$(MAKE) -C ../include
-
 mymodules: vmedriver
 	$(MAKE) -C $(KERNELSRC) M=`pwd` CROSS_COMPILE=$(CROSS_COMPILE) modules
 	mkdir -p $(OUTPUTDIR)
