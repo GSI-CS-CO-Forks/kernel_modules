@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 .PHONY: all clean cleanall
 
 all: modules
@@ -17,3 +20,10 @@ clean:
 
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
+
+DRIVERS_DEPLOY=sis33.ko sis3300.ko sis3320.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
