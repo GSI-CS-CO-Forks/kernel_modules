@@ -1,7 +1,8 @@
 DIRS = \
     drivers \
     lib \
-    test
+    test \
+    doc \
 
 .PHONY: all clean cleanall $(DIRS)
 
