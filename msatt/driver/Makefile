@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 all: modules
 
 modules:
@@ -14,3 +17,10 @@ clean:
 
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
+
+DRIVERS_DEPLOY=msatt.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
