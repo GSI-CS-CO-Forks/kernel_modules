@@ -21,8 +21,6 @@ $(DIRS):
 
 drvrtest: driver
 
-test: lib include
+test: lib
 
-tools: lib include
-
-lib: include
+tools: lib
