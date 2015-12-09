@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 # Flags to compile test program and lib
 CFLAGS=-Wall -g
 CFLAGS+=-I../lib
@@ -15,3 +18,8 @@ clean:
 
 cleanall:
 	$(RM) test_pciioconfig.{$(ALL_CPUS_COMMAS)}
+
+PROGS_LIST=test_pciioconfig.$(CPU)
+
+# use default instalation rule for programs/tools
+install: install_prog_global
