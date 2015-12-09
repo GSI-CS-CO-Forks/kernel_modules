@@ -10,3 +10,6 @@ clean cleanall:
 doxy_install: all
 	mkdir -p $(DOXY_INSTPATH)
 	cp -r doc/html/* $(DOXY_INSTPATH)/
+
+# empty install rule
+install:
