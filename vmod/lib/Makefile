@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 all: lib
 
 LIBS=libvmod.$(CPU).a libvmodttl.$(CPU).a libvmoddor.$(CPU).a
@@ -34,3 +37,8 @@ clean:
 cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,so,a}
 	$(RM) *.{o,so,a}
+
+LIBS_LIST=$(LIBS)
+
+# use default instalation rule for libs
+install: install_libs_global
