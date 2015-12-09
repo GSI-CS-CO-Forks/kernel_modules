@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 # Flags to compile test program and lib
 CFLAGS=-Wall -g
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
@@ -23,5 +26,12 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
 	$(RM) libpciioconfig.{$(ALL_CPUS_COMMAS)}.{so,a}
 
-install:    libpciioconfig.$(CPU).a crateconfig.h $(CONFIGS)
-	dsc_install $^ /acc/local/$(CPU)/pciioconfig
+HEADERS_LIST=crateconfig.h
+
+# use default instalation rule for headers
+install: install_headers_global
+
+LIBS_LIST=libpciioconfig.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
