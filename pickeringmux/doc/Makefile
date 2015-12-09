@@ -9,5 +9,8 @@ doc:
 doc-clean:
 	rm -rf html Doxyfile*
 
-install: doc
+install_doc: doc
 	rsync -av html/ /acc/doc/html/private/coht/doxy/pickeringmux
+
+# empty install rule
+install:
