@@ -2,8 +2,10 @@
 include ../common.mk
 
 DIRS = \
+    doc \
     driver \
     lib \
+    lib/doc \
     lib/test \
     scripts \
 
