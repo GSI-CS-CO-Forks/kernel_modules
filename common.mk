@@ -41,6 +41,16 @@ ALL_CPUS_COMMAS=$(subst $(space),$(comma),$(ALL_CPUS))
 # use bash due to brace expansion
 SHELL=/bin/bash
 
+# check if variable is defined
+# usage $(call check_defined,XXX)
+# !! there is no space before variable !!
+check_defined = \
+    $(if $(value $1),, \
+      $(error Undefined $1))
+
+###################################
+# Helper rules for the deployment
+###################################
 
 # DEPLOY_PATH has to be explicitly set to "/" to deliver to /acc
 DEPLOY_PATH?=$(shell pwd)/
@@ -57,9 +67,6 @@ INSTALL_DIR_PARAMS=-p
 INSTALL_LINK=ln
 INSTALL_LINK_PARAMS=-sfT
 
-###################################
-# Helper rules for the deployment
-###################################
 #
 # All of the rules below requires PRODUCT_NAME to be specified
 # 
@@ -71,6 +78,10 @@ INSTALL_LINK_PARAMS=-sfT
 #     DRIVERS_LIST -- contains list of drivers (with source paths) to be
 #                     deployed
 install_drivers_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,DRIVERS_LIST)
+# deploy drivers
 	@echo "Install drivers into $(INST_DRIVER_PATH)"
 	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_DRIVER_PATH)
 	$(V)$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(DRIVERS_LIST) $(INST_DRIVER_PATH)/
@@ -81,6 +92,10 @@ install_drivers_global:
 #     PRODUCT_NAME -- name of a driver to which scripts belong
 #     SCRIPTS_LIST -- contains list of installation scripts to be deployed
 install_scripts_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,SCRIPTS_LIST)
+# deploy scripts
 	@echo "Install scrtipts into $(INST_DRIVER_PATH)"
 	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_DRIVER_PATH)
 	$(V)$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(SCRIPTS_LIST) $(INST_DRIVER_PATH)/
@@ -95,6 +110,12 @@ install_scripts_global:
 #     LIB_MINOR -- Minor version of libraries
 #     LIB_PATCH -- Patch version of libraries
 install_libs_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,LIBS_LIST)
+	$(call check_defined,LIB_MAJOR)
+	$(call check_defined,LIB_MINOR)
+	$(call check_defined,LIB_PATCH)
 # create dir a.b.c
 	@echo "Install libraries into $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib"
 	@echo "    Create $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib"
@@ -126,6 +147,12 @@ install_libs_global:
 #     HEADER_MINOR -- Minor version of headers
 #     HEADER_PATCH -- Patch version of headers
 install_headers_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,HEADERS_LIST)
+	$(call check_defined,HEADER_MAJOR)
+	$(call check_defined,HEADER_MINOR)
+	$(call check_defined,HEADER_PATCH)
 # create dir a.b.c
 	@echo "Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
 	@echo "    Create $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
@@ -158,6 +185,12 @@ install_headers_global:
 #     PROG_MINOR -- Minor version of tools/programs
 #     PROG_PATCH -- Patch version of tools/programs
 install_prog_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,PROGS_LIST)
+	$(call check_defined,PROG_MAJOR)
+	$(call check_defined,PROG_MINOR)
+	$(call check_defined,PROG_PATCH)
 # create dir a.b.c
 	@echo "Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools"
 	@echo "    Create $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools"
@@ -167,14 +200,14 @@ install_prog_global:
 	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR)
 # deploy files
 	@echo "    Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools:"
-	$(V)$(foreach FILE,$(PROG_LIST),\
+	$(V)$(foreach FILE,$(PROGS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
 		echo "        $$FILE_NO_CPU"; \
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU;\
 		)
 	@echo "    Create links to programs in $(INST_LIB_PATH)/tools"
 # create link x.h -> a.b/x.h
-	$(V)$(foreach FILE,$(PROG_LIST),\
+	$(V)$(foreach FILE,$(PROGS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
 		echo "        $$FILE_NO_CPU -> $(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(PROG_MAJOR).$(PROG_MINOR)/tools/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
