@@ -138,6 +138,51 @@ install_libs_global:
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIB_MAJOR).$(LIB_MINOR)/lib/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
 
+# Rule to deploy shared libraries
+# Strips CPU from the name
+#
+# Requires:
+#     PRODUCT_NAME -- name of a driver to which libraries belong
+#     LIBSSO_LIST -- contains list of libraries (with CPU) to be deployed
+#     LIBSO_MAJOR -- Major version of libraries
+#     LIBSO_MINOR -- Minor version of libraries
+#     LIBSO_PATCH -- Patch version of libraries
+install_libsso_global:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,LIBSSO_LIST)
+	$(call check_defined,LIBSO_MAJOR)
+	$(call check_defined,LIBSO_MINOR)
+	$(call check_defined,LIBSO_PATCH)
+# create dir a.b.c
+	@echo "Install shared libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib"
+	@echo "    Create $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib"
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib
+# create link a.b -> a.b.c
+	@echo "    Link $(LIBSO_MAJOR).$(LIBSO_MINOR) to $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)"
+	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR)
+# deploy files
+	@echo "    Install libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib:"
+	$(V)$(foreach FILE,$(LIBSSO_LIST),\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		echo "        $$FILE_NO_CPU"; \
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU;\
+		)
+# create link lib.so -> lib.so.a.b
+# create link lib.so.a.b -> lib.so.a.b.c
+# create link lib.so.a.b.c -> a.b.c/lib.so
+	@echo "    Create links to shared libraries in $(INST_LIB_PATH)"
+	$(V)$(foreach FILE,$(LIBSSO_LIST),\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		echo "        $$FILE_NO_CPU -> $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR)"; \
+		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR) $(INST_LIB_PATH)/$$FILE_NO_CPU;\
+		echo "        $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR) -> $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)"; \
+		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH) $(INST_LIB_PATH)/$$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR);\
+		echo "        $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH) -> $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU"; \
+		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH);\
+		)
+
+
 # Rule to deploy driver's or library's headers
 #
 # Requires:
