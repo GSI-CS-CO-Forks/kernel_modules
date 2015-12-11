@@ -1,6 +1,9 @@
 # include the build environment
 include ../common.mk
 
+#include version information
+include ./versions.mk
+
 DRIVER = ctc
 DRIVER_NAME = "$(DRIVER)"
 LIBNAME = lib$(DRIVER)
@@ -50,12 +53,35 @@ $(LIBNAME).$(CPU).so: $(MODLIBOBJS)
 	$(CC) $(CFLAGS) -shared -o $@ $^ $(LDFLAGS) $(LDLIBS)
 
 examples: libs
-	$(MAKE) -C test CPU=$(CPU)
+	$(MAKE) -C test CPU=$(CPU) $(TARGET)
 
-ACC = lab
-TOOLSDIR = /acc/local/$(CPU)/drv/ctc/tools
-install-test: solibs
-	mkdir -p $(TOOLSDIR)
-	dsc_install $(LIBNAME).$(CPU).so $(TOOLSDIR)
-	install -b -m 755 ctctest $(TOOLSDIR)
-	ln -sf $(TOOLSDIR)/ctctest /acc/dsc/$(ACC)/$(CPU)/bin
+DRIVERS_DEPLOY=ctc.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
+
+LIBS_LIST=libctc.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
+
+HEADERS_LIST=ctc_regs.h libctc.h
+
+# use default instalation rule for headers
+install: install_headers_global
+
+PROGS_LIST=ctctest libctc.$(CPU).so
+
+install: install_prog_global
+
+install: examples
+install: TARGET=install
+
+SCRIPTS_LIST=\
+	install_ctc.sh \
+	transfer2insmod.awk \
+
+# use default instalation rule for headers
+install: install_scripts_global
