@@ -10,7 +10,8 @@ const char * const libpickeringmux_version_s = "libpickeringmux version: " GIT_V
 #include <fcntl.h>
 #include "pickeringmuxdrv.h"
 #include "pickeringmuxlib.h"
-#include "pciioconfig/crateconfig.h"
+/* pciioconfig */
+#include <crateconfig.h>
 
 typedef struct
 {
