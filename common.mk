@@ -182,7 +182,6 @@ install_libsso_global:
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH);\
 		)
 
-
 # Rule to deploy driver's or library's headers
 #
 # Requires:
@@ -219,6 +218,27 @@ install_headers_global:
 		echo "        $$FILE_NO_CPU -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$$FILE_NO_CPU"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(HEADER_MAJOR).$(HEADER_MINOR)/include/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
+
+# Rule to deploy a link a.b.c/include/xxx -> a.b.c/include
+#
+# It is sometimes needed since some source files contains something like:
+#    include <xxx/yyy.h>
+#
+# Requires:
+#     PRODUCT_NAME -- name of a driver to which headers belong
+#     HEADER_MAJOR -- Major version of headers
+#     HEADER_MINOR -- Minor version of headers
+#     HEADER_PATCH -- Patch version of headers
+install_headers_loop:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+	$(call check_defined,HEADER_MAJOR)
+	$(call check_defined,HEADER_MINOR)
+	$(call check_defined,HEADER_PATCH)
+# create link a.b.c/include/xxx -> a.b.c/include
+	@echo "    Create extra link:"
+	@echo "        $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME) -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
+	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) . $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)
 
 # Rule to deploy programs or tools
 # Strips CPU from the name
