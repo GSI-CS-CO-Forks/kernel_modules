@@ -18,3 +18,6 @@ clean:
 
 cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.{o,a}
+
+# empty install rule
+install:
