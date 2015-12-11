@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS += -g -Wall -D_GNU_SOURCE
 
 CFLAGS+= -Iextest/ \
@@ -36,3 +39,7 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
 	$(MAKE) -C extest CPU=$(CPU) cleanall
+
+PROGS_LIST=cvorgtest.$(CPU)
+
+install: install_prog_global
