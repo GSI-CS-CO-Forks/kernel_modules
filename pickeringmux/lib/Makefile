@@ -6,6 +6,7 @@ include ../versions.mk
 
 CFLAGS += -g -Wall
 CFLAGS += -I../driver
+CFLAGS += -I../../pciioconfig/lib
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 all: libpickeringmux.$(CPU).a
