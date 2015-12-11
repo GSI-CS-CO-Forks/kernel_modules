@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS := -Wall -g -I../include
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBCVORB := libcvorb.$(CPU).a
@@ -48,3 +51,8 @@ doxy_clean:
 doxy_install: doxy
 	$(MKDIR) -p $(DOXY_INSTDIR)
 	$(CP) -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+
+LIBS_LIST=libcvorb.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
