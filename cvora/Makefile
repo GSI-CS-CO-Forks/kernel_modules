@@ -1,6 +1,9 @@
 # include the build environment
 include ../common.mk
 
+#include version information
+include ./versions.mk
+
 all: modules libs
 
 #used for mv
@@ -44,17 +47,31 @@ libcvora.$(CPU).a: libcvora.$(CPU).o
 DRVRPATH = /acc/dsc/$(ACC)/$(CPU)/$(KVER)/cvora
 LIBPATH = /acc/local/$(CPU)/drv/cvora
 
-install-lab:
-	$(MAKE) install-driver ACC=lab
-install-oper:
-	$(MAKE) install-driver ACC=oper
-install-all: install-lab install-oper install-oplhc install-opctf
+install: install-test
 
-install-driver:
-	dsc_install $(CPU)/$(KVER)/cvora.ko $(DRVRPATH)
-
-install-lib:
-	dsc_install libcvora.h libcvora.$(CPU).a $(LIBPATH)
 install-test:
-	dsc_install test/cvoratest.py $(LIBPATH)
-	dsc_install libcvora.$(CPU).so $(LIBPATH)/cvora
+	$(MAKE) -C test install
+
+LIBS_LIST=libcvora.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
+
+HEADERS_LIST=libcvora.h
+
+#use default instalation rule for headers
+install: install_headers_global
+
+DRIVERS_DEPLOY=cvora.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
+
+SCRIPTS_LIST=\
+	install_cvora.sh \
+	transfer2insmod.awk \
+
+# use default instalation rule for headers
+install: install_scripts_global
