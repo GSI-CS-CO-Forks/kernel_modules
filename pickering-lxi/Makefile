@@ -21,14 +21,17 @@ GG=g++
 # General
 CURDIR=`pwd`
 MACHINE=$(shell hostname)
-LIBDIR=/lib
-INCSYSDIR=/usr/local/include
 BINDIR=bin
 OBJSDIR=$(BINDIR)/objects
 DOCDIR=Docs
 INCOPT=-I./src/Picmlx -I./src/Piplx -I./src/Pipslx -I./src/Pi743lx
 LINKOPTS=-lpthread -ldl
 CFLAGS_MODULES_DEBUG=
+
+# standard deployment paths
+LIBROOT ?= /acc/local/$(CPU)/drv/pickering-lxi/$(DISTRO_VERSION)
+LIBDIR ?= $(LIBROOT)/lib
+INCSYSDIR ?= $(LIBROOT)/include/pickering-lxi
 
 # Picmlx - Communication module
 PICMLX_VERSION=$(shell grep "\#define *PICMLX_MODULE_VERSION" src/Picmlx/Picmlx.cpp | sed 's/\r$$//'\
@@ -100,7 +103,10 @@ setup:
 	@if test ! -d $(BINDIR) ; then mkdir $(BINDIR) ; fi
 	@if test ! -d $(OBJSDIR) ; then mkdir $(OBJSDIR) ; fi
 
-install:	
+$(LIBDIR) $(INCSYSDIR):
+	mkdir -p $@
+
+install: $(LIBDIR) $(INCSYSDIR)
 	cp $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)
 	ln -s $(LIBDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)/lib$(PICMLX).so
 	cp $(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)
