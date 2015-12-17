@@ -108,13 +108,13 @@ $(LIBDIR) $(INCSYSDIR):
 
 install: $(LIBDIR) $(INCSYSDIR)
 	cp $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)/lib$(PICMLX).so
+	ln -sf $(LIBDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)/lib$(PICMLX).so
 	cp $(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)/lib$(PIPLX).so
+	ln -sf $(LIBDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)/lib$(PIPLX).so
 	cp $(BINDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(LIBDIR)/lib$(PIPSLX).so
+	ln -sf $(LIBDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(LIBDIR)/lib$(PIPSLX).so
 	cp $(BINDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(LIBDIR)/lib$(PI743LX).so
+	ln -sf $(LIBDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(LIBDIR)/lib$(PI743LX).so
 	@if test ! -d $(INCSYSDIR) ; then mkdir $(INCSYSDIR) ; fi
 	cp $(PICMLXSRCDIR)/Picmlx.h $(INCSYSDIR)
 	cp $(PIPLXSRCDIR)/Piplx.h $(INCSYSDIR)
