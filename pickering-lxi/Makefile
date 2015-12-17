@@ -9,20 +9,28 @@
 #
 ################################################################################
 
+# build machinery
+#
+# include the build environment
+include ../common.mk
+
+CXXFLAGS+= -g -Wall -fPIC
+CXXFLAGS+=-DGIT_VERSION=\"$(GIT_VERSION)\"
+
+# standard deployment paths
+LIBROOT ?= /acc/local/$(CPU)/drv/pickering-lxi/$(DISTRO_VERSION)
+LIBDIR ?= $(LIBROOT)/lib
+INCSYSDIR ?= $(LIBROOT)/include/pickering-lxi
+
 # Distribution version
 DISTRO_VERSION=1.10.3
 
-# Specify C compiler
-CC=gcc
-
 # Specify C++ compiler
-GG=g++
+GG=$(CXX) $(CPPFLAGS) $(CXXFLAGS)
 
 # General
 CURDIR=`pwd`
 MACHINE=$(shell hostname)
-LIBDIR=/lib
-INCSYSDIR=/usr/local/include
 BINDIR=bin
 OBJSDIR=$(BINDIR)/objects
 DOCDIR=Docs
@@ -97,10 +105,13 @@ all: setup picmlx piplx pipslx pi743lx
 
 # 'setup' sets up the build directory structure the way we want
 setup:	
-	@if test ! -d $(BINDIR) ; then mkdir $(BINDIR) ; fi
-	@if test ! -d $(OBJSDIR) ; then mkdir $(OBJSDIR) ; fi
+	@if test ! -d $(BINDIR) ; then $(MKDIR) -p $(BINDIR) ; fi
+	@if test ! -d $(OBJSDIR) ; then $(MKDIR) -p $(OBJSDIR) ; fi
 
-install:	
+$(LIBDIR) $(INCSYSDIR):
+	mkdir -p $@
+
+install: $(LIBDIR) $(INCSYSDIR)
 	cp $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)
 	ln -s $(LIBDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)/lib$(PICMLX).so
 	cp $(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)
@@ -146,7 +157,7 @@ piplx: setup $(PIPLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PIPLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PIPLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PIPLX) -fPIC -c -o $@ $<
 	
 #############################################################################
 
@@ -157,7 +168,7 @@ pipslx: setup $(PIPSLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PIPSLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PIPSLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PIPSLX) -fPIC -c -o $@ $<
 
 #############################################################################
 
@@ -168,7 +179,7 @@ pi743lx: setup $(PI743LXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PI743LXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PI743LX) -c -o $@ $<
+	$(GG) $(CFLAGS_PI743LX) -fPIC -c -o $@ $<
 
 #############################################################################
 
