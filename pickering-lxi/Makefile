@@ -132,10 +132,10 @@ picmlx: setup $(PICMLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PICMLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PICMLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PICMLX) -fPIC -c -o $@ $<
 
 $(OBJSDIR)/%.cpp.o: $(SRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PICMLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PICMLX) -fPIC -c -o $@ $<
 	
 #############################################################################
 
@@ -146,7 +146,7 @@ piplx: setup $(PIPLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PIPLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PIPLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PIPLX) -fPIC -c -o $@ $<
 	
 #############################################################################
 
@@ -157,7 +157,7 @@ pipslx: setup $(PIPSLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PIPSLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PIPSLX) -c -o $@ $<
+	$(GG) $(CFLAGS_PIPSLX) -fPIC -c -o $@ $<
 
 #############################################################################
 
@@ -168,7 +168,7 @@ pi743lx: setup $(PI743LXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PI743LXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PI743LX) -c -o $@ $<
+	$(GG) $(CFLAGS_PI743LX) -fPIC -c -o $@ $<
 
 #############################################################################
 
