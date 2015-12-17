@@ -9,14 +9,25 @@
 #
 ################################################################################
 
+# build machinery
+#
+# include the build environment
+include ../common.mk
+
+CFLAGS= -g -Wall -fPIC
+CFLAGS+=-DGIT_VERSION=\"$(GIT_VERSION)\"
+
+# standard deployment paths
+LIBROOT ?= /acc/local/$(CPU)/drv/pickering-lxi/$(DISTRO_VERSION)
+LIBDIR ?= $(LIBROOT)/lib
+INCSYSDIR ?= $(LIBROOT)/include/pickering-lxi
+
 # Distribution version
 DISTRO_VERSION=1.10.3
 
-# Specify C compiler
-CC=gcc
-
 # Specify C++ compiler
-GG=g++
+CPPFLAGS += -fPIC
+GG=$(CXX) $(CPPFLAGS)
 
 # General
 CURDIR=`pwd`
@@ -27,11 +38,6 @@ DOCDIR=Docs
 INCOPT=-I./src/Picmlx -I./src/Piplx -I./src/Pipslx -I./src/Pi743lx
 LINKOPTS=-lpthread -ldl
 CFLAGS_MODULES_DEBUG=
-
-# standard deployment paths
-LIBROOT ?= /acc/local/$(CPU)/drv/pickering-lxi/$(DISTRO_VERSION)
-LIBDIR ?= $(LIBROOT)/lib
-INCSYSDIR ?= $(LIBROOT)/include/pickering-lxi
 
 # Picmlx - Communication module
 PICMLX_VERSION=$(shell grep "\#define *PICMLX_MODULE_VERSION" src/Picmlx/Picmlx.cpp | sed 's/\r$$//'\
@@ -138,10 +144,10 @@ picmlx: setup $(PICMLXOBJS)
 	@echo " "
 
 $(OBJSDIR)/%.cpp.o: $(PICMLXSRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PICMLX) -fPIC -c -o $@ $<
+	$(GG) $(CFLAGS_PICMLX) -c -o $@ $<
 
 $(OBJSDIR)/%.cpp.o: $(SRCDIR)/%.cpp
-	$(GG) $(CFLAGS_PICMLX) -fPIC -c -o $@ $<
+	$(GG) $(CFLAGS_PICMLX) -c -o $@ $<
 	
 #############################################################################
 
