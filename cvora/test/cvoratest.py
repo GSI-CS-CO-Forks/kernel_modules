@@ -10,7 +10,8 @@ import struct
 
 testpath = os.path.realpath(sys.argv[0])
 testdir  = os.path.dirname(testpath)
-libcvora = os.path.join(testdir, 'cvora/libcvora.so')
+# add CPU name to the lib name if defined as env variable
+libcvora = os.path.join(testdir, os.getenv('LIBCVORA_PATH', './')+'libcvora'+os.getenv('CPU', '')+'.so')
 
 class CvoraCmd(cmd.Cmd):
 
