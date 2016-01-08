@@ -57,6 +57,11 @@ LIBS_LIST=libcvora.$(CPU).a
 # use default instalation rule for libs
 install: install_libs_global
 
+# deploy shared library together with programs
+PROGS_LIST=libcvora.$(CPU).so
+
+install: install_prog_global
+
 HEADERS_LIST=libcvora.h
 
 #use default instalation rule for headers
