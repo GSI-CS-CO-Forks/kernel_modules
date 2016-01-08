@@ -37,6 +37,8 @@ class CvoraCmd(cmd.Cmd):
     def __init__(self, libcvora=libcvora, lun=0):
         cmd.Cmd.__init__(self)
         self.lib = CDLL(libcvora)
+	""" get libcvora version """
+	print '%s' % c_char_p.in_dll(self.lib, "libcvora_version_s").value
         self.fd  = self.lib.cvora_init(lun)
         self.lun = lun
 
