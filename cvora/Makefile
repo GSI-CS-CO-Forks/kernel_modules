@@ -4,6 +4,20 @@ include ../common.mk
 #include version information
 include ./versions.mk
 
+DIRS= \
+    test \
+
+.PHONY: all clean cleanall install $(DIRS)
+
+all clean cleanall install: $(DIRS)
+
+clean: TARGET = clean
+cleanall: TARGET = cleanall
+install: TARGET = install
+
+$(DIRS):
+	$(MAKE) -C $@ $(TARGET)
+
 all: modules libs
 
 #used for mv
@@ -46,11 +60,6 @@ libcvora.$(CPU).a: libcvora.$(CPU).o
 
 DRVRPATH = /acc/dsc/$(ACC)/$(CPU)/$(KVER)/cvora
 LIBPATH = /acc/local/$(CPU)/drv/cvora
-
-install: install-test
-
-install-test:
-	$(MAKE) -C test install
 
 LIBS_LIST=libcvora.$(CPU).a
 
