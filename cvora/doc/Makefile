@@ -1,4 +1,4 @@
-COHTDOXY=/acc/src/dsc/drivers/coht/doxy
+COHTDOXY=../../doxy
 
 all:
 	echo Make documentation for libcvora support library
@@ -7,9 +7,12 @@ all:
 	cp $(COHTDOXY)/default.doxycfg .
 	sh doxy.sh -n "CVORA user library API" -o "." ../libcvora.h
 
-clean:
+clean cleanall:
 	rm -rf html latex man default.doxycfg
 
 doxy_install: all
 	mkdir -p $(DOXY_INSTPATH)
 	cp -r doc/html/* $(DOXY_INSTPATH)
+
+# empty install rule
+install:
