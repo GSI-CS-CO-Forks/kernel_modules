@@ -6,6 +6,7 @@ include ./versions.mk
 
 DIRS= \
     test \
+    doc \
 
 .PHONY: all clean cleanall install $(DIRS)
 
