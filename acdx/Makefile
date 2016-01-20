@@ -4,6 +4,7 @@ include ../common.mk
 DIRS = \
     driver \
     lib \
+    scripts \
     test \
 
 
