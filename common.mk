@@ -198,48 +198,27 @@ install_headers_global:
 	$(call check_defined,HEADER_MAJOR)
 	$(call check_defined,HEADER_MINOR)
 	$(call check_defined,HEADER_PATCH)
-# create dir a.b.c
-	@echo "Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
-	@echo "    Create $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
-	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include
+# create dir a.b.c/include/y
+	@echo "Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)"
+	@echo "    Create $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)"
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)
 # create link a.b -> a.b.c
 	@echo "    Link $(HEADER_MAJOR).$(HEADER_MINOR) to $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)"
 	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR)
 # deploy files
-	@echo "    Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include:"
+	@echo "    Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME):"
 	$(V)$(foreach FILE,$(HEADERS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$$FILE_NO_CPU;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU;\
 		)
-	@echo "    Create links to headers in $(INST_LIB_PATH)/include"
-# create link x.h -> a.b/x.h
+	@echo "    Create links to headers in $(INST_LIB_PATH)/include/$(PRODUCT_NAME)"
+# create link x.h -> a.b/include/y/x.h
 	$(V)$(foreach FILE,$(HEADERS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
-		echo "        $$FILE_NO_CPU -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$$FILE_NO_CPU"; \
-		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(HEADER_MAJOR).$(HEADER_MINOR)/include/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
+		echo "        $$FILE_NO_CPU -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU"; \
+		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(HEADER_MAJOR).$(HEADER_MINOR)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
-
-# Rule to deploy a link a.b.c/include/xxx -> a.b.c/include
-#
-# It is sometimes needed since some source files contains something like:
-#    include <xxx/yyy.h>
-#
-# Requires:
-#     PRODUCT_NAME -- name of a driver to which headers belong
-#     HEADER_MAJOR -- Major version of headers
-#     HEADER_MINOR -- Minor version of headers
-#     HEADER_PATCH -- Patch version of headers
-install_headers_loop:
-# check whether all needed variables are defined
-	$(call check_defined,PRODUCT_NAME)
-	$(call check_defined,HEADER_MAJOR)
-	$(call check_defined,HEADER_MINOR)
-	$(call check_defined,HEADER_PATCH)
-# create link a.b.c/include/xxx -> a.b.c/include
-	@echo "    Create extra link:"
-	@echo "        $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME) -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include"
-	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) . $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)
 
 # Rule to deploy programs or tools
 # Strips CPU from the name
