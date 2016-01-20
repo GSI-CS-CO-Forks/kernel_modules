@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 SRCS =	create_window.c destroy_window.c setflag.c \
 	test_mapping.c testctr.c testctr2.c testctr_ces.c \
 	testvd80.c vd80spd.c vd80spd-dma.c mm6390-dma.c \
@@ -52,5 +55,11 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)} *.o *.{$(ALL_CPUS_COMMAS)}.a
 	$(RM) -r doc
 
-# empty install rule
+# deliver create_window to the same place as driver is
 install:
+# check whether all needed variables are defined
+	$(call check_defined,PRODUCT_NAME)
+# deploy drivers
+	@echo "Install create_window into $(INST_DRIVER_PATH)"
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_DRIVER_PATH)
+	$(V)$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) create_window.$(CPU) $(INST_DRIVER_PATH)/create_window
