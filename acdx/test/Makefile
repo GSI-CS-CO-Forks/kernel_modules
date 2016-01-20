@@ -38,6 +38,28 @@ cleanall:
 
 acdxtest.$(CPU).o: $(TEST) $(HDRS)
 
-PROGS_LIST=acdxtest.$(CPU)
+PROGS_LIST=\
+	acdxtest.$(CPU) \
+	aqn.acdx \
+	Acdx.bit \
+	AcdxConfig \
+	AcdxFreqGain \
+	AcdxLowPass \
+	AcdxMacro \
+	AcdxPlotAqn \
+	AcdxPlotFun \
+	acdxtest.config \
+	AmplifierOneCurrent \
+	AmplifierOneVoltage \
+	AmplifierTwoCurrent \
+	AmplifierTwoVoltage \
+	MagnetCurrent \
+	MagnetVoltage \
+	x3_servo_v2.9.bit \
+	x3_servo_v2.10.bit \
+	x3_servo_v2.11.bit \
+	x3_servo_v2.12.bit \
+	x3_servo_v2.13.bit \
+	x3_servo_v2.14.bit \
 
 install: install_prog_global
