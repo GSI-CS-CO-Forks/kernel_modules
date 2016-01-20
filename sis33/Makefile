@@ -2,11 +2,12 @@
 include ../common.mk
 
 DIRS = \
-    drivers \
-    lib \
-    test \
     doc \
+    drivers \
     include \
+    lib \
+    scripts \
+    test \
 
 .PHONY: all clean cleanall install $(DIRS)
 
