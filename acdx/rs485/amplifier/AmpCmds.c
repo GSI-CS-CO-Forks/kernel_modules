@@ -10,7 +10,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include <AmpCmdP.h>
+#include "AmpCmdP.h"
 
 extern int errno;
 
