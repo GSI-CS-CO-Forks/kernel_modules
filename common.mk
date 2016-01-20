@@ -58,7 +58,8 @@ export DEPLOY_PATH
 # path to deploy drivers and scripts
 INST_DRIVER_PATH=$(DEPLOY_PATH)acc/dsc/$(ACC)/$(CPU)/$(KVER)/$(PRODUCT_NAME)
 # used for libs, tools and headers
-INST_LIB_PATH=$(DEPLOY_PATH)acc/local/$(CPU)/drv/$(PRODUCT_NAME)
+INST_LIB_PATH_RELATIVE=acc/local/$(CPU)/drv/$(PRODUCT_NAME)
+INST_LIB_PATH=$(DEPLOY_PATH)$(INST_LIB_PATH_RELATIVE)
 
 INSTALL_BIN_CMD=cp
 INSTALL_BIN_PARAMS=--preserve=all -d
