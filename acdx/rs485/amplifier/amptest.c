@@ -43,6 +43,7 @@ static int  amp;
 #include "AmpOpen.c"
 #include "AmpCmds.c"
 
+static char git_version[] = "git_version: " GIT_VERSION;
 // =====================================================
 
 int AmpUnBlock();
@@ -145,6 +146,7 @@ int tmo;
 
    pname = argv[0];
    printf("%s: Compiled %s %s\n",pname,__DATE__,__TIME__);
+   printf("%s: %s\n",pname, git_version);
 
    tmo = 0;
    while (AmpIsBlocked()) {
