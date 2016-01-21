@@ -1,11 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#ifdef ppc4
-	#include "libvmod12e162dioaio.h"
-#else
-	#include "libvmod12e16.h"
-#endif
+#include "libvmod.h"
 
 static char git_version[] = "git_version: " GIT_VERSION;
 

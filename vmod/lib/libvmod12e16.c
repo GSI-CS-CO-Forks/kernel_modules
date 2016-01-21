@@ -11,7 +11,7 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include "vmod12e16drvr.h"
-#include "libvmod12e16.h"
+#include "libvmod.h"
 
 int vmod12e16_get_handle(unsigned int lun)
 {

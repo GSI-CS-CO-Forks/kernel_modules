@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <gm/moduletypes.h>
 #include <dioaiolib.h>
-#include "libvmoddor2dioaio.h"
+#include "libvmod.h"
 
 #define VMODDOR_MAX_BOARDS 64
 #define MAX_SIZE 5

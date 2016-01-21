@@ -7,7 +7,7 @@ include ../versions.mk
 CFLAGS += -I ../include/ -I./ -I../driver/
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LDFLAGS += -L ../lib
-LDLIBS += -lvmodttl.$(CPU) -lvmoddor.$(CPU) -lpthread -lvmod.$(CPU)
+LDLIBS += -lpthread -lvmod.$(CPU)
 
 ALL=\
 	tstlibttl.$(CPU) \

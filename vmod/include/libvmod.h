@@ -17,6 +17,21 @@
 #ifndef __LIBVMOD
 #define __LIBVMOD
 
+#ifdef ppc4
+#include "libvmod12a22dioaio.h"
+#include "libvmod12e162dioaio.h"
+#include "libvmod16a22dioaio.h"
+#include "libvmoddor2dioaio.h"
+#include "libvmodttl2dioaio.h"
+#else
+#include "libvmod12a2.h"
+#include "libvmod12a4.h"
+#include "libvmod12e16.h"
+#include "libvmod16a2.h"
+#include "libvmoddor.h"
+#include "libvmodttl.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

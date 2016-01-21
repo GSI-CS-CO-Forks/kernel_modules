@@ -9,7 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdio.h>
-#include "libvmod12e162dioaio.h"
+#include "libvmod.h"
 #include <gm/moduletypes.h>
 #include <ioconfiglib.h>
 #include <dioaiolib.h>
