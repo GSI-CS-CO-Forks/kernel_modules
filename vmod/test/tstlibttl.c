@@ -36,11 +36,7 @@
 #include	<stdlib.h>
 #include 	<unistd.h>
 
-#ifdef ppc4
-	#include "libvmodttl2dioaio.h"
-#else
-	#include "libvmodttl.h"
-#endif
+#include "libvmod.h"
 
 static char git_version[] = "git_version: " GIT_VERSION;
 
@@ -93,7 +89,7 @@ int main (int argc, char *argv[])
 	printf(" |______________________________________| \n");
 	printf("\n");
 	printf("%s\n", git_version);
-	printf("%s\n", libvmodttl_version_s);
+	printf("%s\n", libvmod_version_s);
 
 	if (argc == 2)
 	{

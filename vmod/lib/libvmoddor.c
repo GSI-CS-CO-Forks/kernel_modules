@@ -8,9 +8,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "vmoddor.h"
-#include "libvmoddor.h"
-
-const char * const libvmoddor_version_s = "libvmoddor version: " GIT_VERSION;
+#include "libvmod.h"
 
 static int luns_to_fd [VMODDOR_MAX_DEVICES];
 

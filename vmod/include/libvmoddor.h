@@ -107,9 +107,6 @@ int vmoddor_close(int lun);
  */
 int vmoddor_write(int lun, struct vmoddor_warg val);
 
-//! libvmoddor version string
-extern const char * const libvmoddor_version_s;
-
 #ifdef __cplusplus
 }
 #endif
