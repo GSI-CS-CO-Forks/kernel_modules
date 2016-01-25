@@ -24,3 +24,8 @@ DRIVERS_DEPLOY=pickeringmuxdrv.ko
 DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
 
 install: install_drivers_global
+
+SCRIPTS_LIST=pickmuxinstall
+
+# use default instalation rule for headers
+install: install_scripts_global
