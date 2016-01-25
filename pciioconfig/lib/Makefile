@@ -11,8 +11,6 @@ CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 # Lib src
 LIBSRCS=crateconfig.c
 
-CONFIGS= crateconfig.21.pp-300 crateconfig.21.pp-cp2 crateconfig.3.S845WD1 crateconfig.5.pp-300 crateconfig.5.pp-cp2
-
 all: libpciioconfig.$(CPU).a
 
 libpciioconfig.$(CPU).a: $(LIBSRCS:.c=.$(CPU).o)
