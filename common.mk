@@ -127,14 +127,14 @@ install_libs_global:
 # deploy files
 	@echo "    Install libraries into $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib:"
 	$(V)$(foreach FILE,$(LIBS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib/$$FILE_NO_CPU;\
 		)
 # create link x.lib -> a.b/x.lib
 	@echo "    Create links to libraries in $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib"
 	$(V)$(foreach FILE,$(LIBS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU -> $(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib/$$FILE_NO_CPU"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIB_MAJOR).$(LIB_MINOR)/lib/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
@@ -165,7 +165,7 @@ install_libsso_global:
 # deploy files
 	@echo "    Install libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib:"
 	$(V)$(foreach FILE,$(LIBSSO_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU;\
 		)
@@ -174,7 +174,7 @@ install_libsso_global:
 # create link lib.so.a.b.c -> a.b.c/lib.so
 	@echo "    Create links to shared libraries in $(INST_LIB_PATH)"
 	$(V)$(foreach FILE,$(LIBSSO_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU -> $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR)"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR) $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		echo "        $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR) -> $$FILE_NO_CPU.$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)"; \
@@ -208,14 +208,14 @@ install_headers_global:
 # deploy files
 	@echo "    Install headers into $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME):"
 	$(V)$(foreach FILE,$(HEADERS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU;\
 		)
 	@echo "    Create links to headers in $(INST_LIB_PATH)/include/$(PRODUCT_NAME)"
 # create link x.h -> a.b/include/y/x.h
 	$(V)$(foreach FILE,$(HEADERS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU -> $(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(HEADER_MAJOR).$(HEADER_MINOR)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
@@ -246,14 +246,14 @@ install_prog_global:
 # deploy files
 	@echo "    Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools:"
 	$(V)$(foreach FILE,$(PROGS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU;\
 		)
 	@echo "    Create links to programs in $(INST_LIB_PATH)/tools"
 # create link x.h -> a.b/x.h
 	$(V)$(foreach FILE,$(PROGS_LIST),\
-		export FILE_NO_CPU=$(subst .$(CPU),,$(FILE));\
+		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU -> $(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU"; \
 		$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(PROG_MAJOR).$(PROG_MINOR)/tools/$$FILE_NO_CPU $(INST_LIB_PATH)/$$FILE_NO_CPU;\
 		)
