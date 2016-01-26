@@ -37,3 +37,6 @@
 [submodule "mtt"]
 	path = mtt
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/mtt.git
+[submodule "cvora"]
+	path = cvora
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/cvora.git
