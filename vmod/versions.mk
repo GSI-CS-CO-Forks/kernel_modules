@@ -3,7 +3,7 @@ PRODUCT_NAME=vmod
 
 # common version
 VER_MAJOR=1
-VER_MINOR=0
+VER_MINOR=2
 VER_PATCH=0
 
 # version of the header file(s)
