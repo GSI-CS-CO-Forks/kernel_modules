@@ -75,10 +75,12 @@ install-fmc-bus:
 zio_DRIVERS=zio/zio.ko
 zio_HEADERS=zio/include/linux/zio-user.h \
 	zio/include/linux/zio.h
+zio_SCRIPTS=scripts/zio/install_zio.sh
 zio_PROGS=zio/tools/zio-dump
 install-zio: install-zio_extra_headers
 	$(MAKE) install_drivers_global PRODUCT_NAME=zio DRIVERS_LIST="$(zio_DRIVERS)"
 	$(MAKE) install_headers_global PRODUCT_NAME=zio HEADERS_LIST="$(zio_HEADERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=zio SCRIPTS_LIST="$(zio_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=zio PROGS_LIST="$(zio_PROGS)"
 
 install-zio_extra_headers:
@@ -91,17 +93,23 @@ install-zio_extra_headers:
 
 # spec-sw
 spec-sw_DRIVERS=spec-sw/kernel/spec.ko
+spec-sw_SCRIPTS=scripts/spec/install_spec.sh
 spec-sw_PROGS=spec-sw/tools/specmem
 install-spec-sw:
 	$(MAKE) install_drivers_global PRODUCT_NAME=spec DRIVERS_LIST="$(spec-sw_DRIVERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=spec SCRIPTS_LIST="$(spec-sw_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=spec PROGS_LIST="$(spec-sw_PROGS)"
 
 # svec-sw
 svec-sw_DRIVERS=svec-sw/kernel/svec.ko
+svec-sw_SCRIPTS=\
+	scripts/svec/install_svec.sh \
+	scripts/svec/svec-modparams.awk
 svec-sw_PROGS=svec-sw/tools/svec-config \
 	svec-sw/tools/svec-wrc-loader
 install-svec-sw:
 	$(MAKE) install_drivers_global PRODUCT_NAME=svec DRIVERS_LIST="$(svec-sw_DRIVERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=svec SCRIPTS_LIST="$(svec-sw_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=svec PROGS_LIST="$(svec-sw_PROGS)"
 
 # fine-delay-sw
@@ -111,6 +119,9 @@ fine-delay-sw_LIBS=\
 fine-delay-sw_HEADERS=\
 	fine-delay-sw/lib/fdelay-lib.h \
 	fine-delay-sw/kernel/fine-delay.h
+fine-delay-sw_SCRIPTS=\
+	scripts/fine-delay-sw/fd-luns.awk \
+	scripts/fine-delay-sw/install_fd.sh
 fine-delay-sw_PROGS=fine-delay-sw/tools/fmc-fdelay-board-time \
 	fine-delay-sw/tools/fmc-fdelay-input \
 	fine-delay-sw/tools/fmc-fdelay-list \
@@ -121,6 +132,7 @@ install-fine-delay-sw:
 	$(MAKE) install_drivers_global PRODUCT_NAME=fmc-fine-delay DRIVERS_LIST="$(fine-delay-sw_DRIVERS)"
 	$(MAKE) install_libs_global    PRODUCT_NAME=fmc-fine-delay LIBS_LIST="$(fine-delay-sw_LIBS)"
 	$(MAKE) install_headers_global PRODUCT_NAME=fmc-fine-delay HEADERS_LIST="$(fine-delay-sw_HEADERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=fmc-fine-delay SCRIPTS_LIST="$(fine-delay-sw_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=fmc-fine-delay PROGS_LIST="$(fine-delay-sw_PROGS)"
 
 # obsbox
@@ -136,6 +148,8 @@ fmc-tdc-sw_LIBS=\
 	fmc-tdc-sw/lib/libfmctdc.a
 fmc-tdc-sw_HEADERS=\
 	fmc-tdc-sw/lib/fmctdc-lib.h
+fmc-tdc-sw_SCRIPTS=\
+	scripts/fmc-tdc/install_fmc_tdc.sh
 fmc-tdc-sw_PROGS=fmc-tdc-sw/tools/fmc-tdc-list \
 	fmc-tdc-sw/tools/fmc-tdc-temperature \
 	fmc-tdc-sw/tools/fmc-tdc-term \
@@ -145,6 +159,7 @@ install-fmc-tdc-sw:
 	$(MAKE) install_drivers_global PRODUCT_NAME=fmc-tdc DRIVERS_LIST="$(fmc-tdc-sw_DRIVERS)"
 	$(MAKE) install_libs_global    PRODUCT_NAME=fmc-tdc LIBS_LIST="$(fmc-tdc-sw_LIBS)"
 	$(MAKE) install_headers_global PRODUCT_NAME=fmc-tdc HEADERS_LIST="$(fmc-tdc-sw_HEADERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=fmc-tdc SCRIPTS_LIST="$(fmc-tdc-sw_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=fmc-tdc PROGS_LIST="$(fmc-tdc-sw_PROGS)"
 
 # fmc-adc
@@ -156,6 +171,8 @@ fmc-adc_LIBS=\
 fmc-adc_HEADERS=\
 	fmc-adc-100m14b4cha-sw/kernel/fmc-adc-100m14b4cha.h \
 	fmc-adc-100m14b4cha-sw/lib/fmcadc-lib.h
+fmc-adc_SCRIPTS=\
+	scripts/fmc-adc-100m/install_fmc_adc_100m.sh
 fmc-adc_PROGS=\
 	fmc-adc-100m14b4cha-sw/libtools/fald-acq \
 	fmc-adc-100m14b4cha-sw/libtools/fald-trg-cfg
@@ -163,4 +180,5 @@ install-fmc-adc-100m14b4cha-sw:
 	$(MAKE) install_drivers_global PRODUCT_NAME=fmc-adc-100m DRIVERS_LIST="$(fmc-adc_DRIVERS)"
 	$(MAKE) install_libs_global    PRODUCT_NAME=fmc-adc-100m LIBS_LIST="$(fmc-adc_LIBS)"
 	$(MAKE) install_headers_global PRODUCT_NAME=fmc-adc-100m HEADERS_LIST="$(fmc-adc_HEADERS)"
+	$(MAKE) install_scripts_global PRODUCT_NAME=fmc-adc-100m SCRIPTS_LIST="$(fmc-adc_SCRIPTS)"
 	$(MAKE) install_prog_global    PRODUCT_NAME=fmc-adc-100m PROGS_LIST="$(fmc-adc_PROGS)"
