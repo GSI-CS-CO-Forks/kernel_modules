@@ -1,0 +1,39 @@
+#!/bin/sh
+
+TRANSFER=/etc/transfer.ref
+DEVICE_NAME=FMC-ADC-100M
+DRIVER_NAME=fmc-adc-100m14b
+
+# symlink to true ADC="fmc/svec-fmc-adc-v1.0.bin"
+ADC="fmc/svec-fmc-adc-100m14b.bin"
+
+OUTPUT=":"
+RUN=""
+
+while getopts hvn:D:d:t: o
+do	case $o in
+	v)	OUTPUT="echo" ;;		# verbose
+	n)	RUN=":" ;;			# dry run
+	D)	DEVICE_NAME="$OPTARG" ;;
+	d)	DRIVER_NAME="$OPTARG" ;;
+	t)	TRANSFER="$OPTARG" ;;
+	[h?])	echo >&2 "usage: $0 [-?hvn] [-D device_name] [-d driver_name] [-t transfer]"
+		exit ;;
+	esac
+done
+
+echo "Installing zio driver ..."
+(cat /proc/modules | grep -q '^zio ' ) || /sbin/insmod ../zio/zio.ko
+
+# this is superfluous; driver installation priorities take care of
+# this pre-requisite, and when spec+fdelay is required, it is the
+# fmc bus who actually knows what to install
+(cat /proc/modules | grep -q '^svec ' ) || (cd ../svec/ ; sh install_svec.sh)
+
+echo "Installing fmc-adc-100m driver..."
+/sbin/insmod $DRIVER_NAME.ko gateware=$ADC
+
+# FIXME: fd-luns.awk is VME-dependent; entirely different for SPEC
+echo "$DRIVER_NAME: making device nodes"
+awk -f ./adc-luns.awk $DEVICE_NAME $TRANSFER | sh
+
