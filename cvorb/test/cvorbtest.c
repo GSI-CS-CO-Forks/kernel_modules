@@ -1137,7 +1137,7 @@ int main(int argc, char *argv[], char *envp[])
 	ts_calibrateCountPeriod(50, 10);
 #endif
 	ndevs = cvorbdev_get_nr_devices();
-	if (!ndevs)
+	if (ndevs <= 0)
 	{
 		fprintf(stderr, "No cvorb installed.Exit.\n");
 		exit(0);
