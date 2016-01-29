@@ -4,6 +4,7 @@ include ../common.mk
 DIRS = \
     driver \
     include \
+    test \
     lib \
 
 .PHONY: all clean cleanall install $(DIRS)
