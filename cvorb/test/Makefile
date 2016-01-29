@@ -40,4 +40,7 @@ cleanall:
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
 
-install:
+
+PROGS_LIST=cvorbtest.$(CPU)
+
+install: install_prog_global
