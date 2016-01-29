@@ -290,7 +290,7 @@ int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 		return 1;
 	}
 	cvorb_get_pcb_id(current_dev, &pcb_id);
-	printf ("0x%016llx\n", pcb_id);
+	printf ("0x%016llx\n", (long long unsigned int) pcb_id);
 	return 1;
 }
 
