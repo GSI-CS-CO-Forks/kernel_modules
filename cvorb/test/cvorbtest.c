@@ -108,10 +108,10 @@ int h_ch_status(struct cmd_desc *cmdd, struct atom *atoms)
 	printf("\tChannel state machine details:\n");
 	/* Extract the bit field channel state in order to use it as an index in the state messages*/
 	ch_state = (ch_status >> CVORB_CH_STATE_SHIFT) & CVORB_CH_STATE_MASK;
-	if (ch_state < CVORB_CH_MAX_STATES)
+	if (ch_state <= CVORB_CH_MAX_STATES)
 		printf("\t\t%s\n", channel_state_machine[ch_state]);
 	else
-		printf("\t\tUnknown channel state\n");
+		printf("\t\tUnknown channel state: 0x%04x\n", ch_state);
 	return 0;
 }
 
