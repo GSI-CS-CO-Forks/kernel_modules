@@ -40,3 +40,6 @@
 [submodule "ctc"]
 	path = ctc
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/ctc.git
+[submodule "cvora"]
+	path = cvora
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/cvora.git

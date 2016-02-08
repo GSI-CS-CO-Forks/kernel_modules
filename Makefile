@@ -43,6 +43,10 @@ jtag: vmebridge
 # ctc needs encore
 ctc: encore
 
+# cvora needs encore
+cvora: encore
+
+
 # init_submodules rule is used by CI machines (or by any other user) to be able
 # to clone submodules from ohwr.org on machines without internet connecton.
 # NOTE: It removes existing submodules!
@@ -71,6 +75,7 @@ SUBMODULE_LIST+='(fmc/obsbox		"ssh://git@gitlab.cern.ch:7999/cohtdrivers/obsbox.
 SUBMODULE_LIST+='(ipack			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/ipack.git")'
 SUBMODULE_LIST+='(mtt			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/mtt.git")'
 SUBMODULE_LIST+='(ctc			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/ctc.git")'
+SUBMODULE_LIST+='(cvora			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/cvora.git")'
 
 init_submodules_pre:
 #	initialize submodules (non recursive)
