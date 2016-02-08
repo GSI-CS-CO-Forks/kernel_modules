@@ -1,6 +1,0 @@
-ccflags-y += -g -Wall
-ccflags-y += -I$(M)/../vmebridge/include
-
-ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
-
-obj-m:=cvora.o
