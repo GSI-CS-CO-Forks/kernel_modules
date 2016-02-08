@@ -129,7 +129,7 @@ install_libs_global:
 	$(V)$(foreach FILE,$(LIBS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib/$$FILE_NO_CPU;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib/$$FILE_NO_CPU || exit 1;\
 		)
 # create link x.lib -> a.b/x.lib
 	@echo "    Create links to libraries in $(INST_LIB_PATH)/$(LIB_MAJOR).$(LIB_MINOR).$(LIB_PATCH)/lib"
@@ -167,7 +167,7 @@ install_libsso_global:
 	$(V)$(foreach FILE,$(LIBSSO_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/lib/$$FILE_NO_CPU || exit 1;\
 		)
 # create link lib.so -> lib.so.a.b
 # create link lib.so.a.b -> lib.so.a.b.c
@@ -210,7 +210,7 @@ install_headers_global:
 	$(V)$(foreach FILE,$(HEADERS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(HEADER_MAJOR).$(HEADER_MINOR).$(HEADER_PATCH)/include/$(PRODUCT_NAME)/$$FILE_NO_CPU || exit 1;\
 		)
 	@echo "    Create links to headers in $(INST_LIB_PATH)/include/$(PRODUCT_NAME)"
 # create link x.h -> a.b/include/y/x.h
@@ -248,7 +248,7 @@ install_prog_global:
 	$(V)$(foreach FILE,$(PROGS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU || exit 1;\
 		)
 	@echo "    Create links to programs in $(INST_LIB_PATH)/tools"
 # create link x.h -> a.b/x.h
