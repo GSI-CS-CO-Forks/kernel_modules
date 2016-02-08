@@ -1,0 +1,5 @@
+# Fill database credentials to be used by encore
+# into file dbconnection in root of the coht repo
+#
+# (dsn field is optional)
+# user password <dsn>

@@ -90,3 +90,5 @@ doxygen_output
 
 # old documents (not fit for git)
 olddocs
+
+dbconnection
