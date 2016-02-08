@@ -10,7 +10,8 @@ import struct
 
 testpath = os.path.realpath(sys.argv[0])
 testdir  = os.path.dirname(testpath)
-libcvora = os.path.join(testdir, 'cvora/libcvora.so')
+# add CPU name to the lib name if defined as env variable
+libcvora = os.path.join(testdir, os.getenv('LIBCVORA_PATH', './')+'libcvora'+os.getenv('CPU', '')+'.so')
 
 class CvoraCmd(cmd.Cmd):
 
@@ -36,6 +37,8 @@ class CvoraCmd(cmd.Cmd):
     def __init__(self, libcvora=libcvora, lun=0):
         cmd.Cmd.__init__(self)
         self.lib = CDLL(libcvora)
+	""" get libcvora version """
+	print '%s' % c_char_p.in_dll(self.lib, "libcvora_version_s").value
         self.fd  = self.lib.cvora_init(lun)
         self.lun = lun
 

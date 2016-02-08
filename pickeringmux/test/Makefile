@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS += -g -Wall
 CFLAGS += -I../driver
 CFLAGS += -I../../pciioconfig/lib
@@ -16,4 +19,6 @@ clean:
 cleanall:
 	$(RM) test_driver.{$(ALL_CPUS_COMMAS)}
 
-install:
+PROGS_LIST=test_driver.$(CPU)
+
+install: install_prog_global

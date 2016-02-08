@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MODULE_NAME="CVORA-TMP"
+MODULE_NAME="CVORA"
 DRIVER_NAME="cvora"
 
 echo "Installing $MODULE_NAME driver..."

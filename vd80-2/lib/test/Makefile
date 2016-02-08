@@ -4,6 +4,9 @@
 
 include ../../../common.mk
 
+#include version information
+include ../../versions.mk
+
 COMPILE_TIME:=$(shell date +%s)
 
 VD80LB = ..
@@ -32,3 +35,7 @@ cleanall:
 vd80test.$(CPU).o: $(SRCS) $(HDRS)
 
 vd80test.$(CPU): vd80test.$(CPU).o
+
+PROGS_LIST=vd80test.$(CPU)
+
+install: install_prog_global

@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 INCDIR := ../include
 CFLAGS := -Wall -fPIC -g -I$(INCDIR) -I../../include
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
@@ -50,3 +53,8 @@ doxy_clean:
 doxy_install: doxy
 	mkdir -p $(DOXY_INSTDIR)
 	cp -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+
+LIBS_LIST=libsis33.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global

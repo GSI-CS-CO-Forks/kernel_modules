@@ -1,3 +1,6 @@
+# include the build environment
+include ../common.mk
+
 DIRS = \
     driver \
     lib \

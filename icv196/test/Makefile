@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 COMPILE_TIME:=$(shell date +%s)
 
 DRIVER:=../driver
@@ -30,3 +33,9 @@ cleanall:
 icv196test.$(CPU).o: $(SRCS) $(HDRS)
 
 icv196test.$(CPU): icv196test.$(CPU).o
+
+
+PROGS_LIST=$(ALL)
+
+# use default instalation rule for programs/tools
+install: install_prog_global

@@ -1,9 +1,8 @@
 # include the build environment
 include ../../common.mk
 
-ifndef ACCS
-    ACCS=lab oper oplhc
-endif
+#include version information
+include ../versions.mk
 
 all: driver
 
@@ -12,16 +11,21 @@ driver:
 	$(MKDIR) -p $(CPU)/$(KVER)
 	mv *.o *.ko $(CPU)/$(KVER)
 
-install: install_driver
-
-install_driver: driver pickmuxinstall
-	for a in $(ACCS); do \
-	    dsc_install $^ /acc/dsc/$$a/$(CPU)/$(KERNELVERSION)/pickeringmux; \
-	done
-
 clean:
 	$(RM) -r $(CPU)
 	$(MAKE) -C $(KERNELSRC) M=`pwd` clean
 
 cleanall: clean
 	$(RM) -r $(ALL_CPUS)
+
+DRIVERS_DEPLOY=pickeringmuxdrv.ko
+
+# add the path to the drivers ($(CPU)/$(KVER))
+DRIVERS_LIST=$(addprefix $(CPU)/$(KVER)/,$(DRIVERS_DEPLOY))
+
+install: install_drivers_global
+
+SCRIPTS_LIST=pickmuxinstall
+
+# use default instalation rule for headers
+install: install_scripts_global

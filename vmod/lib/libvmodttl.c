@@ -37,9 +37,7 @@
 #include <fcntl.h>
 #include "cio8536.h"
 #include  "vmodttl.h"
-#include "libvmodttl.h"
-
-const char * const libvmodttl_version_s = "libvmodttl version: " GIT_VERSION;
+#include "libvmod.h"
 
 #define DEV_NAME 20
 

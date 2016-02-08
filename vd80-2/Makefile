@@ -1,13 +1,20 @@
+# include the build environment
+include ../common.mk
+
 DIRS = \
+    doc \
     driver \
     lib \
-    lib/test
+    lib/doc \
+    lib/test \
+    scripts \
 
-.PHONY: all clean cleanall $(DIRS)
+.PHONY: all clean cleanall install $(DIRS)
 
-all clean cleanall: $(DIRS)
+all clean cleanall install: $(DIRS)
 clean: TARGET = clean
 cleanall: TARGET = cleanall
+install: TARGET = install
 
 $(DIRS):
 	$(MAKE) -C $@ $(TARGET)

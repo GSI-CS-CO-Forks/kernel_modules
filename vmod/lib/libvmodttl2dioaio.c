@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <gm/moduletypes.h>
-#include "libvmodttl2dioaio.h"
+#include "libvmod.h"
 #include <dioaiolib.h>
 
 

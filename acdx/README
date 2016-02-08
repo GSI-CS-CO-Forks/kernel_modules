@@ -1,1 +1,69 @@
-acdx/README
+===============================================================================
+README Help about the AC-Dipole driver, library, test program and installation.
+Julian Lewis CO/HT Fri 5th June 2009
+
+Update:
+Adam Wujek CO/HT Wed 20th Jan 2016
+===============================================================================
+
+The ACDX software needs a directory on the host DSC in the local path as follows...
+
+/usr/local/drivers/acdx
+
+The FPGA image that is used by the loader is pointed to by the link Acdx.bit in the test directory,
+at the time of writing the link looks like this ...
+
+Acdx.bit -> x3_servo_v2.14.bit
+
+The places where the software and libraries look for files is controlled through the file ...
+
+acdxtest.config
+
+The built in path name for the front end software is ...
+
+/usr/local/drivers/acdx/acdxtest.config
+
+this results in the test program path /usr/local/drivers/acdx/test/acdxtest on the target system.
+A symbolic link has been set up in /usr/local/bin so that the testprogram can be launched with
+the simple command acdxtest
+
+Driver installation and hardware setup on the front end is acomplished by running the local scripts
+in /usr/local/driver/acdx/install via the scripts install.native and setup.acdx.
+
+Once the driver has been installed correctly the setup.acdx shell script is run. This script calls
+on acdxtest to load the FPGA firmware and to initialize the PLL parameters on the x3servo module.
+These commands are driven from the transfer.ref file in the usual way as follows ...
+
+#
+# Install, load VHDL and configure X3-SERVO driver for AC Dipole
+#% cd /usr/local/drivers/acdx/install; ./install.native; ./setup.acdx
+
+The final settings are applied from the acdx library (libacdx.a) when the FESA class starts.
+Here the sinwave is generated and loaded, and the ADC and DAC enabled.
+A call to AcdxArm is made from FESA and the system then waits for a trigger comming from the
+CTR to generate the function.
+
+A shell script is available to do the acquisitions of the 6
+currents and voltages for postmortem purposes...
+
+/usr/local/drivers/acdx/aqn.acdx
+
+This script keeps two copies current and previous (old) in the /tmp directory...
+
+-rw-rw-r-- 1 root  root  2038885 Jun  5 11:56 /tmp/AcdxAqn.loc.old
+-rw-rw-r-- 1 lewis pz    1644272 Jun  5 14:39 /tmp/AcdxAqn.lov
+-rw-rw-r-- 1 root  root  1639487 Jun  5 11:56 /tmp/AcdxAqn.lov.old
+-rw-rw-r-- 1 lewis pz    1894377 Jun  5 14:39 /tmp/AcdxAqn.mac
+-rw-rw-r-- 1 root  root  1894375 Jun  5 11:56 /tmp/AcdxAqn.mac.old
+-rw-rw-r-- 1 lewis pz    1719718 Jun  5 14:39 /tmp/AcdxAqn.mav
+-rw-rw-r-- 1 root  root  1719720 Jun  5 11:56 /tmp/AcdxAqn.mav.old
+-rw-rw-r-- 1 lewis pz    1719723 Jun  5 14:39 /tmp/AcdxAqn.roc
+-rw-rw-r-- 1 root  root  1719724 Jun  5 11:56 /tmp/AcdxAqn.roc.old
+-rw-rw-r-- 1 lewis pz    1639204 Jun  5 14:39 /tmp/AcdxAqn.rov
+-rw-rw-r-- 1 root  root  1637706 Jun  5 11:56 /tmp/AcdxAqn.rov.old
+
+the script is best run with root privaleges.
+
+===================================================================
+
+Julian

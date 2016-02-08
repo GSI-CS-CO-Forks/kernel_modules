@@ -1,3 +1,4 @@
+include common.mk
 CONFIG_FILE ?= config.mk
 include $(CONFIG_FILE)
 
@@ -24,11 +25,12 @@ DIRS-$(CONFIG_vd80-2) += vd80-2
 DIRS-$(CONFIG_vmebridge) += vmebridge
 DIRS-$(CONFIG_vmod) += vmod
 
-.PHONY: all clean cleanall $(DIRS-y) init_submodules init_submodules_post init_submodules_pre
+.PHONY: all clean cleanall install $(DIRS-y) init_submodules init_submodules_post init_submodules_pre
 
-all clean cleanall: $(DIRS-y)
+all clean cleanall install: $(DIRS-y)
 clean: TARGET = clean
 cleanall: TARGET = cleanall
+install: TARGET = install
 
 $(DIRS-y):
 	$(MAKE) -C $@ $(TARGET)
@@ -36,6 +38,7 @@ $(DIRS-y):
 # dependencies
 pickeringmux: pciioconfig
 
+jtag: vmebridge
 
 # init_submodules rule is used by CI machines (or by any other user) to be able
 # to clone submodules from ohwr.org on machines without internet connecton.

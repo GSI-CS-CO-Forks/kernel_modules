@@ -3,8 +3,8 @@ include ../common.mk
 
 CFLAGS = -g -I../vmebridge/include
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
-LDLIBS = -lvmebus.$(CPU)
-LDFLAGS = -L../vmebridge/lib
+# use libvmebus from the repo
+LDLIBS = ../vmebridge/lib/libvmebus.$(CPU).a
 ALL  = jtag.$(CPU)
 SRCS = jtag.c lenval.c micro.c ports.c smemio.c
 HDRS = lenval.h micro.h ports.h
@@ -13,21 +13,24 @@ HDRS = lenval.h micro.h ports.h
 
 all: $(ALL)
 
-jtag.$(CPU): $(SRCS:.c=.$(CPU).o) ../vmebridge/lib/libvmebus.$(CPU).a
+jtag.$(CPU): $(SRCS:.c=.$(CPU).o)
 
-../vmebridge/lib/libvmebus.$(CPU).a:
-	$(MAKE) -C ../vmebridge/lib
-
-vmebus_clean:
-	$(MAKE) -C ../vmebridge/lib clean
-
-vmebus_cleanall:
-	$(MAKE) -C ../vmebridge/lib cleanall
-
-clean: vmebus_clean
+clean:
 	$(RM) *.$(CPU)
 	$(RM) *.$(CPU).o
 
-cleanall: vmebus_cleanall
+cleanall: 
 	$(RM) *.{$(ALL_CPUS_COMMAS)}
 	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+
+PRODUCT_NAME=jtag
+
+PROGS_LIST=jtag.$(CPU)
+
+# version of the programs/tools
+PROG_MAJOR=1
+PROG_MINOR=0
+PROG_PATCH=0
+
+# use default instalation rule for programs/tools
+install: install_prog_global

@@ -10,3 +10,6 @@ all:
 
 clean cleanall:
 	rm -rf doc/
+
+# empty install rule
+install:

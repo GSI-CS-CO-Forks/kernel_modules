@@ -1,9 +1,9 @@
 #!/bin/bash
 
-here=`/etc/dirname $0`
+here=`dirname $0`
 
 echo install Pickering Mux driver
-/etc/insmod $here/pickeringmuxdrv.ko
+insmod $here/pickeringmuxdrv.ko
 
 MAJOR=`awk '/ pickeringmux/{print $1}' </proc/devices`
 if [  -z "$MAJOR" ]; then
@@ -22,7 +22,7 @@ for f in $devs; do
     z=`expr $y / 8`
     t=`expr $x '*' 32`
     t=`expr $t + $z`
-    /etc/mknod /dev/pickeringmux/slot$x-$z c $MAJOR $t
+    mknod /dev/pickeringmux/slot$x-$z c $MAJOR $t
 done
 exit 0
 

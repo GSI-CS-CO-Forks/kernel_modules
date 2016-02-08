@@ -10,7 +10,7 @@
 #include <unistd.h>
 #include <stdio.h>
 #include "vmod12a4.h"
-#include "libvmod12a4.h"
+#include "libvmod.h"
 
 int vmod12a4_get_handle(unsigned int lun)
 {

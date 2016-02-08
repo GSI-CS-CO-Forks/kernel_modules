@@ -1,6 +1,9 @@
 # include the build environment
 include ../../common.mk
 
+#include version information
+include ../versions.mk
+
 CFLAGS := -Wall -g -D_GNU_SOURCE -I../include -I../../include -I../ad9516
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 LIBCVORG := libcvorg.$(CPU).a 
@@ -48,3 +51,8 @@ doxy_clean:
 doxy_install: doxy
 	$(MKDIR) -p $(DOXY_INSTDIR)
 	$(CP) -r $(DOXY_DIR)/html/* $(DOXY_INSTDIR)/
+
+LIBS_LIST=libcvorg.$(CPU).a
+
+# use default instalation rule for libs
+install: install_libs_global
