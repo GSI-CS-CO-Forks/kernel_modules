@@ -1,9 +1,0 @@
-ccflags-y += -g -Wall
-ccflags-y += -DCOMPILE_TIME=$(shell date +%s)
-ccflags-y += '-DDRIVER_NAME=$(DRIVER_NAME)'
-ccflags-y += -DENCORE_DAL
-ccflags-y += -I$(M)/../vmebridge/include
-
-ccflags-y += -DGIT_VERSION=\"$(GIT_VERSION)\"
-
-obj-m := ctc.o
