@@ -1,25 +1,46 @@
-CPU?=L865
+# include the build environment
+include ../../common.mk
 
-include /acc/src/dsc/co/Make.auto
+#include version information
+include ../versions.mk
 
-VPATH = ../lib
-LOCAL_INCDIR := ../include
-CFLAGS := -Wall -g -I$(LOCAL_INCDIR) -I../lib  \
-	-I/acc/local/$(CPU)/drv \
-	-DDRIVER_NAME=\"cvorb\"
+VPATH+=../../utils/extest ../../utils/install
 
-LOADLIBES := -L../lib -L/acc/sys/$(CPU)/usr/lib -L/acc/local/$(CPU)/drv/extest -L/acc/local/$(CPU)/lib
-LDLIBS= -lcvorb.$(CPU) -lextest -lreadline -ltermcap -lz -lrt -lm
+CFLAGS = -Wall -g \
+	-I../include \
+	-I../lib  \
+	-I../../utils/extest \
+	-I../../include \
+	-I/acc/sys/$(CPU)/usr/include/libxml2/ \
+	-DDRIVER_NAME=\"cvorb\" \
+
+CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
+
+LOADLIBES := -L../lib
+LDLIBS= -lcvorb.$(CPU) -lreadline -lz -lrt -lm -lxml2
+
+#L865 requires tempcap for readline
+ifeq ($(CPU),L865)
+LDLIBS+=-ltermcap
+endif
+
 
 all: cvorbtest.$(CPU)
 
 .PHONY: all clean
-cvorbtest.$(CPU): cvorbtest.$(CPU).o time_stamp_counter.$(CPU).o $(LIBUTILS)
+cvorbtest.$(CPU): cvorbtest.$(CPU).o time_stamp_counter.$(CPU).o $(LIBUTILS) extest.$(CPU).o libinst.$(CPU).o cmd_generic.$(CPU).o
 
 cvorbtest.$(CPU).o: cvorbtest.c time_stamp_counter.c time_stamp_counter.h
 
-$(LIBUTILS):
-	$(MAKE) -C $(LIBUTILSPATH) CPU=$(CPU)
-
 clean:
-	$(RM) *.$(CPU) *.o *.$(CPU).a $(BAKS)
+	$(RM) *.$(CPU).o
+	$(RM) *.$(CPU)
+
+cleanall:
+	$(RM) *.{$(ALL_CPUS_COMMAS)}.o
+	$(RM) *.{$(ALL_CPUS_COMMAS)}
+
+
+PROGS_LIST=cvorbtest.$(CPU)
+
+install: install_prog_global

@@ -19,9 +19,9 @@
 #include <math.h>
 #include <stdint.h>
 
-#include <extest/general_usr.h>  /* for handy definitions (mperr etc..) and macros coming from general_both.h */
-#include <extest/extest.h>
-#include <cvorb/libcvorb.h>
+#include <general_usr.h>  /* for handy definitions (mperr etc..) and macros coming from general_both.h */
+#include <extest.h>
+#include "libcvorb.h"
 #include <cvorbdev.h>
 
 #include "cvorbtest.h"
@@ -290,7 +290,7 @@ int h_pcb(struct cmd_desc *cmdd, struct atom *atoms)
 		return 1;
 	}
 	cvorb_get_pcb_id(current_dev, &pcb_id);
-	printf ("0x%016llx\n", pcb_id);
+	printf ("0x%016llx\n", (long long unsigned int) pcb_id);
 	return 1;
 }
 
@@ -1132,12 +1132,12 @@ int main(int argc, char *argv[], char *envp[])
 	pname = argv[0];
 	printf("%s: Compiled %s %s\n", pname,__DATE__,__TIME__);
 	printf("%s: %s\n", pname, git_version);
-	printf("%s\n", libvd80_version_s);
+	printf("%s\n", libcvorb_version_s);
 #if __CVORB_DEBUG__
 	ts_calibrateCountPeriod(50, 10);
 #endif
 	ndevs = cvorbdev_get_nr_devices();
-	if (!ndevs)
+	if (ndevs <= 0)
 	{
 		fprintf(stderr, "No cvorb installed.Exit.\n");
 		exit(0);
@@ -1154,7 +1154,7 @@ int main(int argc, char *argv[], char *envp[])
 	}
 	/* set current device to the first one*/
 	__h_device(indexes[0]);
-	return extest_init(argc, argv, DRIVER_NAME);
+	return extest_init(argc, argv);
 }
 
 enum _tag_cmd_id {
