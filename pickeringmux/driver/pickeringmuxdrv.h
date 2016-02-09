@@ -44,7 +44,7 @@ typedef struct
 #include <linux/cdev.h>
 
 #define PICK_MUX_OE_SET 0x0010
-#define PICK_MUX_CLK_PERIOD 1
+#define PICK_MUX_CLK_PERIOD 100
 
 #define PICK_MUX_CLK_POS 1
 #define PICK_MUX_DATA_POS 2
@@ -63,8 +63,8 @@ typedef struct
   unsigned short type;
   unsigned char bus;	/* PCI bus number of the device */
   unsigned int device;	/* PCI device number of the device */
-  int *inputs;	/* input number currently connected to the outputs */
-  int *loopData; /* Data held by the mux registers (Serial architecture)*/
+  unsigned int *inputs;	/* input number currently connected to the outputs */
+  unsigned int *loopData; /* Data held by the mux registers (Serial architecture)*/
   struct cdev charDev; /* Char device structure */
   /* We probably need to add a semaphore here */ 
 } PickeringMuxDescr;

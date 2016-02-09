@@ -682,19 +682,20 @@ void pickeringMuxSendData(PickeringMuxDescr *muxDesc, int nbrLoop, int loopLen)
 {
   int loop;
   int bit;
-  int data;
-  int *ctrlReg;
-  int *loopData;
+  unsigned int data;
+  unsigned int *ctrlReg;
+  unsigned int *loopData;
   
   printk(KERN_DEBUG "pickeringMuxSendData: sending %d ints to mux in slot %d-%d \n", nbrLoop * loopLen, muxDesc->bus, muxDesc->device);  
   
-  ctrlReg = (int *)muxDesc->las0;
+  ctrlReg = (unsigned int *)muxDesc->las0;
   loopData = muxDesc->loopData;
   
   for(loop = 1; loop <= nbrLoop; loop++)
   {
     for(bit = 0; bit < loopLen; bit++)
     {
+      printk(KERN_ERR "%d-%d\t%d\n", loop, bit, loopData[bit + loopLen * (loop - 1)]);
       data = PICK_MUX_OE_SET; /* OE = 1 */
       data |= loopData[bit + loopLen * (loop - 1)] << PICK_MUX_DATA_POS;
       *ctrlReg = data;
