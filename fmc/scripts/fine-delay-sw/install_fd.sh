@@ -38,3 +38,11 @@ echo "$DRIVER_NAME: making device nodes"
 awk -f ./fd-luns.awk $DEVICE_NAME $TRANSFER | sh
 
 ( cd ../wr-core ; python bootstrap-wr-core.py -t $TRANSFER $DEVICE_NAME )
+
+df /dsc/data/ | grep cs-ccr-felab
+if [ "x$?" = "x0" ]
+then
+    sleep 1
+    find /dev/ -regex ".*/\(zio/\)?fd-.*" -perm -0600 -exec chmod 0666 {} \;
+    find /sys/bus/zio/devices/fd-*/ -perm -0600 -exec chmod 0666 {} \;
+fi
