@@ -211,17 +211,17 @@ install_prog_global:
 	$(call check_defined,PROG_MINOR)
 	$(call check_defined,PROG_PATCH)
 # create dir a.b.c
-	@echo "Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools"
-	@echo "    Create $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools"
-	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools
+	@echo "Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin"
+	@echo "    Create $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin"
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin
 # create link a.b -> a.b.c
 	@echo "    Link $(PROG_MAJOR).$(PROG_MINOR) to $(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)"
 	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR)
 # deploy files
-	@echo "    Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools:"
+	@echo "    Install programs into $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin:"
 	$(V)$(foreach FILE,$(PROGS_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/tools/$$FILE_NO_CPU || exit 1;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin/$$FILE_NO_CPU || exit 1;\
 		)
-	@echo "    Create links to programs in $(INST_LIB_PATH)/tools"
+	@echo "    Create links to programs in $(INST_LIB_PATH)/bin"
