@@ -64,6 +64,11 @@ LIB_MAJOR=$(VER_MAJOR)
 LIB_MINOR=$(VER_MINOR)
 LIB_PATCH=$(VER_PATCH)
 
+# define versions
+VER_PREV=
+VER_CURRENT=$(VER_MAJOR).$(VER_MINOR)
+VER_NEXT=
+
 install-:
 
 # fmc-bus

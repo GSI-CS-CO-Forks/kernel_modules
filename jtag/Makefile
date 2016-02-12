@@ -34,3 +34,8 @@ PROG_PATCH=0
 
 # use default instalation rule for programs/tools
 install: install_prog_global
+
+# define versions
+VER_PREV=
+VER_CURRENT=$(PROG_MAJOR).$(PROG_MINOR)
+VER_NEXT=
