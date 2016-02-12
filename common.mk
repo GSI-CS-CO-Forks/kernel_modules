@@ -110,7 +110,7 @@ install_scripts_global:
 #     LIB_MAJOR -- Major version of libraries
 #     LIB_MINOR -- Minor version of libraries
 #     LIB_PATCH -- Patch version of libraries
-install_libs_global:
+install_libs_global: install_version_files
 # check whether all needed variables are defined
 	$(call check_defined,PRODUCT_NAME)
 	$(call check_defined,LIBS_LIST)
@@ -141,7 +141,7 @@ install_libs_global:
 #     LIBSO_MAJOR -- Major version of libraries
 #     LIBSO_MINOR -- Minor version of libraries
 #     LIBSO_PATCH -- Patch version of libraries
-install_libsso_global:
+install_libsso_global: install_version_files
 # check whether all needed variables are defined
 	$(call check_defined,PRODUCT_NAME)
 	$(call check_defined,LIBSSO_LIST)
@@ -171,7 +171,7 @@ install_libsso_global:
 #     HEADER_MAJOR -- Major version of headers
 #     HEADER_MINOR -- Minor version of headers
 #     HEADER_PATCH -- Patch version of headers
-install_headers_global:
+install_headers_global: install_version_files
 # check whether all needed variables are defined
 	$(call check_defined,PRODUCT_NAME)
 	$(call check_defined,HEADERS_LIST)
@@ -203,7 +203,7 @@ install_headers_global:
 #     PROG_MAJOR -- Major version of tools/programs
 #     PROG_MINOR -- Minor version of tools/programs
 #     PROG_PATCH -- Patch version of tools/programs
-install_prog_global:
+install_prog_global: install_version_files
 # check whether all needed variables are defined
 	$(call check_defined,PRODUCT_NAME)
 	$(call check_defined,PROGS_LIST)
@@ -225,3 +225,19 @@ install_prog_global:
 		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/bin/$$FILE_NO_CPU || exit 1;\
 		)
 	@echo "    Create links to programs in $(INST_LIB_PATH)/bin"
+
+install_version_files:
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(PROG_MAJOR).$(PROG_MINOR).$(PROG_PATCH)/
+# use if instead of ifneq...
+	$(V)if [ -n "$(VER_PREV)" ] ; then \
+		echo "    Store previous version information ($(VER_PREV))"; \
+		echo -n "$(VER_PREV)" > $(INST_LIB_PATH)/prev.txt ; \
+	fi
+	$(V)if [ -n "$(VER_CURRENT)" ] ; then \
+		echo "    Store current version information ($(VER_CURRENT))"; \
+		echo -n "$(VER_CURRENT)" > $(INST_LIB_PATH)/current.txt ; \
+	fi
+	$(V)if [ -n "$(VER_NEXT)" ] ; then \
+		echo "    Store next version information ($(VER_NEXT))"; \
+		echo -n "$(VER_NEXT)" > $(INST_LIB_PATH)/next.txt ; \
+	fi
