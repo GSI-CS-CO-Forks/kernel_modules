@@ -4,7 +4,7 @@ PRODUCT_NAME=pciioconfig
 # common version
 VER_MAJOR=1
 VER_MINOR=0
-VER_PATCH=0
+VER_PATCH=1
 
 # version of the header file(s)
 HEADER_MAJOR=$(VER_MAJOR)
@@ -20,3 +20,8 @@ LIB_PATCH=$(VER_PATCH)
 PROG_MAJOR=$(VER_MAJOR)
 PROG_MINOR=$(VER_MINOR)
 PROG_PATCH=$(VER_PATCH)
+
+# define versions
+VER_PREV=
+VER_CURRENT=$(VER_MAJOR).$(VER_MINOR)
+VER_NEXT=
