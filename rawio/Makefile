@@ -19,7 +19,7 @@ PROGS_LIST=vmeio.$(CPU)
 # version of the programs/tools
 PROG_MAJOR=1
 PROG_MINOR=0
-PROG_PATCH=0
+PROG_PATCH=1
 
 # use default instalation rule for programs/tools
 install: install_prog_global

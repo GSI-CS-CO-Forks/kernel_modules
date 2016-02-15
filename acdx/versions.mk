@@ -4,7 +4,7 @@ PRODUCT_NAME=acdx
 # common version
 VER_MAJOR=1
 VER_MINOR=1
-VER_PATCH=0
+VER_PATCH=1
 
 # version of the header file(s)
 HEADER_MAJOR=$(VER_MAJOR)
