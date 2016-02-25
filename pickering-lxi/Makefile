@@ -141,7 +141,7 @@ cleanall:
 
 picmlx: setup $(PICMLXOBJS)
 	$(GG) -shared -o $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(PICMLXOBJS) $(LINKOPTS)
-	ln -sfv $(CURDIR)/$(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(CURDIR)/$(BINDIR)/lib$(PICMLX).so	
+	ln -sfv lib$(PICMLX).so.$(PICMLX_VERSION) $(BINDIR)/lib$(PICMLX).so
 	@echo "Picmlx module v".$(PICMLX_VERSION)." done."
 	@echo " "
 
@@ -155,7 +155,7 @@ $(OBJSDIR)/%.cpp.o: $(SRCDIR)/%.cpp
 
 piplx: setup $(PIPLXOBJS)
 	$(GG) -shared -o $(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(PIPLXOBJS) $(LINKOPTS) -l$(PICMLX) -L$(CURDIR)/$(BINDIR)
-	ln -sfv $(CURDIR)/$(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(CURDIR)/$(BINDIR)/lib$(PIPLX).so
+	ln -sfv lib$(PIPLX).so.$(PIPLX_VERSION) $(BINDIR)/lib$(PIPLX).so
 	@echo "Piplx module v".$(PIPLX_VERSION)." done."
 	@echo " "
 
@@ -166,7 +166,7 @@ $(OBJSDIR)/%.cpp.o: $(PIPLXSRCDIR)/%.cpp
 
 pipslx: setup $(PIPSLXOBJS)
 	$(GG) -shared -o $(BINDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(PIPSLXOBJS) $(LINKOPTS) -l$(PICMLX) -L$(CURDIR)/$(BINDIR)
-	ln -sfv $(CURDIR)/$(BINDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(CURDIR)/$(BINDIR)/lib$(PIPSLX).so
+	ln -sfv lib$(PIPSLX).so.$(PIPSLX_VERSION) $(BINDIR)/lib$(PIPSLX).so
 	@echo "Pipslx module v".$(PIPSLX_VERSION)." done."
 	@echo " "
 
@@ -177,7 +177,7 @@ $(OBJSDIR)/%.cpp.o: $(PIPSLXSRCDIR)/%.cpp
 
 pi743lx: setup $(PI743LXOBJS)
 	$(GG) -shared -o $(BINDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(PI743LXOBJS) $(LINKOPTS) -l$(PICMLX) -L$(CURDIR)/$(BINDIR)
-	ln -sfv $(CURDIR)/$(BINDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(CURDIR)/$(BINDIR)/lib$(PI743LX).so
+	ln -sfv lib$(PI743LX).so.$(PI743LX_VERSION) $(BINDIR)/lib$(PI743LX).so
 	@echo "Pi743lx module v".$(PI743LX_VERSION)." done."
 	@echo " "
 
