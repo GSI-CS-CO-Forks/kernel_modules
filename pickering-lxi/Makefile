@@ -14,13 +14,11 @@
 # include the build environment
 include ../common.mk
 
+#include version information
+include ./versions.mk
+
 CXXFLAGS+= -g -Wall -fPIC
 CXXFLAGS+=-DGIT_VERSION=\"$(GIT_VERSION)\"
-
-# standard deployment paths
-LIBROOT ?= /acc/local/$(CPU)/drv/pickering-lxi/$(DISTRO_VERSION)
-LIBDIR ?= $(LIBROOT)/lib
-INCSYSDIR ?= $(LIBROOT)/include/pickering-lxi
 
 # Distribution version
 DISTRO_VERSION=1.10.3
@@ -31,7 +29,7 @@ GG=$(CXX) $(CPPFLAGS) $(CXXFLAGS)
 # General
 CURDIR=`pwd`
 MACHINE=$(shell hostname)
-BINDIR=bin
+BINDIR=$(CPU)
 OBJSDIR=$(BINDIR)/objects
 DOCDIR=Docs
 INCOPT=-I./src/Picmlx -I./src/Piplx -I./src/Pipslx -I./src/Pi743lx
@@ -108,27 +106,28 @@ setup:
 	@if test ! -d $(BINDIR) ; then $(MKDIR) -p $(BINDIR) ; fi
 	@if test ! -d $(OBJSDIR) ; then $(MKDIR) -p $(OBJSDIR) ; fi
 
-$(LIBDIR) $(INCSYSDIR):
-	$(MKDIR) -p $@
+LIBSSO_LIST=\
+	$(CPU)/lib$(PICMLX).so.$(PICMLX_VERSION) \
+	$(CPU)/lib$(PIPLX).so.$(PIPLX_VERSION) \
+	$(CPU)/lib$(PIPSLX).so.$(PIPSLX_VERSION) \
+	$(CPU)/lib$(PI743LX).so.$(PI743LX_VERSION) \
+	$(CPU)/lib$(PICMLX).so \
+	$(CPU)/lib$(PIPLX).so \
+	$(CPU)/lib$(PIPSLX).so \
+	$(CPU)/lib$(PI743LX).so \
 
-install: $(LIBDIR) $(INCSYSDIR)
-	cp $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)/lib$(PICMLX).so
-	cp $(BINDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PIPLX).so.$(PIPLX_VERSION) $(LIBDIR)/lib$(PIPLX).so
-	cp $(BINDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PIPSLX).so.$(PIPSLX_VERSION) $(LIBDIR)/lib$(PIPSLX).so
-	cp $(BINDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(LIBDIR)
-	ln -s $(LIBDIR)/lib$(PI743LX).so.$(PI743LX_VERSION) $(LIBDIR)/lib$(PI743LX).so
-	@if test ! -d $(INCSYSDIR) ; then mkdir $(INCSYSDIR) ; fi
-	cp $(PICMLXSRCDIR)/Picmlx.h $(INCSYSDIR)
-	cp $(PIPLXSRCDIR)/Piplx.h $(INCSYSDIR)
-	cp $(PIPSLXSRCDIR)/Pipslx.h $(INCSYSDIR)
-	cp $(PI743LXSRCDIR)/Pi743lx.h $(INCSYSDIR)
+# use default instalation rule for libs
+install: install_libsso_global
+install_libsso_global: SO_DIR=lib
 
-uninstall:
-	rm -f $(LIBDIR)/libpi*lx.so*
-	rm -f $(INCSYSDIR)/Pi*lx.h
+HEADERS_LIST=\
+	$(PICMLXSRCDIR)/Picmlx.h \
+	$(PIPLXSRCDIR)/Piplx.h \
+	$(PIPSLXSRCDIR)/Pipslx.h \
+	$(PI743LXSRCDIR)/Pi743lx.h \
+
+# use default instalation rule for headers
+install: install_headers_global
 
 # 'clean' removes targets and objects
 clean:
