@@ -109,7 +109,7 @@ setup:
 	@if test ! -d $(OBJSDIR) ; then $(MKDIR) -p $(OBJSDIR) ; fi
 
 $(LIBDIR) $(INCSYSDIR):
-	mkdir -p $@
+	$(MKDIR) -p $@
 
 install: $(LIBDIR) $(INCSYSDIR)
 	cp $(BINDIR)/lib$(PICMLX).so.$(PICMLX_VERSION) $(LIBDIR)
@@ -132,7 +132,10 @@ uninstall:
 
 # 'clean' removes targets and objects
 clean:
-	@if test -d $(BINDIR) ; then rm -r $(BINDIR) ; fi
+	$(RM) -r $(CPU)
+
+cleanall:
+	$(RM) -r $(ALL_CPUS)
 
 #############################################################################
 
