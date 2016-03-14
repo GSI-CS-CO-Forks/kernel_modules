@@ -15,6 +15,7 @@ dirs-$(CONFIG_SVEC)		+= svec-sw
 dirs-$(CONFIG_FDELAY)		+= fine-delay-sw
 dirs-$(CONFIG_OBSBOX)		+= obsbox
 dirs-$(CONFIG_FMC_TDC)		+= fmc-tdc-sw
+dirs-$(CONFIG_ADC_LIB)		+= adc-lib
 
 # special case for fmc-adc-100m14b4cha-sw
 fmc-adc-100m14b4cha-sw-$(CONFIG_FMC_ADC) += fmc-adc-100m14b4cha-sw

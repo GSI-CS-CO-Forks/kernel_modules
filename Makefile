@@ -66,6 +66,7 @@ GIT_GATEWAY=cs-ccr-builds
 SUBMODULE_LIST+='(mil1553		"ssh://git@gitlab.cern.ch:7999/cohtdrivers/mil1553.git")'
 SUBMODULE_LIST+='(ctr-2.0		"ssh://git@gitlab.cern.ch:7999/cohtdrivers/ctr-2.0.git")'
 SUBMODULE_LIST+='(encore		"ssh://git@gitlab.cern.ch:7999/cohtdrivers/encore.git")'
+SUBMODULE_LIST+='(fmc/adc-lib		"git://ohwr.org/misc/adc-lib.git")'
 SUBMODULE_LIST+='(fmc/zio		"git://ohwr.org/misc/zio.git")'
 SUBMODULE_LIST+='(fmc/fmc-bus		"git://ohwr.org/fmc-projects/fmc-bus.git")'
 SUBMODULE_LIST+='(fmc/spec-sw		"git://ohwr.org/fmc-projects/spec/spec-sw.git")'

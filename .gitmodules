@@ -46,3 +46,6 @@
 [submodule "soft-cpu-toolchains"]
 	path = soft-cpu-toolchains
 	url = git://ohwr.org/misc/soft-cpu-toolchains.git
+[submodule "fmc/adc-lib"]
+	path = fmc/adc-lib
+	url = git://ohwr.org/misc/adc-lib.git
