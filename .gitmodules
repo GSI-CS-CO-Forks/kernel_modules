@@ -43,3 +43,6 @@
 [submodule "cvora"]
 	path = cvora
 	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/cvora.git
+[submodule "soft-cpu-toolchains"]
+	path = soft-cpu-toolchains
+	url = git://ohwr.org/misc/soft-cpu-toolchains.git

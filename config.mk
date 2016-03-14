@@ -24,3 +24,5 @@ CONFIG_sis33 ?= y
 CONFIG_vd80-2 ?= y
 CONFIG_vmebridge ?= y
 CONFIG_vmod ?= y
+CONFIG_soft-cpu-toolchains ?= n # build manually if you need it because
+				# it takes too much time
