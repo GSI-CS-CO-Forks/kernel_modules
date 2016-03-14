@@ -34,6 +34,9 @@
 #
 tags
 TAGS
+GPATH
+GTAGS
+GRTAGS
 vmlinux
 System.map
 Module.markers
