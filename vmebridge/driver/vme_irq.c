@@ -89,7 +89,7 @@ static int vme_interrupts_proc_show(struct seq_file *m, void *data)
                 seq_printf(m, "%-8s      %d\n", int_stats[i].name,
                              int_stats[i].count);
 
-        return 1;
+        return 0;
 }
 
 static int vme_interrupts_proc_open(struct inode *inode, struct file *file)
@@ -118,7 +118,7 @@ static int vme_irq_proc_show(struct seq_file *m, void *data)
                         seq_printf(m, " %3d     %10u   %s\n",
                                    i, virq->count, virq->name);
         }
-        return 1;
+        return 0;
 }
 
 static int vme_irq_proc_open(struct inode *inode, struct file *file)

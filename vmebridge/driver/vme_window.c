@@ -256,7 +256,7 @@ static int vme_window_proc_show(struct seq_file *m, void *data)
         for (i = 0; i < TSI148_NUM_OUT_WINDOWS; i++)
                 vme_window_proc_show_window(m, i);
 
-        return 1;
+        return 0;
 }
 
 static int vme_window_proc_open(struct inode *inode, struct file *file)
