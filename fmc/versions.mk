@@ -74,3 +74,15 @@ fmc-adc_PATCH=1
 fmc-adc_PREV=
 fmc-adc_CURRENT=$(fmc-adc_MAJOR).$(fmc-adc_MINOR)
 fmc-adc_NEXT=
+
+###########################################
+# define version of the adc-lib
+adc-lib_MAJOR=1
+adc-lib_MINOR=0
+adc-lib_PATCH=0
+
+# define versions
+adc-lib_PREV=
+adc-lib_CURRENT=$(adc-lib_MAJOR).$(adc-lib_MINOR)
+adc-lib_NEXT=
+

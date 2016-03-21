@@ -201,3 +201,21 @@ install-fmc-adc-100m14b4cha-sw:
 	$(MAKE) install_prog_global    PRODUCT_NAME=fmc-adc-100m PROGS_LIST="$(fmc-adc_PROGS)" \
 		PROG_MAJOR=$(fmc-adc_MAJOR) PROG_MINOR=$(fmc-adc_MINOR) PROG_PATCH=$(fmc-adc_PATCH) \
 		VER_PREV=$(fmc-adc_PREV) VER_CURRENT=$(fmc-adc_CURRENT) VER_NEXT=$(fmc-adc_NEXT)
+
+
+adc-lib_LIBS=\
+	adc-lib/lib/libadc.a
+adc-lib_HEADERS=\
+	adc-lib/lib/adc-lib.h
+adc-lib_PROGS=\
+	adc-lib/tools/fald-acq
+install-adc-lib:
+	$(MAKE) install_libs_global    PRODUCT_NAME=adc-lib LIBS_LIST="$(adc-lib_LIBS)" \
+		LIB_MAJOR=$(adc-lib_MAJOR) LIB_MINOR=$(adc-lib_MINOR) LIB_PATCH=$(adc-lib_PATCH) \
+		VER_PREV=$(adc-lib_PREV) VER_CURRENT=$(adc-lib_CURRENT) VER_NEXT=$(adc-lib_NEXT)
+	$(MAKE) install_headers_global PRODUCT_NAME=adc-lib HEADERS_LIST="$(adc-lib_HEADERS)" \
+		HEADER_MAJOR=$(adc-lib_MAJOR) HEADER_MINOR=$(adc-lib_MINOR) HEADER_PATCH=$(adc-lib_PATCH) \
+		VER_PREV=$(adc-lib_PREV) VER_CURRENT=$(adc-lib_CURRENT) VER_NEXT=$(adc-lib_NEXT)
+	$(MAKE) install_prog_global    PRODUCT_NAME=adc-lib PROGS_LIST="$(adc-lib_PROGS)" \
+		PROG_MAJOR=$(adc-lib_MAJOR) PROG_MINOR=$(adc-lib_MINOR) PROG_PATCH=$(adc-lib_PATCH) \
+		VER_PREV=$(adc-lib_PREV) VER_CURRENT=$(adc-lib_CURRENT) VER_NEXT=$(adc-lib_NEXT)
