@@ -68,6 +68,9 @@ INSTALL_DIR_PARAMS=-p
 INSTALL_LINK=ln
 INSTALL_LINK_PARAMS=-sfT
 
+# set default shared objects dir SO_DIR
+SO_DIR?=lib
+
 #
 # All of the rules below requires PRODUCT_NAME to be specified
 # 
@@ -149,18 +152,18 @@ install_libsso_global: install_version_files
 	$(call check_defined,LIBSO_MINOR)
 	$(call check_defined,LIBSO_PATCH)
 # create dir a.b.c
-	@echo "Install shared libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/bin"
-	@echo "    Create $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/bin"
-	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/bin
+	@echo "Install shared libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/$(SO_DIR)"
+	@echo "    Create $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/$(SO_DIR)"
+	$(V)$(INSTALL_DIR_CMD) $(INSTALL_DIR_PARAMS) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/$(SO_DIR)
 # create link a.b -> a.b.c
 	@echo "    Link $(LIBSO_MAJOR).$(LIBSO_MINOR) to $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)"
 	$(V)$(INSTALL_LINK) $(INSTALL_LINK_PARAMS) $(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR)
 # deploy files
-	@echo "    Install libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/bin:"
+	@echo "    Install libraries into $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/$(SO_DIR):"
 	$(V)$(foreach FILE,$(LIBSSO_LIST),\
 		export FILE_NO_CPU=$(subst .$(CPU),,$(notdir $(FILE)));\
 		echo "        $$FILE_NO_CPU"; \
-		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/bin/$$FILE_NO_CPU || exit 1;\
+		$(INSTALL_BIN_CMD) $(INSTALL_BIN_PARAMS) $(FILE) $(INST_LIB_PATH)/$(LIBSO_MAJOR).$(LIBSO_MINOR).$(LIBSO_PATCH)/$(SO_DIR)/$$FILE_NO_CPU || exit 1;\
 		)
 
 # Rule to deploy driver's or library's headers

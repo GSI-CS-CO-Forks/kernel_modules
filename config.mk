@@ -17,6 +17,7 @@ CONFIG_mil1553 ?= y
 CONFIG_msatt ?= y
 CONFIG_mtt ?= y
 CONFIG_pciioconfig ?= y
+CONFIG_pickering-lxi ?= y
 CONFIG_pickeringmux ?= y
 CONFIG_rawio ?= y
 CONFIG_sis33 ?= y

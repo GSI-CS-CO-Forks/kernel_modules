@@ -1,0 +1,26 @@
+This agreement is made between Pickering Interfaces Ltd ("Pickering") and you,
+the person who makes use of Pickering software products ("You"). You must agree
+all terms in this agreement in order to use Pickering software legally. If you
+don't agree all terms in the agreement, please don't use Pickering software, and
+delete all related files from your computer.
+
+1. OWNERSHIP: Pickering software is fully owned by Pickering, this license
+agreement doesn't change the ownership.
+
+2. LICENSE: Pickering grants You the license to use Pickering software, free of
+charge, if you accept all the conditions listed in this agreement. "Use" means
+loading the product to CPU, memory, and/or other storages of your computer.
+
+3. CONDITIONS: To be licensed to use Pickering software, You must: 
+   a) Not modify any part of Pickering software; 
+   b) Agree to release Pickering from all liabilities caused directly or
+       indirectly by using Pickering software; 
+   c) Agree not to attempt to reverse engineer, de-compile or use any other
+       tools to extract source code from Pickering Software.
+      
+4. CONSEQUENTIAL LICENSES: Some functions of Pickering software requires
+additional licenses to fully operate. Pickering accepts no responsibility for
+the provision of said licenses.
+
+5. REDISTRIBUTION:. You may freely re-distribute Pickering software in any way 
+unless explicitly stated to the contrary for a particular product.

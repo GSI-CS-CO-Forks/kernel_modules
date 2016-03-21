@@ -1,0 +1,239 @@
+(C) Copyright 1988 - 2013 Pickering Interfaces Ltd
+
+Pickering ClientBridge installation package.
+
+Support: support@pickeringswitch.com
+Current version: 1.10.3
+
+Changes:
+
+[10.12.2013 -> 1.10.3]
+  - Fixed bug for setting up a recv/send socket timeout. Picmlx -> v1.8.3.
+  - Added function for enable/disable utility for store states of the card (65-110-NNN chassis only)
+
+[27.11.2013 -> 1.10.2]
+  - Added possibility to change communication socket send/receive timeout (same as connection timeout) after successful
+    connection to device. Picmlx module increased version to 1.8.2.
+
+[15.11.2013 -> 1.10.1]
+  + fixed FID definition due to compatibility in Piplx module.
+  	
+[07.11.2013 -> 1.10.0]
+  - Fixed connect function in communication module (issues on Linux platform).
+  + added new error codes/messages while connecting to LXI.
+    - Message: "Client: Name or IP address not known." (Hostname is not alive or IP address parameter is not correct).
+    - Message: "Client: Connection refused." (Host is alive but service is not available).
+  - Added function GetStatusMessage for 65-110-001 chassis .
+  - Signed installation package for Microsoft Windows 8.
+
+[12.08.2013 -> 1.9.1]
+  - Added creating ClientBridge path enviroment variable.
+  - Added missing SDK header file PiplxBIRST.h.
+
+[07.08.2013 -> 1.9.0]
+  + ClientBridge changes
+    - Updated communication module examples.
+    - Added examples for getting information about chassis voltages/temps/fanspees (Only 60-102/60-103A).
+    - Fixed examples -> using PICMLX_GetConnectedClients instead PICMLX_GetConnectedHosts (SessionControl).
+    - Fixed function PICMLX_GetLastErrorMessage due to troubles on Linux.
+  + Added functions:
+    - PICMLX_Identify                  : Instrument identification - LAN led will flash.
+    - PICMLX_PowerCycle                : Reboot/Shutdown the chassis. Shutdown is not supported yet.
+    - PICMLX_GetChassisVoltages        : Return values of all monitored voltages of the chassis 60-102/60-103A.
+    - PICMLX_GetChassisTemperatures    : Return values of all monitored temperatures of the chassis 60-102/60-103A.
+    - PICMLX_GetChassisFanSpeeds       : Return values of all monitored fan speeds of the chassis 60-102/60-103A.
+    - PICMLX_SetChassisFanSpeeds       : Set the fan speed of the chassis 60-102/60-103A (Auto/Max).
+    - Picmlx module increased version to 1.8.0.
+  + Installation Script changes
+    - Script rewrited for x86 and x64 system architecture with automation detection.
+
+[11.06.2012 -> 1.8.0]
+  - Added dotNET Wrappers.
+
+[25.04.2012 -> 1.7.5]
+  - Changed way how to discover network interfaces available in system. 
+
+[26.03.2012 -> 1.7.4]
+  - Fixed bug when board value equals to zero caused connection error.
+
+[20.02.2012 -> 1.7.3]
+  - Fixed bug with nonsense or high board value caused unhandled exception.
+
+[26.01.2012 -> 1.7.2]
+  - Updated all FP and LabView files.
+
+[06.12.2011 -> 1.7.1]
+  - Updated Pi743lx FP file.
+
+[01.12.2011 -> 1.7.0]
+  - Added Pi743lx module (version 1.0.3).
+
+[26.10.2011 -> 1.6.6 ... !!! NOT RELEASED !!!]
+  - Fixed small but extremly hidden bug in PIPLX_StatusCodeToMessage.
+  - Piplx module version -> 1.5.9
+
+[18.10.2011 -> 1.6.6 ... !!! NOT RELEASED !!!]
+  - Compability with Windows 2000 operation system.
+  - Picmlx module version -> 1.6.2
+  - Pipslx module version -> 1.3.2
+
+[26.09.2011 -> 1.6.5]
+  - Added support for MATRIXP topology.
+  - Piplx module version -> 1.5.7.
+
+[08.09.2011 -> 1.6.5 ... !!! NOT RELEASED !!!]
+  - Renamed functions PICMLX_GetConnectedHosts, PICMLX_GetConnectedCardHosts into PICMLX_GetConnectedClients, PICMLX_GetConnectedCardClients in Picmlx module.
+  - Picmlx module version -> 1.6.1.
+
+[12.08.2011 -> 1.6.4]
+  - Removed Include\picmlx_private.h, build a clientbridge.conf files from sources.
+  - Picmlx module version update -> 1.5.1.
+  - Fixed bug on ARM linux with reading/writting double values from/into buffer. Source file: Sockets.cpp (Lines: )
+  - Changed PICMLX_GetAllSessions function header and necessary stuff with it in function source code. 
+  
+[04.08.2011 -> 1.6.3]
+  - Fixed "bug" for ARM architecture for double data type with swapping low 4bytes with high 4bytes in Picmlx module.
+  - Added two internal functions PICMLX_GetAllSessions & PICMLX_KillSession (include PicmlxModuleAPI.h)
+  - Picmxl module version -> 1.5.0.
+  
+[02.05.2011 -> 1.6.0 - RC01 ... released 08.06.2011]
+  - Fixed bug in Picmlx module source file Sockets.cpp socket_client_c class constructor (line: 237) ... affected only for LabViewRT.
+  - Officially released multiaccess functions in Picmlx module (no help yet).
+  - Picmlx module version -> 1.4.0.0
+  - Added two new C++ examples for Picmlx module for multi access.
+  - Updated LabView and CVI files.
+
+[13.05.2011 -> 1.5.6.3 - RC02]
+  - Added force deleting ClientBridge libraries in system32 folder (installator update).
+
+[06.05.2011 -> 1.5.6.3 ... RELEASED]
+  - Updated Pi743lx module (important only for Linux). Removed bug with library initialization.
+  - Pi743lx module version -> 1.0.2.
+  - Added test project Pi743FindCards into ClientBridge VS10 solution.
+
+[04.05.2011 -> 1.5.6.2 - RC01 ... RELEASED]
+  - Changed behaviour of the 'board' parameter in PICMLX_Connect function. If 'board' is 0 then no network device selection for
+    communication is made (system default). If is greater than 0, than is network device selected from available list (index starts from 1).
+  - Picmlx module version -> 1.3.7.
+
+[21.04.2011 -> 1.5.6.1 ... !!! NOT RELEASED !!!]
+  - Added new parameter into Picmlx function RecvPacket ("pX"). This is similar to ("aX") whith change that 'p' means count of items
+    in array, but this will be rewritten by value received from ServerBridge.
+  - Updated project files.
+                 
+[20.04.2011 -> 1.5.6.0 ... !!! NOT RELEASED !!!]
+  - Added solution and project files (main modules not for tests) for Visual Studio 2008 (needed for LabViewRT compilation).
+  - Added definition files to each module (Picmlx, Piplx, Pipslx, Pi743lx).
+  - All modules changed version (Picmlx -> 1.3.6, Piplx -> 1.5.6, Pipslx -> 1.3.1, Pi743lx -> 1.0.1).
+
+[09.03.2011 -> 1.5.5]
+  - Picmlx module updated to 1.3.5.0.
+  - Fixed bug in function socket_c::writeString for storing string in output buffer
+    (missing string length information).
+  - Piplx module updated to 1.5.5.0.
+  - Added two new BIRST attributes BIRST_ATTR_SUB_CURRENT and BIRST_ATTR_SUB_GAIN.
+
+[27.01.2011 -> 1.5.4]
+  - Changed name of function PIPLX_BirstAttribute to PIPLX_BirstGetAttribute in Piplx module (internal change). 
+
+[16.12.2010 -> 1.5.3]
+  - Updated Piplx module to version 1.5.3.0.
+  - Added two BIRST functions S(G)etControlsEx, updated PiplxBURST.h header file.
+
+[02.12.2010 -> 1.5.2]
+  - Added three resource strings (2x error messages & 1x status message) in Piplx module.
+
+[18.11.2010 -> 1.5.1]
+  - Updated help section. Removed Pilpxi.chm and added Piplx.chm help file.
+  - Removed Pilpxi.dll library ... it has own setup package.
+  - Added shortcut into programs start group for help.
+
+[02.09.2010 -> 1.5.0 - RC03]
+  - Updated script for ClientBridge SDK feature (new registry entry).
+
+[30.07.2010 -> 1.5.0 - RC02]
+  - Updated Piplx module, updates for termocouple simulator (bug fixes).
+
+[24.07.2010 -> 1.5.0 - RC01]
+  - Updated Piplx module (now support for termocuple simulator)
+
+[30.03.2010 -> 1.4.7]
+  - Fixed trivial bug with incorrect resource string in Picmlx module.
+
+[25.03.2010 -> 1.4.6]
+  - Updated Pilpxi help file (Pilpxi.chm) related to version 3.10.
+
+[24.03.2010 -> 1.4.5]
+  - Updated Piplx module to version 1.4.1.0.
+  - Fixed bug in PIPLX_OpSwitch function when calling Pilpxi function (PXI).
+
+[22.03.2010 -> 1.4.4
+  - Rebuilded all modules (Picmlx, Piplx, Pipslx) and removed dependency on MSVCR80D.DLL
+
+[18.03.2010 -> 1.4.3]
+  - Updated header files of all modules (just only cosmetics changes)
+  - Updated Picmlx module to version 1.3.3.0 (fixed bug: work with big arrays)
+
+[18.02.2010 -> 1.4.2]
+  - Added some new examples for LabView (e.g. for battery simulator)
+  - Updated LabView wrapper (added stuff for battery simulator)
+
+[29.1.2010 -> 1.4.1]
+  - Upgraded Picmlx module to v1.3.2.0 (added NULL as connection parameter for PXI in PICMLX_Connect function).
+
+[1.4.0] - Upgraded Piplx module: added API for BIRST -> v1.4.0.0
+        - Fixed bug in Picmlx module -> v1.3.1.0
+        - Updated Pilpxi library -> v3.12
+
+[1.3.2] - Updated ClientBridge modules:
+            Piplx now 1.3.2
+        - Updated Pilpxi to 3.05
+
+[1.3.1] - Updated ClientBridge header files and libraries ... Piplx now v1.3.1
+
+[1.3.0] - Updated ClientBridge libraries (new release version 1.3.0 for all libraries).
+        - Update Pilpxi library to 2.93 version.
+        - Changed names of ClientBridge header files ... removed suffix _w32 (same for linux _l32).
+        - Removed dnssd.dll (ClientBridge doesn't support Bonjour anymore).
+        - Edited examples for new header files names.        
+        - Error codes which not used anymore, but still are in header file:
+            ER_PICMLX_CLI_NOT_INIT        ///< Client: Library wasn't initialized!
+            ER_PICMLX_CLI_ECHOB_SERVER		///< Client: Can't start echo broadcast server
+            ER_PICMLX_CLI_ECHOB_SEND			///< Client: Can't send broadcast message
+            ER_PICMLX_CLI_ECHOB_OPTION		///< Client: Can't set/get echo server socket option
+            ER_PICMLX_CLI_ECHOB_CREATE		///< Client: Can't create echo server listen thread
+            ER_PICMLX_CLI_ECHOD_DATA		  ///< Client: Received corrupted data in EchoDirect function
+            ER_PICMLX_CLI_ECHOD_RECV		  ///< Client: Can't receive data in EchoDirect function
+            ER_PICMLX_CLI_ECHOD_CREATE		///< Client: Can't create echo direct socket
+            ER_PICMLX_CLI_ECHOD_HOST		  ///< Client: Echo direct request timeout
+            ER_PICMLX_CLI_SESSION				  ///< Client: Session can not be NULL!
+
+[1.2.2] - Upgraded Picmlx_w32.dll to v1.26 ... removed bug with OpCrosspoint (incorrect session searching)
+        - Removed uninstallation of IVI Shared Components
+        - ClientBridge versions 1.2.6, 1.2.2, 1.2.1
+
+[1.2.1] - Upgraded Pilpxi.dll to v2.78.
+        - Upgraded Picmlx_w32.dll to v1.25 ... removed bug with session releasing.
+        - Added Changelog.txt file.
+
+[1.2.0] - Removed IVI support.
+        - Source code ... removed unused preprocessor definitions & comments
+
+[1.1.9] - Upgraded IviSharedComponents to v1.5.0.
+        - Upgraded Pilpxi.dll to v2.75.
+        - Removed Bonjour instalation package.
+        - Updated instalation rulez for IVI Support.
+
+[1.1.8] - New versions of ClientBridge libraries v1.2.3.
+        - Added dnssd.dll
+
+[1.1.7] - Added Bonjour instalation package.
+        - Added feature to automatic uninstallation if already installed.
+
+[1.1.6] - New ClientBridge v1.2.0 included.
+        - Updated IVI instalation rulez. Fixed IVI instalation process.
+        - Fixed examples instalation process.
+        - Updated LabView wrappers and examples.
+        - Licence file updated.
+
+[1.1.5] - Not supported custom uninstallation procedure.

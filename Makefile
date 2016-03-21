@@ -18,6 +18,7 @@ DIRS-$(CONFIG_mil1553) += mil1553
 DIRS-$(CONFIG_msatt) += msatt
 DIRS-$(CONFIG_mtt) += mtt
 DIRS-$(CONFIG_pciioconfig) += pciioconfig
+DIRS-$(CONFIG_pickering-lxi) += pickering-lxi
 DIRS-$(CONFIG_pickeringmux) += pickeringmux
 DIRS-$(CONFIG_rawio) += rawio
 DIRS-$(CONFIG_sis33) += sis33
