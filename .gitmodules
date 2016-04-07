@@ -49,3 +49,6 @@
 [submodule "fmc/adc-lib"]
 	path = fmc/adc-lib
 	url = git://ohwr.org/misc/adc-lib.git
+[submodule "bst"]
+	path = bst
+	url = ./bst
