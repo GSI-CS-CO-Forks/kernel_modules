@@ -49,3 +49,6 @@
 [submodule "fmc/adc-lib"]
 	path = fmc/adc-lib
 	url = git://ohwr.org/misc/adc-lib.git
+[submodule "fip"]
+	path = fip
+	url = ssh://git@gitlab.cern.ch:7999/cohtdrivers/fip.git
