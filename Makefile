@@ -26,6 +26,7 @@ DIRS-$(CONFIG_vd80-2) += vd80-2
 DIRS-$(CONFIG_vmebridge) += vmebridge
 DIRS-$(CONFIG_vmod) += vmod
 DIRS-$(CONFIG_soft-cpu-toolchains) += soft-cpu-toolchains
+DIRS-$(CONFIG_ual) += ual
 
 .PHONY: all clean cleanall install $(DIRS-y) init_submodules init_submodules_post init_submodules_pre
 
@@ -80,6 +81,7 @@ SUBMODULE_LIST+='(mtt			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/mtt.git")'
 SUBMODULE_LIST+='(ctc			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/ctc.git")'
 SUBMODULE_LIST+='(cvora			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/cvora.git")'
 SUBMODULE_LIST+='(soft-cpu-toolchains	"git://ohwr.org/misc/soft-cpu-toolchains.git")'
+SUBMODULE_LIST+='(ual			"ssh://git@gitlab.cern.ch:7999/cohtdrivers/ual.git")'
 
 init_submodules_pre:
 #	initialize submodules (non recursive)
