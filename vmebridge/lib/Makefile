@@ -4,13 +4,14 @@ include ../../common.mk
 #include version information
 include ../versions.mk
 
-CFLAGS+= -I../include
+CFLAGS += -I../include -fPIC
 CFLAGS += -DGIT_VERSION=\"$(GIT_VERSION)\"
 
 all: libvmebus.$(CPU).a
 
 libvmebus.$(CPU).a: libvmebus.$(CPU).o
 	$(AR) rv $@ $^
+	$(RANLIB) $@
 
 libvmebus.$(CPU).o: libvmebus.c libvmebus.h
 
