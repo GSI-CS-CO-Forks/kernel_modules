@@ -29,6 +29,7 @@
 #define DRV_MODULE_NAME		"vmebus"
 #define DRV_MODULE_VERSION	"1.4"
 #define DRV_MODULE_RELDATE	"May, 19 2010"
+#define VME_NUM_VECTORS 256
 
 /*
  * We just keep the last VME error caught, protecting it with a spinlock.
@@ -50,6 +51,8 @@ struct vme_bridge_device {
 	struct tsi148_chip	*regs;
 	struct pci_dev		*pdev;
 	struct vme_verr		verr;
+	unsigned int base_irq;
+	struct irq_domain *domain;
 };
 
 /**
@@ -102,10 +105,11 @@ extern const struct dev_entry devlist[];
 
 /* vme_irq.c */
 extern void account_dma_interrupt(int);
-extern irqreturn_t vme_bridge_interrupt(int, void *);
+extern irqreturn_t vme_bridge_interrupt(int, struct vme_bridge_device *);
 extern int vme_enable_interrupts(unsigned int);
 extern int vme_disable_interrupts(unsigned int);
-
+extern int tsi148_irq_domain_create(struct vme_bridge_device *vbridge);
+extern void tsi148_irq_domain_destroy(struct vme_bridge_device *vbridge);
 
 /* vme_window.c */
 extern int vme_window_release(struct inode *, struct file *);
@@ -130,8 +134,6 @@ extern int vme_bus_error_check_clear(struct vme_bus_error *);
 
 /* Procfs stuff grouped here for comodity */
 #ifdef CONFIG_PROC_FS
-extern const struct file_operations vme_interrupts_proc_ops;
-extern const struct file_operations vme_irq_proc_ops;
 extern const struct file_operations vme_window_proc_ops;
 #endif
 

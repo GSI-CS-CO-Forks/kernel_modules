@@ -123,16 +123,6 @@ void vme_procfs_register(void)
 	if (!entry)
 		printk(KERN_WARNING PFX "Failed to create proc windows node\n");
 
-	/* Create /proc/vme/interrupts file */
-	entry = proc_create("interrupts", S_IFREG | S_IRUGO, vme_root, &vme_interrupts_proc_ops);
-	if (!entry)
-		printk(KERN_WARNING PFX
-		       "Failed to create proc interrupts node\n");
-	/* Create /proc/vme/irq file */
-	entry = proc_create("irq", S_IFREG | S_IRUGO, vme_root, &vme_irq_proc_ops);
-	if (!entry)
-		printk(KERN_WARNING PFX "Failed to create proc irq node\n");
-
 	/* Create specific TSI148 proc entries */
 	tsi148_procfs_register(vme_root);
 }
@@ -141,8 +131,6 @@ void vme_procfs_unregister(void)
 {
 
 	tsi148_procfs_unregister(vme_root);
-	remove_proc_entry("irq", vme_root);
-	remove_proc_entry("interrupts", vme_root);
 	remove_proc_entry("windows", vme_root);
 	remove_proc_entry("info", vme_root);
 	remove_proc_entry("vme", NULL);
@@ -548,13 +536,9 @@ static int vme_bridge_init_interrupts(void)
 	int rc;
 	unsigned int intmask;
 
-	/* Register our interrupt handler */
-	rc = request_irq(vme_bridge->irq, vme_bridge_interrupt, IRQF_SHARED,
-			 "VME Bridge", vme_bridge);
-
+	rc = tsi148_irq_domain_create(vme_bridge);
 	if (rc) {
-		printk(KERN_ERR PFX "Failed to register irq %d handler\n",
-		       vme_bridge->irq);
+		printk(KERN_ERR PFX "Failed to create irq domanin\n");
 		return rc;
 	}
 
@@ -576,7 +560,6 @@ static int vme_bridge_init_interrupts(void)
 
 	if (vme_enable_interrupts(intmask)) {
 		printk(KERN_ERR PFX "Failed to enable interrupts");
-		free_irq(vme_bridge->irq, vme_bridge);
 		return -ENODEV;
 	}
 
@@ -822,9 +805,9 @@ static void vme_bridge_remove(struct pci_dev *pdev)
 	/* First quiesce the bridge */
 	tsi148_quiesce(vme_bridge->regs);
 
+	tsi148_irq_domain_destroy(vme_bridge);
 	/* Disable and free interrupts */
 	disable_irq(vme_bridge->irq);
-	free_irq(vme_bridge->irq, vme_bridge);
 
 	vme_bridge_unmap_crg();
 	vme_window_exit();

@@ -25,6 +25,7 @@
 #include <linux/device.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/interrupt.h>
 #endif /* __KERNEL__ */
 
 #include <linux/types.h>
@@ -385,7 +386,7 @@ typedef void (*vme_berr_handler_t)(struct vme_bus_error *);
 /* API for new drivers */
 extern int vme_register_driver(struct vme_driver *vme_driver, unsigned int ndev);
 extern void vme_unregister_driver(struct vme_driver *vme_driver);
-extern int vme_request_irq(unsigned int, int (*)(void *),
+extern int vme_request_irq(unsigned int, int (*handler)(void *),
 			   void *, const char *);
 extern int vme_free_irq(unsigned int );
 extern int vme_generate_interrupt(int, int, signed long);

@@ -15,8 +15,7 @@
  */
 
 #include <linux/interrupt.h>
-#include <linux/proc_fs.h>
-#include <linux/seq_file.h>
+#include <linux/irqdomain.h>
 
 #include "tsi148.h"
 #include "vme_bridge.h"
@@ -27,17 +26,14 @@ unsigned int vme_interrupts_enabled;
 struct vme_irq {
 	int	(*handler)(void *arg);
 	void	*arg;
-#ifdef CONFIG_PROC_FS
-	int	count;
-	char	*name;
-#endif
 };
 
 #define VME_NUM_VECTORS		256
 
 /* Mutex to prevent concurrent access to the IRQ table */
 static DEFINE_MUTEX(vme_irq_table_lock);
-static struct vme_irq vme_irq_table[VME_NUM_VECTORS];
+struct vme_irq vme_irq_table[VME_NUM_VECTORS];
+
 
 /* Interrupt counters */
 enum interrupt_idx {
@@ -74,66 +70,6 @@ struct interrupt_stats  {
 	{.name = "IRQ5"}, {.name = "IRQ6"}, {.name = "IRQ7"},
 	{.name = "PERR"}, {.name = "VERR"}, {.name = "SPURIOUS"}
 };
-
-
-#ifdef CONFIG_PROC_FS
-
-static int vme_interrupts_proc_show(struct seq_file *m, void *data)
-{
-        int i;
-
-        seq_printf(m, " Source       Count\n");
-        seq_printf(m, "--------------------------\n\n");
-
-        for (i = 0; i < ARRAY_SIZE(int_stats); i++)
-                seq_printf(m, "%-8s      %d\n", int_stats[i].name,
-                             int_stats[i].count);
-
-        return 0;
-}
-
-static int vme_interrupts_proc_open(struct inode *inode, struct file *file)
-{
-        return single_open(file, vme_interrupts_proc_show, NULL);
-}
-
-const struct file_operations vme_interrupts_proc_ops = {
-        .open           = vme_interrupts_proc_open,
-        .read           = seq_read,
-        .llseek         = seq_lseek,
-        .release        = single_release,
-};
-
-static int vme_irq_proc_show(struct seq_file *m, void *data)
-{
-        int i;
-        struct vme_irq *virq;
-
-        seq_printf(m, "Vector     Count      Client\n");
-        seq_printf(m, "------------------------------------------------\n\n");
-
-        for (i = 0; i < VME_NUM_VECTORS; i++) {
-                virq = &vme_irq_table[i];
-                if (virq->handler)
-                        seq_printf(m, " %3d     %10u   %s\n",
-                                   i, virq->count, virq->name);
-        }
-        return 0;
-}
-
-static int vme_irq_proc_open(struct inode *inode, struct file *file)
-{
-        return single_open(file, vme_irq_proc_show, NULL);
-}
-
-const struct file_operations vme_irq_proc_ops = {
-        .open           = vme_irq_proc_open,
-        .read           = seq_read,
-        .llseek         = seq_lseek,
-        .release        = single_release,
-};
-
-#endif /* CONFIG_PROC_FS */
 
 void account_dma_interrupt(int channel_mask)
 {
@@ -225,28 +161,23 @@ static void handle_lm_interrupt(int lm_mask)
  *  Get the IRQ vector through an IACK cycle and call the handler for
  * that vector if installed.
  */
-static void handle_vme_interrupt(int irq_mask)
+static void handle_vme_interrupt(int irq_mask,
+				 struct vme_bridge_device *vbridge)
 {
-	int i;
-	int vec;
-	struct vme_irq *virq;
+	int i, vec, cascade_irq;
+	struct irq_desc *desc;
 
 	for (i = 7; i > 0; i--) {
 
 		if (irq_mask & (1 << i)) {
 			/* Generate an 8-bit IACK cycle and get the vector */
-			vec = tsi148_iack8(vme_bridge->regs, i);
+			vec = tsi148_iack8(vbridge->regs, i);
+			if (!vbridge->domain)
+				continue;
 
-			virq = &vme_irq_table[vec];
-
-			if (virq->handler) {
-#ifdef CONFIG_PROC_FS
-				virq->count++;
-#endif
-				virq->handler(virq->arg);
-			}
-
-			int_stats[INT_IRQ1 + i - 1].count++;
+			cascade_irq = irq_find_mapping(vbridge->domain, vec);
+			desc = irq_to_desc(cascade_irq);
+			generic_handle_irq(cascade_irq);
 		}
 	}
 }
@@ -256,7 +187,7 @@ static void handle_vme_interrupt(int irq_mask)
  * vme_bridge_interrupt() - VME bridge main interrupt handler
  *
  */
-irqreturn_t vme_bridge_interrupt(int irq, void *ptr)
+irqreturn_t vme_bridge_interrupt(int irq, struct vme_bridge_device *vbridge)
 {
 	unsigned int raised;
 	unsigned int mask;
@@ -310,7 +241,7 @@ irqreturn_t vme_bridge_interrupt(int irq, void *ptr)
 		}
 
 		if (mask & TSI148_LCSR_INT_IRQM) {
-			handle_vme_interrupt(mask & TSI148_LCSR_INT_IRQM);
+			handle_vme_interrupt(mask & TSI148_LCSR_INT_IRQM, vbridge);
 			mask &= ~TSI148_LCSR_INT_IRQM;
 		}
 
@@ -358,6 +289,13 @@ int vme_disable_interrupts(unsigned int mask)
 	return tsi148_set_interrupts(vme_bridge->regs, new);
 }
 
+static irqreturn_t vme_irq_handler(int irq, void *data)
+{
+	struct vme_irq *virq = data;
+
+	return virq->handler(virq->arg);
+}
+
 /**
  * vme_request_irq() - Install handler for a given VME IRQ vector
  * @vec: VME IRQ vector
@@ -376,39 +314,23 @@ int vme_request_irq(unsigned int vec, int (*handler)(void *),
 	if (vec >= VME_NUM_VECTORS)
 		return -EINVAL;
 
-	if ((rc = mutex_lock_interruptible(&vme_irq_table_lock)) != 0)
+	rc = mutex_lock_interruptible(&vme_irq_table_lock);
+	if (rc)
 		return rc;
 
 	virq = &vme_irq_table[vec];
 
-	/* Check if that vector is already used */
 	if (virq->handler) {
-		rc = -EBUSY;
-		goto out_unlock;
+		mutex_unlock(&vme_irq_table_lock);
+		return -EBUSY;
 	}
-
 	virq->handler = handler;
 	virq->arg = arg;
 
-#ifdef CONFIG_PROC_FS
-	virq->count = 0;
-
-	if (name)
-		virq->name = (char *)name;
-	else
-		virq->name = "Unknown";
-#endif
-
-out_unlock:
 	mutex_unlock(&vme_irq_table_lock);
 
-	if (!rc)
-		printk(KERN_DEBUG PFX "Registered vector %d for %s\n",
-		       vec, virq->name);
-	else
-		printk(KERN_WARNING PFX "Could not install ISR: vector %d "
-		       "already in use by %s", vec, virq->name);
-	return rc;
+	return request_irq(irq_find_mapping(vme_bridge->domain, vec),
+			   vme_irq_handler, 0, name, virq);
 }
 EXPORT_SYMBOL_GPL(vme_request_irq);
 
@@ -426,29 +348,25 @@ int vme_free_irq(unsigned int vec)
 	if (vec >= VME_NUM_VECTORS)
 		return -EINVAL;
 
-	if ((rc = mutex_lock_interruptible(&vme_irq_table_lock)) != 0)
+	rc = mutex_lock_interruptible(&vme_irq_table_lock);
+	if (rc)
 		return rc;
 
 	virq = &vme_irq_table[vec];
 
-	/* Check there really was a handler installed */
 	if (!virq->handler) {
-		rc = -EINVAL;
-		goto out_unlock;
+		mutex_unlock(&vme_irq_table_lock);
+		return -EINVAL;
 	}
+
+	free_irq(irq_find_mapping(vme_bridge->domain, vec),
+		 virq);
 
 	virq->handler = NULL;
 	virq->arg = NULL;
-
-#ifdef CONFIG_PROC_FS
-	virq->count = 0;
-	virq->name = NULL;
-#endif
-
-out_unlock:
 	mutex_unlock(&vme_irq_table_lock);
 
-	return rc;
+	return 0;
 }
 EXPORT_SYMBOL_GPL(vme_free_irq);
 
