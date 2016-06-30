@@ -19,6 +19,7 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/interrupt.h>
+#include <linux/irqdomain.h>
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <linux/pci.h>
@@ -855,14 +856,6 @@ static struct device vme_bus = {
 	.release	= vme_bus_release,
 };
 
-struct vme_dev {
-	struct device dev;
-	struct device *next;
-	unsigned int id;
-};
-
-#define to_vme_dev(x) container_of((x), struct vme_dev, dev)
-
 static int vme_bus_match(struct device *dev, struct device_driver *driver)
 {
 	struct vme_driver *vme_driver = to_vme_driver(driver);
@@ -1005,15 +998,49 @@ int vme_register_driver(struct vme_driver *vme_driver, unsigned int ndev)
 		}
 	}
 
-	if (!error && !vme_driver->devices)
-		error = -ENODEV;
-
 	if (error)
 		vme_unregister_driver(vme_driver);
 
 	return error;
 }
 EXPORT_SYMBOL_GPL(vme_register_driver);
+
+void vme_unregister_device(struct vme_dev *vme_dev)
+{
+	device_unregister(&vme_dev->dev);
+}
+EXPORT_SYMBOL_GPL(vme_unregister_device);
+
+int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
+{
+	int err;
+
+	vme_dev->dev.parent	= &vme_bus;
+	vme_dev->dev.bus	= &vme_bus_type;
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(2,6,29)
+	snprintf(vme_dev->dev.bus_id, BUS_ID_SIZE, "vme.%u",
+		 vme_dev->slot);
+#else
+	dev_set_name(&vme_dev->dev, "vme.%u",
+		     vme_dev->slot);
+#endif
+	vme_dev->dev.platform_data = vme_driver;
+	vme_dev->dev.release = vme_dev_release;
+
+	vme_dev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
+	vme_dev->dev.dma_mask = &vme_dev->dev.coherent_dma_mask;
+
+	/* Assign a Linux IRQ number */
+
+	vme_dev->irq = irq_find_mapping(vme_bridge->domain, vme_dev->vector);
+
+	err = device_register(&vme_dev->dev);
+	if (err)
+		return err;
+	return 0;
+}
+EXPORT_SYMBOL_GPL(vme_register_device);
 
 static int __init vme_bridge_init_module(void)
 {
