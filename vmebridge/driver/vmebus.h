@@ -370,7 +370,8 @@ struct vme_dev {
 	unsigned int id;
 	unsigned int slot;
 	unsigned int irq;
-	unsigned int vector;
+	unsigned int irq_vector;
+	unsigned int irq_level;
 	unsigned int am;
 	unsigned int base_address;
 	unsigned int size;

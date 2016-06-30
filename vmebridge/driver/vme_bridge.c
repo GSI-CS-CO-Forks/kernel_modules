@@ -917,6 +917,78 @@ static int vme_bus_resume(struct device *dev)
 	return 0;
 }
 
+
+/**
+ * It shows the slot number of the given device
+ */
+static ssize_t slot_show(struct device *dev,
+			 struct device_attribute *attr,
+			 char *buf)
+{
+	struct vme_dev *vdev = to_vme_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", vdev->slot);
+}
+
+/**
+ * It shows the slot number of the given device
+ */
+static ssize_t address_space_show(struct device *dev,
+			 struct device_attribute *attr,
+			 char *buf)
+{
+	struct vme_dev *vdev = to_vme_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "0x%X,0x%X\n",
+			vdev->base_address,
+			vdev->base_address + vdev->size);
+}
+
+/**
+ * It shows the interrupt vector number of the given device
+ */
+static ssize_t irq_vector_show(struct device *dev,
+			       struct device_attribute *attr,
+			       char *buf)
+{
+	struct vme_dev *vdev = to_vme_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", vdev->irq_vector);
+}
+
+/**
+ * It shows the interrupt level (a.k.a. line) of the given device
+ */
+static ssize_t irq_level_show(struct device *dev,
+			      struct device_attribute *attr,
+			      char *buf)
+{
+	struct vme_dev *vdev = to_vme_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", vdev->irq_level);
+}
+
+/**
+ * It shows the Linux irq number of the given device
+ */
+static ssize_t irq_show(struct device *dev,
+			struct device_attribute *attr,
+			char *buf)
+{
+	struct vme_dev *vdev = to_vme_dev(dev);
+
+	return snprintf(buf, PAGE_SIZE, "%d\n", vdev->irq);
+}
+
+struct device_attribute vme_bus_attrs[] = {
+	__ATTR_RO(slot),
+	__ATTR_RO(address_space),
+	__ATTR_RO(irq_vector),
+	__ATTR_RO(irq_level),
+	__ATTR_RO(irq),
+	__ATTR_NULL,
+};
+
 static struct bus_type vme_bus_type = {
 	.name           = "vme",
 	.match          = vme_bus_match,
@@ -924,7 +996,8 @@ static struct bus_type vme_bus_type = {
 	.remove         = vme_bus_remove,
 	.shutdown       = vme_bus_shutdown,
 	.suspend        = vme_bus_suspend,
-	.resume         = vme_bus_resume
+	.resume         = vme_bus_resume,
+	.dev_attrs = vme_bus_attrs,
 };
 
 static void vme_dev_release(struct device *dev)
@@ -1033,7 +1106,8 @@ int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
 
 	/* Assign a Linux IRQ number */
 
-	vme_dev->irq = irq_find_mapping(vme_bridge->domain, vme_dev->vector);
+	vme_dev->irq = irq_find_mapping(vme_bridge->domain,
+					vme_dev->irq_vector);
 
 	err = device_register(&vme_dev->dev);
 	if (err)
