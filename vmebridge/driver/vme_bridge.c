@@ -26,6 +26,8 @@
 
 #include "vme_bridge.h"
 
+static struct bus_type vme_bus_type;
+
 static char version[] =
 	"PCI-VME bridge: V" DRV_MODULE_VERSION " (" DRV_MODULE_RELDATE ")";
 
@@ -980,7 +982,7 @@ static ssize_t irq_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d\n", vdev->irq);
 }
 
-struct device_attribute vme_bus_attrs[] = {
+struct device_attribute vme_bus_dev_attrs[] = {
 	__ATTR_RO(slot),
 	__ATTR_RO(address_space),
 	__ATTR_RO(irq_vector),
@@ -988,6 +990,126 @@ struct device_attribute vme_bus_attrs[] = {
 	__ATTR_RO(irq),
 	__ATTR_NULL,
 };
+
+
+/**
+ * Chek if the device we want to register (data->vme_dev) can be registered.
+ * The most important control is about memory overlapping. We cannot have two
+ * devices on the same memory area.
+ * Control that the slot is not yet claimed.
+ */
+static int vme_device_conflict(struct device *dev, void *data)
+{
+	struct vme_dev *vme_dev = data, *tmp;
+
+	tmp = to_vme_dev(dev);
+	if (vme_dev->slot == tmp->slot) {
+		pr_err(PFX "Cannot register two devices on the same slot\n");
+		return -EINVAL;
+	}
+
+	if ((vme_dev->base_address <= tmp->base_address &&
+	     tmp->base_address < vme_dev->base_address + vme_dev->size) ||
+	    (vme_dev->base_address <= tmp->base_address + tmp->size &&
+	     tmp->base_address + tmp->size < vme_dev->base_address + vme_dev->size)) {
+		pr_err(PFX "Cannot register two devices with memory overlap\n");
+		return -EINVAL;
+	}
+
+	return 0;
+}
+
+/**
+ * This function register a new device on the VME bus by parsing the
+ * user registration string.
+ */
+static ssize_t register_device_store(struct bus_type *bus, const char *buf,
+				     size_t count)
+{
+	struct vme_dev *vme_dev;
+	struct device_driver *drv;
+	struct vme_driver *vme_driver;
+	char drv_name[64];
+	int err = 0, i;
+
+	vme_dev = kzalloc(sizeof(struct vme_dev), GFP_KERNEL);
+	if (!vme_dev)
+		return -ENOMEM;
+
+	/* Parse the registration string */
+	i = sscanf(buf, "%d,0x%x,0x%x,0x%x,0x%x,%d,%s",
+		   &vme_dev->slot,
+		   &vme_dev->am,
+		   &vme_dev->base_address,
+		   &vme_dev->size,
+		   &vme_dev->irq_vector,
+		   &vme_dev->irq_level,
+		   drv_name);
+	if (i != 7) {
+		pr_err(PFX "Invalid registration string: missing parameter\n");
+		pr_info(PFX "Registration string: <slot>,<am>,<address>,<size>,<irq-vector>,<irq-level>,<driver-name>\n");
+		err = -EINVAL;
+		goto out;
+
+	}
+
+	/* Get the proper driver */
+	drv = driver_find(drv_name, &vme_bus_type);
+	if (!drv) {
+		err = -ENODEV;
+		goto out;
+
+	}
+	vme_driver = container_of(drv, struct vme_driver, driver);
+
+	/* register the new device */
+	err = vme_register_device(vme_dev, vme_driver);
+	if (err)
+		goto out;
+
+	return count;
+ out:
+	kfree(vme_dev);
+	return err;
+}
+
+static int vme_match_slot(struct device *dev, void *data)
+{
+	struct vme_dev *vme_dev = to_vme_dev(dev);
+	int *slot = data;
+
+	if (vme_dev->slot == *slot)
+		return 1;
+
+	return 0;
+}
+
+static ssize_t unregister_device_store(struct bus_type *bus, const char *buf,
+				       size_t count)
+{
+	struct device *dev;
+	int slot, i;
+
+	i = sscanf(buf, "%i", &slot);
+	if (i != 1) {
+		pr_err(PFX "Invalid unregister string: slot number is mandatory\n");
+		return -EINVAL;
+	}
+
+	dev = bus_find_device(&vme_bus_type, NULL, &slot, vme_match_slot);
+	if (!dev)
+		return -ENODEV;
+
+	vme_unregister_device(to_vme_dev(dev));
+	return count;
+}
+
+struct bus_attribute vme_bus_attrs[] = {
+	__ATTR(register_device, 0222, NULL, register_device_store),
+	__ATTR(unregister_device, 0222, NULL, unregister_device_store),
+	__ATTR_NULL,
+};
+
 
 static struct bus_type vme_bus_type = {
 	.name           = "vme",
@@ -997,8 +1119,11 @@ static struct bus_type vme_bus_type = {
 	.shutdown       = vme_bus_shutdown,
 	.suspend        = vme_bus_suspend,
 	.resume         = vme_bus_resume,
-	.dev_attrs = vme_bus_attrs,
+	.bus_attrs = vme_bus_attrs,
+	.dev_attrs = vme_bus_dev_attrs,
 };
+
+
 
 static void vme_dev_release(struct device *dev)
 {
@@ -1108,6 +1233,22 @@ int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
 
 	vme_dev->irq = irq_find_mapping(vme_bridge->domain,
 					vme_dev->irq_vector);
+
+	pr_info(PFX "Registering device: [slot: %d, am: 0x%x, addr: 0x%x, size: 0x%x, irq-vector: 0x%x, irq-level: %d, driver: \"%s\"]\n",
+		vme_dev->slot,
+		vme_dev->am,
+		vme_dev->base_address,
+		vme_dev->size,
+		vme_dev->irq_vector,
+		vme_dev->irq_level,
+		vme_driver->driver.name);
+	pr_info(PFX "Assign Linux IRQ number %d to vector 0x%x\n",
+		vme_dev->irq, vme_dev->irq_vector);
+
+	/* Look for any incompatibility */
+	err = bus_for_each_dev(&vme_bus_type, NULL, vme_dev, vme_device_conflict);
+	if (err)
+		return err;
 
 	err = device_register(&vme_dev->dev);
 	if (err)
