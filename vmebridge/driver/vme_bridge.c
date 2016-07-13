@@ -861,12 +861,65 @@ static struct device vme_bus = {
 static int vme_bus_match(struct device *dev, struct device_driver *driver)
 {
 	struct vme_driver *vme_driver = to_vme_driver(driver);
+	struct vme_dev *vdev = to_vme_dev(dev);
+	const struct vme_device_id *id = vme_driver->id_table;
+	struct vme_mapping map = {
+		.am = VME_CR_CSR,
+		.data_width = VME_D32,
+		.vme_addrl = vdev->slot * 0x80000,
+		.vme_addru = 0,
+		.sizel = 0x80000,
+		.sizeu = 0,
+	};
+	void *csr;
+	int err;
 
+	/* Deprecated way of matching */
 	if (dev->platform_data == vme_driver) {
 		if (!vme_driver->match ||
 			vme_driver->match(dev, to_vme_dev(dev)->id))
 			return 1;
 		dev->platform_data = NULL;
+		return 0;
+	}
+
+	/*
+	 * When the vendor and device ID information is not complete, try
+	 * to access the CS/CSR to find the vendor and device ID
+	 */
+	if (!vdev->devid.vendor || !vdev->devid.device) {
+		err = vme_find_mapping(&map, 1);
+		if (err)
+			return 0; /* No matching */
+		csr = map.kernel_va;
+
+		/* Get vendor */
+		vdev->devid.vendor = 0;
+		vdev->devid.vendor |= ioread32be(csr + 0x24) << 16;
+		vdev->devid.vendor |= ioread32be(csr + 0x28) << 8;
+		vdev->devid.vendor |= ioread32be(csr + 0x2C) << 0;
+		/* Get device */
+		vdev->devid.device = 0;
+		vdev->devid.device |= ioread32be(csr + 0x30) << 24;
+		vdev->devid.device |= ioread32be(csr + 0x34) << 16;
+		vdev->devid.device |= ioread32be(csr + 0x38) << 8;
+		vdev->devid.device |= ioread32be(csr + 0x3C) << 0;
+		/* Get revision */
+		vdev->devid.revision = 0;
+		vdev->devid.revision |= ioread32be(csr + 0x40) << 24;
+		vdev->devid.revision |= ioread32be(csr + 0x44) << 16;
+		vdev->devid.revision |= ioread32be(csr + 0x48) << 8;
+		vdev->devid.revision |= ioread32be(csr + 0x4C) << 0;
+
+		vme_release_mapping(&map, 1);
+	}
+
+	/* Check if the given vendor/device ID is compatible with the driver */
+	while (id->vendor && id->device) {
+		if (id->vendor == vdev->devid.vendor &&
+		    id->device == vdev->devid.device)
+			return 1;
+		++id; /* move to the next id compatible with the driver */
 	}
 	return 0;
 }
@@ -1027,9 +1080,6 @@ static ssize_t register_device_store(struct bus_type *bus, const char *buf,
 				     size_t count)
 {
 	struct vme_dev *vme_dev;
-	struct device_driver *drv;
-	struct vme_driver *vme_driver;
-	char drv_name[64];
 	int err = 0, i;
 
 	vme_dev = kzalloc(sizeof(struct vme_dev), GFP_KERNEL);
@@ -1037,33 +1087,26 @@ static ssize_t register_device_store(struct bus_type *bus, const char *buf,
 		return -ENOMEM;
 
 	/* Parse the registration string */
-	i = sscanf(buf, "%d,0x%x,0x%x,0x%x,0x%x,%d,%s",
+	i = sscanf(buf, "%d,0x%x,0x%x,0x%x,0x%x,%d,0x%x:0x%x:0x%x",
 		   &vme_dev->slot,
 		   &vme_dev->am,
 		   &vme_dev->base_address,
 		   &vme_dev->size,
 		   &vme_dev->irq_vector,
 		   &vme_dev->irq_level,
-		   drv_name);
-	if (i != 7) {
+		   &vme_dev->devid.vendor,
+		   &vme_dev->devid.device,
+		   &vme_dev->devid.revision);
+	if (i != 9) {
 		pr_err(PFX "Invalid registration string: missing parameter\n");
-		pr_info(PFX "Registration string: <slot>,<am>,<address>,<size>,<irq-vector>,<irq-level>,<driver-name>\n");
+		pr_info(PFX "Registration string: <slot>,<am>,<address>,<size>,<irq-vector>,<irq-level>,0x<vendor-id>:0x<device-id>:0x<revision>\n");
 		err = -EINVAL;
 		goto out;
 
 	}
 
-	/* Get the proper driver */
-	drv = driver_find(drv_name, &vme_bus_type);
-	if (!drv) {
-		err = -ENODEV;
-		goto out;
-
-	}
-	vme_driver = container_of(drv, struct vme_driver, driver);
-
 	/* register the new device */
-	err = vme_register_device(vme_dev, vme_driver);
+	err = vme_register_device(vme_dev);
 	if (err)
 		goto out;
 
@@ -1209,7 +1252,7 @@ void vme_unregister_device(struct vme_dev *vme_dev)
 }
 EXPORT_SYMBOL_GPL(vme_unregister_device);
 
-int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
+int vme_register_device(struct vme_dev *vme_dev)
 {
 	int err;
 
@@ -1223,7 +1266,6 @@ int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
 	dev_set_name(&vme_dev->dev, "vme.%u",
 		     vme_dev->slot);
 #endif
-	vme_dev->dev.platform_data = vme_driver;
 	vme_dev->dev.release = vme_dev_release;
 
 	vme_dev->dev.coherent_dma_mask = DMA_BIT_MASK(32);
@@ -1234,14 +1276,13 @@ int vme_register_device(struct vme_dev *vme_dev, struct vme_driver *vme_driver)
 	vme_dev->irq = irq_find_mapping(vme_bridge->domain,
 					vme_dev->irq_vector);
 
-	pr_info(PFX "Registering device: [slot: %d, am: 0x%x, addr: 0x%x, size: 0x%x, irq-vector: 0x%x, irq-level: %d, driver: \"%s\"]\n",
+	pr_info(PFX "Registering device: [slot: %d, am: 0x%x, addr: 0x%x, size: 0x%x, irq-vector: 0x%x, irq-level: %d]\n",
 		vme_dev->slot,
 		vme_dev->am,
 		vme_dev->base_address,
 		vme_dev->size,
 		vme_dev->irq_vector,
-		vme_dev->irq_level,
-		vme_driver->driver.name);
+		vme_dev->irq_level);
 	pr_info(PFX "Assign Linux IRQ number %d to vector 0x%x\n",
 		vme_dev->irq, vme_dev->irq_vector);
 

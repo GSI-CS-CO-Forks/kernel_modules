@@ -364,9 +364,16 @@ struct pdparam_master
 
 #ifdef __KERNEL__
 
+struct vme_device_id {
+	uint32_t vendor;
+	uint32_t device;
+	uint32_t revision;
+};
+
 struct vme_dev {
 	struct device dev;
 	struct device *next;
+	struct vme_device_id devid;
 	unsigned int id;
 	unsigned int slot;
 	unsigned int irq;
@@ -383,6 +390,7 @@ struct vme_dev {
  * Those definitions are for drivers only and are not visible to userspace.
  */
 
+
 struct vme_driver {
 	int (*match)(struct device *, unsigned int);
 	int (*probe)(struct device *, unsigned int);
@@ -392,6 +400,8 @@ struct vme_driver {
 	int (*resume)(struct device *, unsigned int);
 	struct device_driver driver;
 	struct device *devices;
+	const struct vme_device_id *id_table; /**< list terminater by
+						 all 0s entry */
 };
 
 #define to_vme_driver(x) container_of((x), struct vme_driver, driver)
@@ -399,8 +409,7 @@ struct vme_driver {
 typedef void (*vme_berr_handler_t)(struct vme_bus_error *);
 
 /* API for new drivers */
-extern int vme_register_device(struct vme_dev *vme_dev,
-			       struct vme_driver *vme_driver);
+extern int vme_register_device(struct vme_dev *vme_dev);
 extern void vme_unregister_device(struct vme_dev *vme_dev);
 extern int vme_register_driver(struct vme_driver *vme_driver, unsigned int ndev);
 extern void vme_unregister_driver(struct vme_driver *vme_driver);
