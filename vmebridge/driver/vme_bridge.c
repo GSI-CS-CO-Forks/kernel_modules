@@ -926,7 +926,9 @@ static int vme_bus_match(struct device *dev, struct device_driver *driver)
 
 static int vme_bus_probe(struct device *dev)
 {
-	struct vme_driver *vme_driver = dev->platform_data;
+	struct vme_driver *vme_driver = container_of(dev->driver,
+						     struct vme_driver,
+						     driver);
 
 	if (vme_driver->probe)
 		return vme_driver->probe(dev, to_vme_dev(dev)->id);
@@ -936,7 +938,9 @@ static int vme_bus_probe(struct device *dev)
 
 static int vme_bus_remove(struct device *dev)
 {
-	struct vme_driver *vme_driver = dev->platform_data;
+	struct vme_driver *vme_driver = container_of(dev->driver,
+						     struct vme_driver,
+						     driver);
 
 	if (vme_driver->remove)
 		return vme_driver->remove(dev, to_vme_dev(dev)->id);
@@ -946,7 +950,9 @@ static int vme_bus_remove(struct device *dev)
 
 static void vme_bus_shutdown(struct device *dev)
 {
-	struct vme_driver *vme_driver = dev->platform_data;
+	struct vme_driver *vme_driver = container_of(dev->driver,
+						     struct vme_driver,
+						     driver);
 
 	if (vme_driver->shutdown)
 		vme_driver->shutdown(dev, to_vme_dev(dev)->id);
@@ -954,7 +960,9 @@ static void vme_bus_shutdown(struct device *dev)
 
 static int vme_bus_suspend(struct device *dev, pm_message_t state)
 {
-	struct vme_driver *vme_driver = dev->platform_data;
+	struct vme_driver *vme_driver = container_of(dev->driver,
+						     struct vme_driver,
+						     driver);
 
 	if (vme_driver->suspend)
 		return vme_driver->suspend(dev, to_vme_dev(dev)->id, state);
@@ -964,7 +972,9 @@ static int vme_bus_suspend(struct device *dev, pm_message_t state)
 
 static int vme_bus_resume(struct device *dev)
 {
-	struct vme_driver *vme_driver = dev->platform_data;
+	struct vme_driver *vme_driver = container_of(dev->driver,
+						     struct vme_driver,
+						     driver);
 
 	if (vme_driver->resume)
 		return vme_driver->resume(dev, to_vme_dev(dev)->id);
