@@ -51,7 +51,9 @@ static inline void chained_irq_exit(struct irq_chip *chip,
  */
 void tsi148_irq_unmask(struct irq_data *data)
 {
-	//printk("%s:%d\n", __func__, __LINE__);
+	struct vme_bridge_device *vbridge = data->domain->host_data;
+
+	set_bit(data->hwirq, vbridge->irq_mask);
 }
 
 /**
@@ -59,7 +61,9 @@ void tsi148_irq_unmask(struct irq_data *data)
  */
 void tsi148_irq_mask(struct irq_data *data)
 {
-	//printk("%s:%d\n", __func__, __LINE__);
+	struct vme_bridge_device *vbridge = data->domain->host_data;
+
+	clear_bit(data->hwirq, vbridge->irq_mask);
 }
 
 /**
@@ -84,7 +88,7 @@ static int tsi148_irq_domain_map(struct irq_domain *h,
 				 unsigned int virtirq,
 				 irq_hw_number_t hwirq)
 {
-	struct vme_bridge *vbridge = h->host_data;
+	struct vme_bridge_device *vbridge = h->host_data;
 	struct irq_desc *desc = irq_to_desc(virtirq);
 
 	irq_set_chip(virtirq, &tsi148_chip);
@@ -145,7 +149,8 @@ int tsi148_irq_domain_create(struct vme_bridge_device *vbridge)
 		if (i == 0)
 			vbridge->base_irq = irq;
 	}
-
+	/* Disable all interrupts */
+	bitmap_clear(vbridge->irq_mask, 0, VME_NUM_VECTORS);
 	err = irq_set_handler_data(vbridge->irq, vbridge);
 	if (err)
 		BUG();
@@ -161,6 +166,8 @@ out:
 
 void tsi148_irq_domain_destroy(struct vme_bridge_device *vbridge)
 {
+	/* Disable all interrupts */
+	bitmap_clear(vbridge->irq_mask, 0, VME_NUM_VECTORS);
 	irq_domain_remove(vbridge->domain);
 	vbridge->domain = NULL;
 }

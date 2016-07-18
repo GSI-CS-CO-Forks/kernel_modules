@@ -174,6 +174,8 @@ static void handle_vme_interrupt(int irq_mask,
 			vec = tsi148_iack8(vbridge->regs, i);
 			if (!vbridge->domain)
 				continue;
+			if (!test_bit(vec, vbridge->irq_mask))
+				continue; /* This IRQ is disables */
 
 			cascade_irq = irq_find_mapping(vbridge->domain, vec);
 			desc = irq_to_desc(cascade_irq);

@@ -52,6 +52,7 @@ struct vme_bridge_device {
 	struct pci_dev		*pdev;
 	struct vme_verr		verr;
 	unsigned int base_irq;
+	DECLARE_BITMAP(irq_mask, VME_NUM_VECTORS);
 	struct irq_domain *domain;
 };
 
