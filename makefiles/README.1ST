@@ -19,8 +19,8 @@ Short file description
 |-- Makefile.lces    - Builds up Linux driver and installation program for
 |                      CES BSP Linux. SCHEDULED FOR DELETION!
 |-- Makefile.lib     - Driver library compilation
-|-- Makefile.linux   - Linux driver compilation. Included through Makeflie.drvr
-|-- Makefile.lynx    - Lynx driver compilation. Included through Makeflie.drvr
+|-- Makefile.linux   - Linux driver compilation. Included through Makefile.drvr
+|-- Makefile.lynx    - Lynx driver compilation. Included through Makefile.drvr
 |-- Makefile.tst     - Test programs compilation.
 |-- README.1ST       - this file
 |-- abs2rel.sh       - absolute to relative path converter script
