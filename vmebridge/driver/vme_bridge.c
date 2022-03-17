@@ -262,7 +262,11 @@ static int vme_release(struct inode *inode, struct file *file)
 static ssize_t vme_read(struct file *file, char *buf, size_t count,
 			loff_t *ppos)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,99,99)
 	unsigned int minor = iminor(file->f_dentry->d_inode);
+#else
+	unsigned int minor = iminor(file->f_path.dentry->d_inode);
+#endif
 	struct file_operations *f_op = NULL;
 
 	/*
@@ -290,7 +294,11 @@ static ssize_t vme_read(struct file *file, char *buf, size_t count,
 static ssize_t vme_write(struct file *file, const char *buf, size_t count,
 			 loff_t *ppos)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(3,99,99)
 	unsigned int minor = iminor(file->f_dentry->d_inode);
+#else
+	unsigned int minor = iminor(file->f_path.dentry->d_inode);
+#endif
 	struct file_operations *f_op = NULL;
 
 	/*
@@ -317,7 +325,11 @@ static ssize_t vme_write(struct file *file, const char *buf, size_t count,
 
 long vme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,0,0)
 	unsigned int minor = iminor(file->f_dentry->d_inode);
+#else
+	unsigned int minor = iminor(file->f_path.dentry->d_inode);
+#endif
 	struct file_operations *f_op = NULL;
 
 	switch(minor) {
@@ -340,7 +352,11 @@ long vme_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
 
 static int vme_mmap(struct file *file, struct vm_area_struct *vma)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,0,0)
 	unsigned int minor = iminor(file->f_dentry->d_inode);
+#else
+	unsigned int minor = iminor(file->f_path.dentry->d_inode);
+#endif
 	struct file_operations *f_op = NULL;
 
 	switch(minor) {
@@ -1097,4 +1113,3 @@ MODULE_DESCRIPTION("Tundra TSI148 PCI-VME Bridge driver");
 MODULE_VERSION(DRV_MODULE_VERSION);
 MODULE_VERSION(GIT_VERSION);
 MODULE_DEVICE_TABLE(pci, tsi148_ids);
-
