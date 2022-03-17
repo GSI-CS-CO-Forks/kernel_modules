@@ -73,8 +73,12 @@ static int sgl_fill_user_pages(struct page **pages, unsigned long uaddr,
 
 	/* Get user pages for the DMA transfer */
 	down_read(&current->mm->mmap_sem);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,0,0)
 	ret = get_user_pages(current, current->mm, uaddr, nr_pages, rw, 0,
-			    pages, NULL);
+		pages, NULL);
+#else
+	ret = get_user_pages(uaddr, nr_pages, FOLL_WRITE, pages, NULL);
+#endif
 	up_read(&current->mm->mmap_sem);
 
 	return ret;
@@ -131,7 +135,11 @@ static int sgl_map_user_pages(struct scatterlist *sgl,
 		if (rc >= 0 && rc < nr_pages) {
 			/* Some pages were pinned, release these */
 			for (i = 0; i < rc; i++)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,0,0)
 				page_cache_release(pages[i]);
+#else
+				put_page(pages[i]);
+#endif
 			rc = -ENOMEM;
 			goto out_free;
 		}
@@ -192,8 +200,11 @@ static void sgl_unmap_user_pages(struct scatterlist *sgl,
 
 		if (dirty && !PageReserved(page))
 			SetPageDirty(page);
-
+#if LINUX_VERSION_CODE < KERNEL_VERSION(4,0,0)
 		page_cache_release (page);
+#else
+		put_page(page);
+#endif
 	}
 }
 
